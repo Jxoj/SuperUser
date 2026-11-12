@@ -1,3 +1,4 @@
+
 # SuperUser Proxy
 
 A terminal-themed web proxy powered by [Scramjet](https://github.com/MercuryWorkshop/scramjet) + [Wisp](https://github.com/MercuryWorkshop/wisp-js).
@@ -97,3 +98,4 @@ Run `python build_singlefile.py` to generate `singlefile/index.html`, or
 `python build_js.py` to generate `singlefile/launcher.js`. The launcher defaults
 to Mirror 2 and fetches the selected single-file build before opening it in a
 new `about:blank` tab.
+
