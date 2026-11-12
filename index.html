@@ -1,0 +1,3135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SuperUser Proxy</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #09090b;
+      --bg-panel: #111113;
+      --bg-elevated: #18181b;
+      --border: #27272a;
+      --border-focus: #3f3f46;
+      --green: #22c55e;
+      --green-glow: rgba(34, 197, 94, 0.25);
+      --green-dark: rgba(34, 197, 94, 0.1);
+      --cyan: #06b6d4;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --danger: #ef4444;
+      --radius: 12px;
+      --radius-pill: 9999px;
+      --home-bg-image: none;
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      user-select: none;
+      background-image: var(--home-bg-image);
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       CINEMATIC TYPEWRITER + BUMP + RIPPLE INTRO OVERLAY
+    ═══════════════════════════════════════════════════════ */
+    #introOverlay {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.4s ease, visibility 0.4s;
+    }
+
+    #introOverlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #rippleCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .intro-stage {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: clamp(36px, 6vw, 68px);
+      letter-spacing: -0.02em;
+    }
+
+    .intro-prompt {
+      color: var(--green);
+      margin-right: 14px;
+      display: inline-block;
+      text-shadow: 0 0 20px var(--green-glow);
+      opacity: 0;
+      transform: translateX(-40px);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    }
+
+    .intro-prompt.bump-windup {
+      opacity: 1;
+      transform: translateX(-65px);
+    }
+
+    .intro-prompt.bump-strike {
+      transform: translateX(4px);
+      transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    }
+
+    .intro-word {
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .intro-word.recoil {
+      transform: translateX(16px);
+    }
+
+    .intro-char {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.08s ease, transform 0.08s ease;
+    }
+
+    .intro-char.typed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .intro-char.green {
+      color: var(--green);
+      text-shadow: 0 0 16px var(--green-glow);
+    }
+
+    .intro-cursor {
+      color: var(--green);
+      display: inline-block;
+      margin-left: 4px;
+      animation: blink 0.8s step-end infinite;
+      font-weight: 400;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .intro-skip-hint {
+      position: absolute;
+      bottom: 32px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.6;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       APP SHELL
+    ═══════════════════════════════════════════════════════ */
+    .app-shell {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      background: var(--bg);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       MODERN SIDEBAR
+    ═══════════════════════════════════════════════════════ */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px 12px;
+      border-right: 1px solid var(--border);
+      background: var(--bg-panel);
+      z-index: 20;
+      transition: width 0.22s ease, padding 0.22s ease;
+    }
+
+    .sidebar.collapsed {
+      width: 68px;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    .sidebar.collapsed .sidebar-label,
+    .sidebar.collapsed .tab-title,
+
+    .sidebar.collapsed .new-tab-btn span {
+      display: none;
+    }
+
+    .new-tab-btn b { display: none; }
+    .sidebar.collapsed .new-tab-btn b { display: inline; }
+
+    .sidebar.collapsed .tab-item,
+    .sidebar.collapsed .search-tabs-control,
+    .sidebar.collapsed .new-tab-btn {
+      justify-content: center;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .sidebar.collapsed .sidebar-actions {
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .search-tabs-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .search-tabs-btn:hover {
+      border-color: var(--border-focus);
+      color: var(--text);
+      background: var(--bg-elevated);
+    }
+
+    .search-tabs-control {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      width: 100%;
+      min-height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text-muted);
+      background: var(--bg-panel);
+    }
+
+    .search-tabs-control input {
+      min-width: 0;
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font: 11px 'Inter', sans-serif;
+    }
+
+    .search-tabs-control input::placeholder { color: var(--text-dim); }
+
+
+    .tab-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 2px;
+    }
+
+    .tab-list::-webkit-scrollbar { width: 3px; }
+    .tab-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .tab-item {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      transition: all 0.15s ease;
+    }
+
+    .tab-item:hover:not(.active) {
+      background: var(--bg-elevated);
+      color: var(--text);
+      border-color: var(--border-focus);
+    }
+
+    .tab-item.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #000000;
+      font-weight: 600;
+    }
+
+    .tab-title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    .tab-favicon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      object-fit: contain;
+      border-radius: 3px;
+    }
+
+    .tab-favicon-fallback {
+      width: 16px;
+      flex: 0 0 16px;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .tab-close {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 18px;
+      opacity: 0.65;
+      padding: 0;
+      transition: opacity 0.15s ease, background 0.15s ease;
+    }
+
+    .tab-close:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .new-tab-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .new-tab-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dark);
+    }
+
+    .sidebar-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .sidebar-mini-btn {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-mini-btn:hover {
+      color: var(--text);
+      border-color: var(--border-focus);
+    }
+
+    .sidebar-icon-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .sidebar-icon-btn:hover {
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEWPORT
+    ═══════════════════════════════════════════════════════ */
+    .viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .viewport.browsing .terminal-container {
+      bottom: calc(100% - 56px);
+      opacity: 0;
+      transform: translate(-50%, -8px) scale(0.96);
+      pointer-events: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       TOP URL BAR (ACTIVE WEBPAGES ONLY — HIDDEN ON NEWTAB)
+    ═══════════════════════════════════════════════════════ */
+    .top-url-bar {
+      height: 48px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      z-index: 30;
+      flex-shrink: 0;
+      animation: slideDown 0.18s ease both;
+    }
+
+    .top-url-bar.active {
+      display: flex;
+    }
+
+    .top-command-autocomplete {
+      position: absolute;
+      top: 52px;
+      left: 140px;
+      right: 68px;
+      z-index: 80;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+
+    .top-nav-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .top-nav-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .top-nav-btn:hover {
+      color: var(--text);
+      background: var(--bg-elevated);
+      border-color: var(--border);
+    }
+
+    .top-url-input-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      padding: 0 12px;
+      height: 32px;
+      transition: all 0.15s ease;
+    }
+
+    .top-url-input-wrap:focus-within {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px var(--green);
+    }
+
+    .top-url-lock {
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    #topUrlInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .top-go-btn {
+      background: transparent;
+      border: none;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .top-go-btn:hover {
+      background: var(--green-dark);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       HOME SCREEN (NEW TAB)
+    ═══════════════════════════════════════════════════════ */
+    #homeScreen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 0.2s ease;
+    }
+
+    #homeScreen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      font-size: clamp(42px, 7vw, 76px);
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 20px;
+      text-shadow: 0 0 40px var(--green-glow);
+    }
+
+    .hero-brand .hero-prompt {
+      margin-right: 12px;
+      animation: blink 1.2s step-end infinite;
+    }
+
+    .hero-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      margin-bottom: 32px;
+    }
+
+    .hero-meta span {
+      color: var(--green);
+    }
+
+    .system-status {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      max-width: 720px;
+      margin: 0 0 26px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(17,17,19,.78);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 7px 10px;
+    }
+
+    .status-chip strong {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .quick-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 560px;
+    }
+
+    #quickShortcuts {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .chip-btn {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .chip-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dark);
+      transform: translateY(-1px);
+    }
+
+    .shortcut-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      object-fit: contain;
+    }
+
+    .search-provider {
+      width: 120px;
+      background: transparent;
+      border: 0;
+      border-left: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .learning-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #070b12;
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+
+    .learning-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .learning-card {
+      width: min(680px, calc(100% - 32px));
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: clamp(24px, 5vw, 48px);
+      box-shadow: 0 24px 80px rgba(0,0,0,.5);
+    }
+
+    .learning-card h1 {
+      color: var(--green);
+      font-size: clamp(28px, 5vw, 52px);
+      margin-bottom: 12px;
+    }
+
+    .learning-card p {
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .learning-resources {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .learning-resources a {
+      color: var(--text);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    .learning-resources a:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .extension-prompt {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      width: min(480px, calc(100% - 32px));
+      z-index: 1000;
+      display: none;
+      background: var(--bg-panel);
+      border: 1px solid var(--green);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.65);
+    }
+
+    .extension-prompt.open { display: block; }
+
+    .extension-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       FRAME AREA
+    ═══════════════════════════════════════════════════════ */
+    #frameArea {
+      flex: 1;
+      position: relative;
+      display: none;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    #frameArea.active {
+      display: flex;
+    }
+
+    .app-page {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      padding: 34px clamp(20px, 6vw, 90px) 120px;
+      overflow-y: auto;
+      background: var(--bg);
+      z-index: 15;
+    }
+
+    .app-page.active { display: flex; }
+
+    .app-page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .app-page-title {
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 700;
+    }
+
+    .app-page-subtitle {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .page-search {
+      width: min(320px, 100%);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      padding: 10px 14px;
+    }
+
+    .page-search:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px var(--green);
+    }
+
+    .page-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+
+    .page-card h3 {
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .page-card p {
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .page-command-list {
+      display: grid;
+      gap: 4px;
+    }
+
+    .page-command-row {
+      display: grid;
+      grid-template-columns: minmax(160px, 230px) 1fr;
+      gap: 16px;
+      padding: 11px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+
+    .page-command-row code {
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .page-command-row span {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .page-log-list {
+      max-height: 52vh;
+      overflow-y: auto;
+    }
+
+    .page-log-list .log-row { padding: 4px 0; }
+
+    #browserFrames {
+      position: absolute;
+      inset: 0;
+    }
+
+    .browser-tab-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #ffffff;
+      display: none;
+    }
+
+    .browser-tab-frame.active {
+      display: block;
+    }
+
+    .frame-loader {
+      position: absolute;
+      inset: 0;
+      background: #000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 25;
+      transition: opacity 0.2s ease;
+    }
+
+    .frame-loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .frame-loader-msg {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--green);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       TERMINAL COMMAND BAR
+    ═══════════════════════════════════════════════════════ */
+    .terminal-container {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(680px, calc(100% - 40px));
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transition: bottom 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.2s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* AUTOCOMPLETE POPUP */
+    .cmd-autocomplete {
+      background: #111113;
+      border: 1px solid var(--border-focus);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      display: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      max-height: min(320px, 42vh);
+      overflow-y: auto;
+      scrollbar-color: var(--border-focus) transparent;
+    }
+
+    .cmd-autocomplete.visible {
+      display: block;
+    }
+
+    .autocomplete-item {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      transition: background 0.1s ease;
+      text-align: left;
+    }
+
+    .autocomplete-item:last-child {
+      border-bottom: none;
+    }
+
+    .autocomplete-item:hover, .autocomplete-item.focused {
+      background: var(--green-dark);
+    }
+
+    .ac-cmd {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .ac-desc {
+      color: var(--text-dim);
+      font-size: 11px;
+    }
+
+    /* TERMINAL INPUT BOX */
+    .terminal-box {
+      display: flex;
+      align-items: flex-start;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: var(--bg-panel);
+      padding: 10px 16px;
+      transition: border-color 0.15s, box-shadow 0.15s, border-radius 0.15s;
+      min-height: 48px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .terminal-box:focus-within {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px var(--green), 0 0 20px rgba(34, 197, 94, 0.15);
+    }
+
+    .terminal-box.multiline {
+      border-radius: 16px;
+    }
+
+    .terminal-prompt-prefix {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+      white-space: nowrap;
+      line-height: 26px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    #cmdTextarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 26px;
+      caret-color: var(--green);
+      overflow-y: auto;
+      height: 26px;
+      padding: 0;
+      overflow: hidden;
+      white-space: pre-wrap;
+    }
+
+    #cmdTextarea::placeholder {
+      color: var(--text-dim);
+    }
+
+    .cmd-run-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      cursor: pointer;
+      margin-left: 8px;
+      align-self: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .cmd-run-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dark);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       LIVE ERROR & DEBUG LOG DRAWER
+    ═══════════════════════════════════════════════════════ */
+    .log-drawer {
+      position: fixed;
+      bottom: 86px;
+      right: 20px;
+      width: min(540px, calc(100vw - 40px));
+      height: 320px;
+      background: #0d0d0f;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85);
+      z-index: 90;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: fadeIn 0.15s ease;
+    }
+
+    .log-drawer.open {
+      display: flex;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #141416;
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .log-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .log-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .log-status-dot.err {
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+    }
+
+    .log-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .log-action-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+
+    .log-action-btn:hover {
+      color: var(--text);
+      border-color: var(--border-focus);
+    }
+
+    .log-body {
+      flex: 1;
+      padding: 10px 12px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-body::-webkit-scrollbar { width: 3px; }
+    .log-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .log-row {
+      display: flex;
+      gap: 8px;
+      word-break: break-all;
+    }
+
+    .log-ts {
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .log-tag {
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .log-tag.info { color: var(--cyan); }
+    .log-tag.ok   { color: var(--green); }
+    .log-tag.warn { color: #f59e0b; }
+    .log-tag.err  { color: var(--danger); }
+
+    .log-msg {
+      color: var(--text);
+    }
+
+    /* Floating toggle badge */
+    .log-toggle-badge {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      cursor: pointer;
+      z-index: 60;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .log-toggle-badge:hover {
+      border-color: var(--border-focus);
+      color: var(--text);
+      background: var(--bg-elevated);
+    }
+
+    .log-toggle-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .log-toggle-badge .dot.err {
+      background: var(--danger);
+      box-shadow: 0 0 6px var(--danger);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       MODALS (SETTINGS & HELP)
+    ═══════════════════════════════════════════════════════ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-content {
+      width: min(540px, 100%);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+
+    .modal-close-btn:hover {
+      color: var(--text);
+      border-color: var(--border-focus);
+    }
+
+    .modal-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .modal-row-label {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .modal-row-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .modal-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .modal-input {
+      min-width: 190px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font: 11px 'JetBrains Mono', monospace;
+      padding: 6px 10px;
+      outline: none;
+    }
+
+    .modal-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    .modal-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    /* Help Commands Table */
+    .cmd-list-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .cmd-list-table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .cmd-name {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--green);
+      font-weight: 600;
+      white-space: nowrap;
+      width: 170px;
+    }
+
+    .cmd-expl {
+      color: var(--text-muted);
+    }
+
+    /* TOAST */
+    .toast-pill {
+      position: fixed;
+      bottom: 84px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 8px 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.15s ease;
+    }
+
+    .toast-pill.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-pill.err {
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       INTRO OVERLAY (TYPEWRITER + BUMP + RIPPLE)
+  ═══════════════════════════════════════════════════════ -->
+  <div id="introOverlay">
+    <canvas id="rippleCanvas"></canvas>
+    <div class="intro-stage" id="introStage">
+      <span class="intro-prompt" id="introPrompt">&gt;</span>
+      <span class="intro-word" id="introWord"></span>
+      <span class="intro-cursor" id="introCursor">_</span>
+    </div>
+    <div class="intro-skip-hint">Press any key or click to skip</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       APP SHELL
+  ═══════════════════════════════════════════════════════ -->
+  <div class="app-shell">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <button class="search-tabs-btn" id="collapseSidebarBtn" title="Collapse sidebar">
+          <span aria-hidden="true">‹</span><span class="sidebar-label">Collapse</span>
+        </button>
+        <label class="search-tabs-control" title="Search open tabs">
+          <span class="sidebar-icon" aria-hidden="true">⌕</span>
+          <input id="searchTabsInput" type="search" placeholder="Search tabs..." autocomplete="off">
+        </label>
+      </div>
+
+      <div class="tab-list" id="tabList"></div>
+
+      <div class="sidebar-footer">
+        <button class="new-tab-btn" id="newTabBtn"><span>+ New Tab</span><b aria-hidden="true">+</b></button>
+        <div class="sidebar-actions">
+          <button class="sidebar-icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+          <button class="sidebar-icon-btn" id="helpBtn" title="Help" aria-label="Help">?</button>
+          <button class="sidebar-icon-btn" id="logsBtn" title="Logs" aria-label="Logs">≡</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- VIEWPORT -->
+    <main class="viewport">
+
+      <!-- TOP URL BAR: APPEARS ONLY WHEN BROWSING (HIDDEN ON NEW TAB) -->
+      <header class="top-url-bar" id="topUrlBar">
+        <div class="top-nav-group">
+          <button class="top-nav-btn" id="topBackBtn" title="Back">←</button>
+          <button class="top-nav-btn" id="topForwardBtn" title="Forward">→</button>
+          <button class="top-nav-btn" id="topReloadBtn" title="Reload">↻</button>
+          <button class="top-nav-btn" id="topHomeBtn" title="Home (New Tab)">⌂</button>
+        </div>
+
+        <div class="top-url-input-wrap">
+          <span class="top-url-lock">🔒</span>
+          <select class="search-provider" id="topSearchProvider" title="Search provider">
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="google">Google</option>
+            <option value="bing">Bing</option>
+            <option value="startpage">Startpage</option>
+            <option value="youtube">YouTube</option>
+          </select>
+          <input type="text" id="topUrlInput" placeholder="Enter URL or search query..." autocomplete="off" spellcheck="false">
+          <button class="top-go-btn" id="topGoBtn">GO</button>
+        </div>
+        <div class="cmd-autocomplete top-command-autocomplete" id="topCommandAutocomplete"></div>
+
+        <div class="top-nav-group">
+          <button class="top-nav-btn" id="topFullscreenBtn" title="Fullscreen">⛶</button>
+        </div>
+      </header>
+
+      <!-- HOME SCREEN (NEW TAB) -->
+      <section id="homeScreen">
+        <div class="hero-brand">
+          <span class="hero-prompt">&gt;</span>SuperUser
+        </div>
+        <div class="hero-meta">
+          By Jxo
+        </div>
+
+        <div class="system-status" aria-live="polite">
+          <div class="status-chip">Server <strong id="serverPing">checking…</strong></div>
+          <div class="status-chip">Time <strong id="systemTime">--:--:--</strong></div>
+          <div class="status-chip">Battery <strong id="systemBattery">N/A</strong></div>
+        </div>
+
+        <div class="quick-chips">
+          <div id="quickShortcuts"></div>
+        </div>
+        <input type="file" id="backgroundUpload" accept="image/*,video/*" hidden>
+      </section>
+
+      <!-- PROXIED BROWSER FRAME -->
+      <section id="frameArea">
+        <div class="frame-loader" id="frameLoader">
+          <div class="spinner"></div>
+          <div class="frame-loader-msg" id="frameLoaderMsg">Connecting via Wisp...</div>
+        </div>
+
+        <section class="learning-screen hidden" id="learningScreen">
+          <article class="learning-card">
+            <h1>Kid Learning</h1>
+            <p>SuperUser keeps learning sessions focused with a fast, private browser shell, useful shortcuts, and a clean space for research.</p>
+            <div class="learning-resources">
+              <a href="https://www.khanacademy.org/" data-learning-url="https://www.khanacademy.org/">Khan Academy</a>
+              <a href="https://www.nationalgeographic.com/" data-learning-url="https://www.nationalgeographic.com/">National Geographic</a>
+              <a href="https://www.britannica.com/" data-learning-url="https://www.britannica.com/">Britannica</a>
+              <a href="https://www.ck12.org/" data-learning-url="https://www.ck12.org/">CK-12</a>
+            </div>
+          </article>
+        </section>
+        <div id="browserFrames"></div>
+      </section>
+
+      <section class="app-page" id="settingsPage" data-page="settings">
+        <div class="app-page-header">
+          <div><div class="app-page-title">Settings</div><div class="app-page-subtitle">Configure the proxy experience.</div></div>
+          <input class="page-search" data-page-search="settings" placeholder="Search settings..." autocomplete="off">
+        </div>
+        <div class="page-card" data-searchable="wisp websocket server">
+          <h3>Wisp WebSocket Server</h3><p>Choose the transport endpoint used by Scramjet.</p>
+          <select class="modal-select" id="wispSelectPage"><option value="local">Self-Hosted (Recommended)</option><option value="homework-relay">Homework Wisp</option><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp</option><option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option></select>
+          <input class="modal-input" id="customWispInputPage" placeholder="Custom wss:// endpoint" autocomplete="off">
+          <button class="modal-btn" id="customWispBtnPage">Use custom</button>
+        </div>
+        <div class="page-card" data-searchable="ad blocker ads performance">
+          <h3>Ad blocking</h3><p>Block common ad and tracking hosts before they load.</p>
+          <label><input type="checkbox" id="adBlockToggle" checked> Enable fast ad blocking</label>
+        </div>
+        <div class="page-card" data-searchable="background image video custom">
+          <h3>Custom background</h3><p>Use an image or video as the app background.</p>
+          <button class="modal-btn" id="backgroundUploadBtn">Choose background</button>
+          <button class="modal-btn" id="clearBackgroundBtn">Clear</button>
+        </div>
+        <div class="page-card" data-searchable="extensions userscripts youtube blooket wayground">
+          <h3>Site extensions</h3><p>Enable built-in userscripts per supported site. Scripts are loaded only after you confirm.</p>
+          <div id="extensionSettingsList"></div>
+        </div>
+        <div class="page-card" data-searchable="shortcuts google youtube discord chatgpt">
+          <h3>Shortcuts</h3><p>Choose which home shortcuts are visible.</p>
+          <div id="shortcutSettingsList"></div>
+        </div>
+        <div class="page-card" data-searchable="intro animation">
+          <h3>Intro Animation</h3><p>Replay the SuperUser intro animation.</p><button class="modal-btn" id="replayIntroPageBtn">Replay Intro</button>
+        </div>
+        <div class="page-card" data-searchable="service worker reset cache">
+          <h3>Reset Service Worker</h3><p>Unregister and reload the proxy cache.</p><button class="modal-btn" id="resetSwPageBtn">Reset SW</button>
+        </div>
+      </section>
+
+      <section class="app-page" id="helpPage" data-page="help">
+        <div class="app-page-header">
+          <div><div class="app-page-title">Help</div><div class="app-page-subtitle">Commands and keyboard shortcuts.</div></div>
+          <input class="page-search" data-page-search="help" placeholder="Search commands..." autocomplete="off">
+        </div>
+        <div class="page-card page-command-list" id="helpCommandList"></div>
+      </section>
+
+      <section class="app-page" id="logsPage" data-page="logs">
+        <div class="app-page-header">
+          <div><div class="app-page-title">Logs</div><div class="app-page-subtitle">Live system and proxy diagnostics.</div></div>
+          <input class="page-search" data-page-search="logs" placeholder="Search logs..." autocomplete="off">
+        </div>
+        <div class="page-card page-log-list" id="pageLogList"></div>
+        <div class="sidebar-actions"><button class="modal-btn" id="pageTestProxyBtn">Test Proxy</button><button class="modal-btn" id="pageClearLogsBtn">Clear Logs</button></div>
+      </section>
+
+      <!-- COMMAND-FIRST TERMINAL INPUT -->
+      <div class="terminal-container" id="terminalContainer">
+        <!-- Command menu appears when the user types sudo. -->
+        <div class="cmd-autocomplete" id="cmdAutocomplete"></div>
+
+        <div class="terminal-box" id="terminalBox">
+          <span class="terminal-prompt-prefix">user@super~$</span>
+          <textarea
+            id="cmdTextarea"
+            rows="1"
+            placeholder="Enter a URL, Search the Web, or type sudo"
+            autocomplete="off"
+            spellcheck="false"
+          ></textarea>
+          <button class="cmd-run-btn" id="cmdRunBtn" title="Execute (Enter)">↵</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- FLOATING LOGS TOGGLE BADGE -->
+  <button class="log-toggle-badge" id="logToggleBadge">
+    <div class="dot" id="logBadgeDot"></div>
+    <span>Logs</span>
+  </button>
+
+  <!-- LIVE ERROR & DEBUG LOG DRAWER -->
+  <div class="log-drawer" id="logDrawer">
+    <div class="log-header">
+      <div class="log-header-left">
+        <div class="log-status-dot" id="logHeaderDot"></div>
+        <span>System & Error Logs</span>
+      </div>
+      <div class="log-actions">
+        <button class="log-action-btn" id="testProxyBtn">Test Proxy</button>
+        <button class="log-action-btn" id="clearLogsBtn">Clear</button>
+        <button class="log-action-btn" id="closeLogsBtn">✕</button>
+      </div>
+    </div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-top">
+        <div class="modal-title">Settings</div>
+        <button class="modal-close-btn" onclick="closeAllModals()">Close</button>
+      </div>
+
+      <div class="modal-row">
+        <div>
+          <div class="modal-row-label">Wisp WebSocket Server</div>
+          <div class="modal-row-desc">Proxy transport connection endpoint</div>
+        </div>
+        <select class="modal-select" id="wispSelect">
+          <option value="local">Self-Hosted (Recommended)</option>
+          <option value="homework-relay">Homework Wisp</option>
+          <option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp</option>
+          <option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option>
+        </select>
+        <input class="modal-input" id="customWispInput" placeholder="Custom wss:// endpoint" autocomplete="off">
+        <button class="modal-btn" id="customWispBtn">Use custom</button>
+      </div>
+
+      <div class="modal-row">
+        <div>
+          <div class="modal-row-label">Intro Animation</div>
+          <div class="modal-row-desc">Replay typewriter bump & ripple effect</div>
+        </div>
+        <button class="modal-btn" id="replayIntroBtn">Replay Intro</button>
+      </div>
+
+      <div class="modal-row">
+        <div>
+          <div class="modal-row-label">Reset Service Worker</div>
+          <div class="modal-row-desc">Unregister and reload proxy cache</div>
+        </div>
+        <button class="modal-btn" id="resetSwBtn">Reset SW</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELP MODAL -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-content">
+      <div class="modal-top">
+        <div class="modal-title">Commands & Shortcuts</div>
+        <button class="modal-close-btn" onclick="closeAllModals()">Close</button>
+      </div>
+
+      <table class="cmd-list-table">
+        <tbody>
+          <tr><td class="cmd-name">sudo &lt;url&gt;</td><td class="cmd-expl">Browse directly to any website</td></tr>
+          <tr><td class="cmd-name">sudo google &lt;query&gt;</td><td class="cmd-expl">Search Google</td></tr>
+          <tr><td class="cmd-name">sudo yt &lt;query&gt;</td><td class="cmd-expl">Search YouTube</td></tr>
+          <tr><td class="cmd-name">sudo</td><td class="cmd-expl">Show all commands</td></tr>
+          <tr><td class="cmd-name">sudo help</td><td class="cmd-expl">Open this commands reference</td></tr>
+          <tr><td class="cmd-name">sudo logs</td><td class="cmd-expl">Toggle live error & debug log drawer</td></tr>
+          <tr><td class="cmd-name">sudo test</td><td class="cmd-expl">Run proxy connection diagnostics</td></tr>
+          <tr><td class="cmd-name">sudo newtab</td><td class="cmd-expl">Open a new tab</td></tr>
+          <tr><td class="cmd-name">sudo clear</td><td class="cmd-expl">Close all tabs and return home</td></tr>
+          <tr><td class="cmd-name">sudo settings</td><td class="cmd-expl">Open settings</td></tr>
+          <tr><td class="cmd-name">sudo reload</td><td class="cmd-expl">Reload current tab</td></tr>
+          <tr><td class="cmd-name">sudo intro</td><td class="cmd-expl">Replay intro animation</td></tr>
+          <tr><td class="cmd-name">Enter</td><td class="cmd-expl">Submit the command, URL, or search</td></tr>
+          <tr><td class="cmd-name">Arrow keys / Tab</td><td class="cmd-expl">Choose an autocomplete command</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-pill" id="toastPill"></div>
+
+  <div class="extension-prompt" id="extensionPrompt">
+    <div id="extensionPromptText">A site extension is available for this page.</div>
+    <div class="extension-actions">
+      <button class="modal-btn" id="runExtensionBtn">Run</button>
+      <button class="modal-btn" id="cancelExtensionBtn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCRAMJET CORE SCRIPTS (CLASSIC SCRIPTS)
+  ═══════════════════════════════════════════════════════ -->
+  <script src="/scramjet/scramjet.js"></script>
+  <script src="/controller/controller.api.js"></script>
+  <!-- Local Epoxy transport bundle (fallback to CDN) -->
+  <script src="/controller/epoxy.js"></script>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════
+     0. LIVE SYSTEM & ERROR LOGGING ENGINE
+  ═══════════════════════════════════════════════════════ */
+  const logDrawer       = document.getElementById('logDrawer');
+  const logBody         = document.getElementById('logBody');
+  const logBadgeDot     = document.getElementById('logBadgeDot');
+  const logHeaderDot    = document.getElementById('logHeaderDot');
+  const logToggleBadge  = document.getElementById('logToggleBadge');
+
+  let hasErrors = false;
+
+  function addLog(msg, type = 'info') {
+    const row = document.createElement('div');
+    row.className = 'log-row';
+
+    const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const tagClass = type === 'err' ? 'err' : type === 'ok' ? 'ok' : type === 'warn' ? 'warn' : 'info';
+    const tagText = type === 'err' ? 'ERR' : type === 'ok' ? 'OK' : type === 'warn' ? 'WARN' : 'INFO';
+
+    if (type === 'err') {
+      hasErrors = true;
+      logBadgeDot.classList.add('err');
+      logHeaderDot.classList.add('err');
+    }
+
+    row.innerHTML = `
+      <span class="log-ts">[${ts}]</span>
+      <span class="log-tag ${tagClass}">[${tagText}]</span>
+      <span class="log-msg">${escapeHtml(msg)}</span>
+    `;
+
+    logBody.appendChild(row);
+    logBody.scrollTop = logBody.scrollHeight;
+    const pageRow = row.cloneNode(true);
+    pageRow.dataset.searchable = msg;
+    document.getElementById('pageLogList')?.appendChild(pageRow);
+  }
+
+  function toggleLogDrawer(force) {
+    const isNowOpen = force !== undefined ? force : !logDrawer.classList.contains('open');
+    logDrawer.classList.toggle('open', isNowOpen);
+  }
+
+  logToggleBadge.addEventListener('click', () => showAppPage('logs'));
+  document.getElementById('closeLogsBtn').addEventListener('click', () => toggleLogDrawer(false));
+  document.getElementById('clearLogsBtn').addEventListener('click', () => {
+    logBody.innerHTML = '';
+    hasErrors = false;
+    logBadgeDot.classList.remove('err');
+    logHeaderDot.classList.remove('err');
+    addLog('Logs cleared', 'info');
+  });
+
+  // Global browser error listeners
+  window.addEventListener('error', (e) => {
+    addLog(`${e.message} at ${e.filename || 'unknown'}:${e.lineno || 0}`, 'err');
+  });
+
+  window.addEventListener('unhandledrejection', (e) => {
+    const reason = e.reason ? (e.reason.message || e.reason) : 'Unknown Promise Rejection';
+    addLog(`Unhandled Promise: ${reason}`, 'err');
+  });
+
+  /* ═══════════════════════════════════════════════════════
+     1. CINEMATIC TYPEWRITER + BUMP + RIPPLE INTRO
+  ═══════════════════════════════════════════════════════ */
+  const introOverlay = document.getElementById('introOverlay');
+  const introPrompt  = document.getElementById('introPrompt');
+  const introWord    = document.getElementById('introWord');
+  const introCursor  = document.getElementById('introCursor');
+  const rippleCanvas = document.getElementById('rippleCanvas');
+  const rippleCtx    = rippleCanvas.getContext('2d');
+
+  let introSkipped = false;
+  const WORD_CHARS = [
+    { c: 'S', green: true },
+    { c: 'u', green: false },
+    { c: 'p', green: false },
+    { c: 'e', green: false },
+    { c: 'r', green: false },
+    { c: 'U', green: true },
+    { c: 's', green: false },
+    { c: 'e', green: false },
+    { c: 'r', green: false }
+  ];
+
+  function resizeCanvas() {
+    rippleCanvas.width = window.innerWidth;
+    rippleCanvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  let ripples = [];
+  function triggerRipple(x, y) {
+    ripples.push({
+      x,
+      y,
+      radius: 4,
+      maxRadius: Math.hypot(window.innerWidth, window.innerHeight) * 1.1,
+      speed: 26,
+      alpha: 1.0,
+      lineWidth: 16
+    });
+
+    function draw() {
+      rippleCtx.clearRect(0, 0, rippleCanvas.width, rippleCanvas.height);
+      let running = false;
+
+      for (let i = 0; i < ripples.length; i++) {
+        const r = ripples[i];
+        if (r.alpha > 0.01) {
+          running = true;
+          rippleCtx.save();
+          rippleCtx.beginPath();
+          rippleCtx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+          rippleCtx.strokeStyle = `rgba(34, 197, 94, ${r.alpha})`;
+          rippleCtx.lineWidth = r.lineWidth;
+          rippleCtx.shadowColor = '#22c55e';
+          rippleCtx.shadowBlur = 24;
+          rippleCtx.stroke();
+          rippleCtx.restore();
+
+          r.radius += r.speed;
+          r.speed *= 1.02;
+          r.alpha *= 0.94;
+        }
+      }
+
+      if (running) {
+        requestAnimationFrame(draw);
+      } else {
+        ripples = [];
+        rippleCtx.clearRect(0, 0, rippleCanvas.width, rippleCanvas.height);
+      }
+    }
+    draw();
+  }
+
+  function finishIntro() {
+    if (introSkipped) return;
+    introSkipped = true;
+    introOverlay.classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('cmdTextarea')?.focus();
+    }, 400);
+  }
+
+  introOverlay.addEventListener('click', finishIntro);
+  window.addEventListener('keydown', (e) => {
+    if (!introSkipped && !introOverlay.classList.contains('hidden')) {
+      finishIntro();
+    }
+  });
+
+  async function playIntro() {
+    introSkipped = false;
+    introOverlay.classList.remove('hidden');
+    introWord.innerHTML = '';
+    introPrompt.className = 'intro-prompt';
+    introCursor.style.display = 'inline-block';
+
+    const els = WORD_CHARS.map(item => {
+      const span = document.createElement('span');
+      span.className = 'intro-char' + (item.green ? ' green' : '');
+      span.textContent = item.c;
+      introWord.appendChild(span);
+      return span;
+    });
+
+    await sleep(350);
+    if (introSkipped) return;
+
+    // Typewriter
+    for (let el of els) {
+      if (introSkipped) return;
+      el.classList.add('typed');
+      await sleep(80);
+    }
+
+    await sleep(200);
+    if (introSkipped) return;
+    introCursor.style.display = 'none';
+
+    // Bump
+    introPrompt.classList.add('bump-windup');
+    await sleep(220);
+    if (introSkipped) return;
+
+    introPrompt.classList.add('bump-strike');
+    introWord.classList.add('recoil');
+
+    const rect = introPrompt.getBoundingClientRect();
+    triggerRipple(rect.right, rect.top + rect.height / 2);
+
+    await sleep(150);
+    introWord.classList.remove('recoil');
+
+    await sleep(350);
+    finishIntro();
+  }
+
+  playIntro();
+
+  /* ═══════════════════════════════════════════════════════
+     2. SCRAMJET CONTROLLER & WISP PROXY ENGINE
+  ═══════════════════════════════════════════════════════ */
+  const { Controller } = $scramjetController || {};
+  const { defaultConfig } = $scramjet || {};
+  const EpoxyTransport = (self.EpoxyTransport && self.EpoxyTransport.default) || self.EpoxyTransport;
+
+  const browserFrames   = document.getElementById('browserFrames');
+  const frameArea       = document.getElementById('frameArea');
+  const homeScreen      = document.getElementById('homeScreen');
+  const topUrlBar       = document.getElementById('topUrlBar');
+  const topUrlInput     = document.getElementById('topUrlInput');
+  const frameLoader     = document.getElementById('frameLoader');
+  const frameLoaderMsg   = document.getElementById('frameLoaderMsg');
+  const learningScreen   = document.getElementById('learningScreen');
+  const SETTINGS_KEY     = 'superuser-settings';
+  const TABS_KEY         = 'superuser-tabs';
+  const EXTENSIONS_KEY   = 'superuser-extensions';
+  const SHORTCUTS_KEY    = 'superuser-shortcuts';
+  const DEFAULT_SHORTCUTS = [
+    { title: 'Google', url: 'https://www.google.com', domain: 'google.com' },
+    { title: 'YouTube', url: 'https://www.youtube.com', domain: 'youtube.com' },
+    { title: 'Discord', url: 'https://discord.com/app', domain: 'discord.com' },
+    { title: 'ChatGPT', url: 'https://chatgpt.com', domain: 'chatgpt.com' }
+  ];
+  const defaultSettings  = {
+    wisp: 'local',
+    searchProvider: 'duckduckgo',
+    adBlock: true,
+    background: ''
+  };
+  let settings = { ...defaultSettings };
+  try { settings = { ...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (_) {}
+  let extensionCatalog = [];
+  let enabledExtensions = {};
+  let visibleShortcuts = DEFAULT_SHORTCUTS;
+  try { enabledExtensions = JSON.parse(localStorage.getItem(EXTENSIONS_KEY) || '{}'); } catch (_) {}
+  try {
+    const savedShortcuts = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || 'null');
+    if (Array.isArray(savedShortcuts)) visibleShortcuts = savedShortcuts;
+  } catch (_) {}
+
+  const AD_HOSTS = /(^|\.)((doubleclick|googlesyndication|googleadservices|adnxs|adsrvr|advertising|imasdk|adform|criteo|taboola|outbrain|scorecardresearch)\.)/i;
+  const searchUrls = {
+    duckduckgo: query => `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+    google: query => `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+    bing: query => `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
+    startpage: query => `https://www.startpage.com/sp/search?query=${encodeURIComponent(query)}`,
+    youtube: query => `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
+  };
+
+  let scramjet = null;
+  let sjFrame  = null;
+  let isProxyReady = false;
+  let allowApplicationUnload = false;
+
+  function getWispUrl() {
+    const sel = document.getElementById('wispSelectPage')?.value ||
+      document.getElementById('wispSelect')?.value;
+    const selected = sel || settings.wisp;
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    if (selected === 'homework-relay') {
+      return 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/';
+    }
+    if (selected && selected !== 'local') return selected;
+    return `${proto}//${location.host}/wisp/`;
+  }
+
+  function getLocalWispUrl() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${location.host}/wisp/`;
+  }
+
+  function verifyWispEndpoint(url) {
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = result => {
+        if (settled) return;
+        settled = true;
+        resolve(result);
+      };
+      let socket;
+      try {
+        socket = new WebSocket(url);
+        socket.addEventListener('open', () => {
+          addLog(`Wisp WebSocket verified: ${url}`, 'ok');
+          socket.close();
+          finish(true);
+        }, { once: true });
+        socket.addEventListener('error', () => finish(false), { once: true });
+        setTimeout(() => {
+          try { socket.close(); } catch (_) {}
+          finish(false);
+        }, 3000);
+      } catch (_) {
+        finish(false);
+      }
+    });
+  }
+
+  async function initScramjetProxy() {
+    try {
+      addLog('Registering service worker (/sw.js)...', 'info');
+
+      if (!('serviceWorker' in navigator)) {
+        throw new Error('Service Workers are not supported in this browser.');
+      }
+
+      const reg = await navigator.serviceWorker.register('/sw.js?v=7', { updateViaCache: 'none' });
+      addLog(`Service worker registered (scope: ${reg.scope})`, 'ok');
+
+      await navigator.serviceWorker.ready;
+
+      // Check if page is controlled. If first visit, reload to establish SW interception
+      if (!navigator.serviceWorker.controller) {
+        addLog('Service worker active. Claiming client controller...', 'warn');
+        await sleep(300);
+        if (!navigator.serviceWorker.controller) {
+          addLog('Reloading once to establish full Service Worker interception...', 'info');
+          allowApplicationUnload = true;
+          location.reload();
+          return;
+        }
+      }
+
+      const sw = navigator.serviceWorker.controller;
+      addLog('Service worker controller active and verified', 'ok');
+
+      // Epoxy transport init
+      const wispUrl = getWispUrl();
+      addLog(`Connecting Epoxy transport to: ${wispUrl}`, 'info');
+      if (!(await verifyWispEndpoint(wispUrl))) {
+        addLog(`Wisp endpoint did not complete a WebSocket handshake: ${wispUrl}`, 'warn');
+      }
+
+      if (!EpoxyTransport) {
+        throw new Error('EpoxyTransport bundle failed to load. Check /controller/epoxy.js');
+      }
+
+      let transport;
+      try {
+        transport = new EpoxyTransport({ wisp: wispUrl });
+        await transport.init();
+      } catch (error) {
+        if (wispUrl === getLocalWispUrl()) throw error;
+        addLog(`Remote Wisp unavailable; falling back to local ${getLocalWispUrl()}`, 'warn');
+        transport = new EpoxyTransport({ wisp: getLocalWispUrl() });
+        await transport.init();
+      }
+      addLog('Epoxy transport handshake complete', 'ok');
+
+      // Scramjet controller init
+      addLog('Initializing Scramjet controller & WASM...', 'info');
+      scramjet = new Controller({
+        serviceworker: sw,
+        transport,
+        scramjetConfig: defaultConfig
+      });
+
+      await scramjet.wait();
+      addLog('Scramjet controller ready and synchronized', 'ok');
+
+      isProxyReady = true;
+
+      showToast('Proxy ready — type sudo for commands');
+      addLog('SuperUser Proxy is online and ready for traffic', 'ok');
+    } catch (err) {
+      console.error(err);
+      addLog(`Scramjet boot failure: ${err.message}`, 'err');
+      showToast('Proxy Error: ' + err.message, true);
+      toggleLogDrawer(true);
+    }
+  }
+
+  // Test Proxy Diagnostics
+  document.getElementById('testProxyBtn').addEventListener('click', async () => {
+    addLog('--- RUNNING PROXY DIAGNOSTICS ---', 'info');
+    addLog(`SW Support: ${'serviceWorker' in navigator}`, 'info');
+    addLog(`SW Controller: ${navigator.serviceWorker.controller ? 'Active' : 'NULL (Reload Required)'}`, navigator.serviceWorker.controller ? 'ok' : 'err');
+    addLog(`Wisp Endpoint: ${getWispUrl()}`, 'info');
+    addLog(`Scramjet Controller: ${scramjet ? 'Initialized' : 'Not Ready'}`, scramjet ? 'ok' : 'warn');
+    addLog(`Iframe Binding: ${sjFrame ? 'Bound' : 'Unbound'}`, sjFrame ? 'ok' : 'warn');
+
+    try {
+      const resp = await fetch('/health');
+      const data = await resp.json();
+      addLog(`Backend /health: ${JSON.stringify(data)}`, 'ok');
+    } catch (e) {
+      addLog(`Backend /health error: ${e.message}`, 'err');
+    }
+  });
+
+  /* ═══════════════════════════════════════════════════════
+     3. TAB MANAGEMENT SYSTEM
+  ═══════════════════════════════════════════════════════ */
+  let tabs = [];
+  let activeTabId = null;
+  let tabCounter = 0;
+
+  const tabList = document.getElementById('tabList');
+
+  function createTab(url = 'home') {
+    const id = ++tabCounter;
+    const isHome = url === 'home';
+    const tab = {
+      id,
+      url,
+      title: isHome ? 'New Tab' : getHost(url),
+      favicon: '',
+      frame: null,
+      sjFrame: null,
+      active: false
+    };
+    tabs.push(tab);
+    switchTab(id);
+    renderTabs();
+    saveTabs();
+    addLog(`Created tab #${id} (${tab.title})`, 'info');
+  }
+
+  function switchTab(id) {
+    const tab = tabs.find(t => t.id === id);
+    if (!tab) return;
+
+    activeTabId = id;
+    tabs.forEach(t => t.active = t.id === id);
+    renderTabs();
+    saveTabs();
+
+    if (tab.url === 'home') {
+      showHomeScreen();
+    } else {
+      loadUrlInFrame(tab.url, false);
+    }
+  }
+
+  function saveTabs() {
+    localStorage.setItem(TABS_KEY, JSON.stringify({
+      activeTabId,
+      tabs: tabs.map(tab => ({
+        id: tab.id, url: tab.url, title: tab.title, favicon: tab.favicon
+      }))
+    }));
+  }
+
+  function restoreTabs() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(TABS_KEY) || 'null');
+      if (!saved?.tabs?.length) return false;
+      const uniqueTabs = saved.tabs.filter((savedTab, index, list) =>
+        list.findIndex(candidate => candidate.url === savedTab.url && candidate.title === savedTab.title) === index);
+      uniqueTabs.forEach(savedTab => {
+        const tab = {
+          ...savedTab, frame: null, sjFrame: null, active: false
+        };
+        tabs.push(tab);
+        tabCounter = Math.max(tabCounter, tab.id);
+      });
+      const target = tabs.find(tab => tab.id === saved.activeTabId) || tabs[0];
+      switchTab(target.id);
+      return true;
+    } catch (error) {
+      addLog(`Could not restore tabs: ${error.message}`, 'warn');
+      return false;
+    }
+  }
+
+  function renderTabs() {
+    tabList.innerHTML = '';
+    tabs.forEach(tab => {
+      const el = document.createElement('div');
+      el.className = 'tab-item' + (tab.active ? ' active' : '');
+
+      if (tab.favicon) {
+        const favicon = document.createElement('img');
+        favicon.className = 'tab-favicon';
+        favicon.src = tab.favicon;
+        favicon.alt = '';
+        favicon.addEventListener('error', () => {
+          favicon.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHost(tab.url))}&sz=32`;
+        }, { once: true });
+        el.appendChild(favicon);
+      } else {
+        const fallback = document.createElement('span');
+        fallback.className = 'tab-favicon-fallback';
+        fallback.textContent = '◉';
+        el.appendChild(fallback);
+      }
+
+      const title = document.createElement('span');
+      title.className = 'tab-title';
+      title.textContent = tab.title;
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'tab-close';
+      closeBtn.type = 'button';
+      closeBtn.textContent = '✕';
+      closeBtn.title = `Close ${tab.title || 'tab'}`;
+      closeBtn.setAttribute('aria-label', `Close ${tab.title || 'tab'}`);
+      closeBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        closeTab(tab.id);
+      });
+
+      el.appendChild(title);
+      el.appendChild(closeBtn);
+
+      el.addEventListener('click', () => switchTab(tab.id));
+      tabList.appendChild(el);
+    });
+  }
+
+  function closeTab(id) {
+    const index = tabs.findIndex(tab => tab.id === id);
+    if (index === -1) return;
+
+    const [closedTab] = tabs.splice(index, 1);
+    closedTab.frame?.remove();
+
+    if (tabs.length === 0) {
+      createTab('home');
+      return;
+    }
+
+    if (activeTabId === id) {
+      const nextTab = tabs[Math.min(index, tabs.length - 1)];
+      switchTab(nextTab.id);
+    } else {
+      renderTabs();
+      saveTabs();
+    }
+  }
+
+  function getHost(url) {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return url.slice(0, 16);
+    }
+  }
+
+  function getActiveTab() {
+    return tabs.find(tab => tab.id === activeTabId) || null;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     4. VIEW SWITCHING & URL NAVIGATION
+  ═══════════════════════════════════════════════════════ */
+  function showHomeScreen() {
+    PAGE_IDS?.forEach(id => document.getElementById(`${id}Page`)?.classList.remove('active'));
+    homeScreen.classList.remove('hidden');
+    frameArea.classList.remove('active');
+    topUrlBar.classList.remove('active'); // Top URL bar hidden on newtab
+    document.querySelector('.viewport').classList.remove('browsing');
+    logToggleBadge.style.display = 'none';
+    document.getElementById('cmdTextarea')?.focus();
+  }
+
+  function showBrowserView() {
+    PAGE_IDS?.forEach(id => document.getElementById(`${id}Page`)?.classList.remove('active'));
+    homeScreen.classList.add('hidden');
+    frameArea.classList.add('active');
+    topUrlBar.classList.add('active'); // Top URL bar shown when browsing
+    document.querySelector('.viewport').classList.add('browsing');
+    logToggleBadge.style.display = 'none';
+  }
+
+  function normalizeUrl(raw) {
+    let u = raw.trim();
+    if (!u) return '';
+    if (u.includes(' ') || !u.includes('.')) {
+      const provider = document.getElementById('topSearchProvider')?.value ||
+        settings.searchProvider || 'duckduckgo';
+      return (searchUrls[provider] || searchUrls.duckduckgo)(u);
+    }
+    const url = u.startsWith('http://') || u.startsWith('https://') ? u : 'https://' + u;
+    try {
+      if (settings.adBlock && AD_HOSTS.test(new URL(url).hostname)) return '';
+    } catch (_) {}
+    return url;
+  }
+
+  function navigate(rawUrl) {
+    const url = normalizeUrl(rawUrl);
+    if (!url) {
+      showToast('Blocked ad/tracker URL', true);
+      return;
+    }
+
+    if (!isProxyReady) {
+      addLog(`Cannot navigate: proxy not ready (url: ${url})`, 'warn');
+      showToast('Proxy is initializing... please wait', true);
+      return;
+    }
+
+    const currentTab = getActiveTab();
+    if (currentTab) {
+      currentTab.url = url;
+      currentTab.title = getHost(url);
+      currentTab.favicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHost(url))}&sz=32`;
+      renderTabs();
+      saveTabs();
+    } else {
+      createTab(url);
+    }
+
+    loadUrlInFrame(url);
+  }
+
+  function loadUrlInFrame(url, shouldNavigate = true) {
+    const tab = getActiveTab();
+    if (!tab) return;
+    if (!tab.frame) {
+      tab.frame = document.createElement('iframe');
+      tab.frame.className = 'browser-tab-frame';
+      tab.frame.title = 'SuperUser Browser';
+      tab.frame.allow = 'fullscreen; camera; microphone; geolocation; clipboard-read; clipboard-write';
+      browserFrames.appendChild(tab.frame);
+      tab.sjFrame = scramjet.createFrame(tab.frame);
+      tab.frame.addEventListener('load', () => updateTabMetadata(tab));
+    }
+
+    document.querySelectorAll('.browser-tab-frame').forEach(frame => frame.classList.remove('active'));
+    tab.frame.classList.add('active');
+    sjFrame = tab.sjFrame;
+    showBrowserView();
+    topUrlInput.value = tab.url;
+    if (shouldNavigate) {
+      frameLoader.classList.remove('hidden');
+      frameLoaderMsg.textContent = `Connecting to ${getHost(url)}...`;
+    } else {
+      frameLoader.classList.add('hidden');
+    }
+
+    if (!shouldNavigate) return;
+    addLog(`Navigating to: ${url}`, 'info');
+
+    try {
+      tab.sjFrame.go(url);
+    } catch (e) {
+      addLog(`Navigation error: ${e.message}`, 'err');
+      showToast('Nav Error: ' + e.message, true);
+    }
+  }
+
+  function updateTabMetadata(tab) {
+    frameLoader.classList.add('hidden');
+    let loc = '';
+    try { loc = tab.sjFrame?.location?.href || ''; } catch (_) {}
+    if (!loc || loc === 'about:blank') {
+      loc = tab.url || tab.frame?.contentDocument?.location?.href || tab.frame?.src || '';
+    }
+    if (!loc || loc === 'about:blank') return;
+
+    let doc = null;
+    try { doc = tab.frame.contentDocument; } catch (_) {}
+
+    let title = '';
+    let icon = '';
+    try {
+      title = doc?.title?.trim() ||
+        tab.frame.contentWindow?.document?.title?.trim() ||
+        tab.sjFrame?.document?.title?.trim() || '';
+      icon = doc?.querySelector('link[rel~="icon"], link[rel="shortcut icon"]')?.href || '';
+    } catch (_) {}
+
+    let publicUrl = loc;
+    if (loc.startsWith(location.origin + '/~/sj/')) {
+      const encoded = loc.split('/').pop().split('?')[0];
+      try { publicUrl = decodeURIComponent(encoded); } catch (_) {}
+    }
+    if (/^https?:\/\//i.test(publicUrl)) tab.url = publicUrl;
+    let host = getHost(publicUrl);
+    try { host = new URL(publicUrl).hostname; } catch (_) {}
+    tab.title = title || host;
+    tab.favicon = icon || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
+    if (tab.id === activeTabId) topUrlInput.value = tab.url;
+    renderTabs();
+    installAdBlocker(tab);
+    offerSiteExtension(tab, host);
+    if (!title && tab.metadataAttempts < 4) {
+      tab.metadataAttempts = (tab.metadataAttempts || 0) + 1;
+      setTimeout(() => updateTabMetadata(tab), 700);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     5. TOP URL BAR CONTROLS
+  ═══════════════════════════════════════════════════════ */
+  document.getElementById('topBackBtn').addEventListener('click', () => {
+    try { sjFrame?.back(); } catch (_) { history.back(); }
+  });
+
+  document.getElementById('topForwardBtn').addEventListener('click', () => {
+    try { sjFrame?.forward(); } catch (_) { history.forward(); }
+  });
+
+  document.getElementById('topReloadBtn').addEventListener('click', () => {
+    try { getActiveTab()?.sjFrame?.reload(); } catch (_) {}
+  });
+
+  document.getElementById('topFullscreenBtn').addEventListener('click', async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await frameArea.requestFullscreen();
+    } catch (error) {
+      showToast('Fullscreen is unavailable', true);
+      addLog(`Fullscreen error: ${error.message}`, 'warn');
+    }
+  });
+
+  document.getElementById('topHomeBtn').addEventListener('click', () => {
+    const currentTab = tabs.find(t => t.id === activeTabId);
+    if (currentTab) {
+      currentTab.url = 'home';
+      currentTab.title = 'New Tab';
+      renderTabs();
+      showHomeScreen();
+    }
+  });
+
+  document.getElementById('topGoBtn').addEventListener('click', () => {
+    const value = topUrlInput.value.trim();
+    if (/^sudo(?:\s|$)/i.test(value)) executeCommand(value);
+    else navigate(value);
+  });
+
+  topUrlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('topCommandAutocomplete').classList.remove('visible');
+      const value = topUrlInput.value.trim();
+      if (/^sudo(?:\s|$)/i.test(value)) executeCommand(value);
+      else navigate(value);
+    }
+  });
+
+  topUrlInput.addEventListener('input', () => {
+    const menu = document.getElementById('topCommandAutocomplete');
+    const value = topUrlInput.value.trim().toLowerCase();
+    if (!value || (!'sudo'.startsWith(value) && !value.startsWith('sudo'))) {
+      menu.classList.remove('visible');
+      return;
+    }
+    const commandValue = value === 'sudo' ? '' : value.slice(4).trimStart();
+    const matches = COMMANDS.filter(item => {
+      const command = item.cmd.toLowerCase();
+      const name = command.replace(/^sudo\s*/, '').replace(/ <.*>$/, '');
+      return value === 'sudo' || command.startsWith(value) ||
+        name.startsWith(commandValue) || name.includes(commandValue);
+    });
+    menu.innerHTML = matches.map(item => `
+      <button type="button" class="autocomplete-item" data-top-command="${escapeHtml(item.cmd.replace(/ <.*>$/, ''))}">
+        <span class="ac-cmd">${escapeHtml(item.cmd)}</span><span class="ac-desc">${escapeHtml(item.desc)}</span>
+      </button>`).join('');
+    menu.querySelectorAll('[data-top-command]').forEach(item => item.addEventListener('click', () => {
+      topUrlInput.value = item.dataset.topCommand + (item.dataset.topCommand.includes('<') ? ' ' : '');
+      topUrlInput.focus();
+    }));
+    menu.classList.toggle('visible', matches.length > 0);
+  });
+
+  /* ═══════════════════════════════════════════════════════
+     6. COMMAND ENGINE, AUTOCOMPLETE & TEXTBOX EXPANSION
+  ═══════════════════════════════════════════════════════ */
+  const cmdTextarea     = document.getElementById('cmdTextarea');
+  const terminalBox     = document.getElementById('terminalBox');
+  const cmdAutocomplete = document.getElementById('cmdAutocomplete');
+  const cmdRunBtn       = document.getElementById('cmdRunBtn');
+  let autocompleteIndex = -1;
+
+  const COMMANDS = [
+    { cmd: 'sudo',              desc: 'Show all available commands' },
+    { cmd: 'sudo search <query>',desc: 'Search with the selected provider' },
+    { cmd: 'sudo newtab',       desc: 'Create a new tab' },
+    { cmd: 'sudo clear',        desc: 'Close all tabs and return home' },
+    { cmd: 'sudo logs',         desc: 'Toggle error & debug log drawer' },
+    { cmd: 'sudo test',         desc: 'Run proxy connection diagnostics' },
+    { cmd: 'sudo settings',     desc: 'Open settings modal' },
+    { cmd: 'sudo help',         desc: 'Open commands reference modal' },
+    { cmd: 'sudo intro',        desc: 'Replay typewriter bump & ripple intro' },
+    { cmd: 'sudo reload',       desc: 'Reload current page' },
+    { cmd: 'sudo back',         desc: 'Go back' },
+    { cmd: 'sudo forward',      desc: 'Go forward' },
+    { cmd: 'sudo home',         desc: 'Return to home screen' },
+    { cmd: 'sudo wisp <url>',   desc: 'Switch Wisp server' }
+    ,{ cmd: 'sudo ext install <url>', desc: 'Install a userscript from a URL' }
+  ];
+
+  const PAGE_IDS = ['settings', 'help', 'logs'];
+
+  function showAppPage(page) {
+    PAGE_IDS.forEach(id => document.getElementById(`${id}Page`)?.classList.toggle('active', id === page));
+    if (page) {
+      homeScreen.classList.add('hidden');
+      frameArea.classList.remove('active');
+      topUrlBar.classList.remove('active');
+      document.querySelector('.viewport').classList.remove('browsing');
+      document.querySelector(`[data-page-search="${page}"]`)?.focus();
+    }
+  }
+
+  function renderHelpPage() {
+    const list = document.getElementById('helpCommandList');
+    if (!list) return;
+    list.innerHTML = COMMANDS.map(item =>
+      `<div class="page-command-row" data-searchable="${escapeHtml(item.cmd + ' ' + item.desc)}"><code>${escapeHtml(item.cmd)}</code><span>${escapeHtml(item.desc)}</span></div>`
+    ).join('') + `
+      <div class="page-command-row" data-searchable="enter submit"><code>Enter</code><span>Submit a command, URL, or search.</span></div>
+      <div class="page-command-row" data-searchable="arrow tab autocomplete"><code>Arrow keys / Tab</code><span>Choose an autocomplete command.</span></div>`;
+  }
+
+  renderHelpPage();
+
+  document.querySelectorAll('[data-page-search]').forEach(input => {
+    input.addEventListener('input', () => {
+      const query = input.value.trim().toLowerCase();
+      const page = input.dataset.pageSearch;
+      document.querySelectorAll(`#${page}Page [data-searchable]`).forEach(item => {
+        item.hidden = query && !item.dataset.searchable.toLowerCase().includes(query);
+      });
+    });
+  });
+
+  // Keep the input single-submit while allowing wrapped text to grow the box.
+  function resizeCmdBox() {
+    cmdTextarea.style.height = 'auto';
+    const newH = Math.max(26, cmdTextarea.scrollHeight);
+    cmdTextarea.style.height = newH + 'px';
+    terminalBox.classList.toggle('multiline', newH > 32);
+  }
+
+  cmdTextarea.addEventListener('input', () => {
+    resizeCmdBox();
+    updateAutocomplete();
+  });
+
+  // Autocomplete suggestions
+  function updateAutocomplete() {
+    const val = cmdTextarea.value.trim().toLowerCase();
+    if (!val || (!'sudo'.startsWith(val) && !val.startsWith('sudo'))) {
+      cmdAutocomplete.classList.remove('visible');
+      autocompleteIndex = -1;
+      return;
+    }
+
+    const matches = COMMANDS
+      .filter(c => {
+        const command = c.cmd.toLowerCase();
+        const name = command.replace(/^sudo\s*/, '').replace(/ <.*>$/, '');
+        const commandValue = val === 'sudo' ? '' : val.slice(4).trimStart();
+        return val === 'sudo' || command.startsWith(val) ||
+          name.startsWith(commandValue) || name.includes(commandValue);
+      })
+      .filter((command, index, list) => list.findIndex(item => item.cmd === command.cmd) === index);
+
+    if (!matches.length) {
+      cmdAutocomplete.classList.remove('visible');
+      autocompleteIndex = -1;
+      return;
+    }
+
+    autocompleteIndex = Math.min(autocompleteIndex, matches.length - 1);
+    cmdAutocomplete.innerHTML = matches.map((c, index) => `
+      <button type="button" class="autocomplete-item${index === autocompleteIndex ? ' focused' : ''}" data-index="${index}" data-cmd="${c.cmd.replace(/ <.*>$/, '')}" role="option">
+        <span class="ac-cmd">${c.cmd}</span>
+        <span class="ac-desc">${c.desc}</span>
+      </button>
+    `).join('');
+
+    cmdAutocomplete.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const cmd = item.dataset.cmd;
+        cmdTextarea.value = cmd + (cmd.includes('<') ? ' ' : '');
+        cmdTextarea.focus();
+        resizeCmdBox();
+        cmdAutocomplete.classList.remove('visible');
+        autocompleteIndex = -1;
+      });
+    });
+
+    cmdAutocomplete.classList.add('visible');
+  }
+
+  // Enter always submits. Wrapped text grows naturally; it never creates a newline.
+  cmdTextarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const focused = cmdAutocomplete.classList.contains('visible') && autocompleteIndex >= 0
+        ? cmdAutocomplete.querySelector(`[data-index="${autocompleteIndex}"]`)
+        : null;
+      if (focused) {
+        focused.click();
+      } else {
+        executeCommand(cmdTextarea.value);
+      }
+    }
+    else if (e.key === 'Escape') {
+      cmdAutocomplete.classList.remove('visible');
+      autocompleteIndex = -1;
+      closeAllModals();
+    }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const items = cmdAutocomplete.querySelectorAll('.autocomplete-item');
+      if (!cmdAutocomplete.classList.contains('visible') || !items.length) return;
+      e.preventDefault();
+      autocompleteIndex = e.key === 'ArrowDown'
+        ? (autocompleteIndex + 1) % items.length
+        : (autocompleteIndex - 1 + items.length) % items.length;
+      items.forEach((item, index) => item.classList.toggle('focused', index === autocompleteIndex));
+    }
+    else if (e.key === 'Tab' && cmdAutocomplete.classList.contains('visible')) {
+      const focused = cmdAutocomplete.querySelector(`[data-index="${autocompleteIndex < 0 ? 0 : autocompleteIndex}"]`);
+      if (focused) {
+        e.preventDefault();
+        focused.click();
+      }
+    }
+  });
+
+  cmdRunBtn.addEventListener('click', () => {
+    executeCommand(cmdTextarea.value);
+  });
+
+  function executeCommand(raw) {
+    const text = raw.trim().replace(/\s+/g, ' ');
+    if (!text) return;
+
+    // Reset textarea to default height
+    cmdTextarea.value = '';
+    cmdTextarea.style.height = '26px';
+    terminalBox.classList.remove('multiline');
+    cmdAutocomplete.classList.remove('visible');
+
+    addLog(`> ${text}`, 'info');
+
+    const normalized = text.toLowerCase();
+
+    // 1. If user typed just "sudo", show the command menu.
+    if (normalized === 'sudo' || normalized === 'sudo help' || normalized === 'sudo commands') {
+      showAppPage('help');
+      addLog('Displaying all available commands', 'ok');
+      return;
+    }
+
+    // 2. Process sudo commands
+    if (text.toLowerCase().startsWith('sudo ')) {
+      const args = text.slice(5).trim();
+
+      const command = args.toLowerCase();
+      if (!args || command === 'help' || command === 'commands') { showAppPage('help'); return; }
+      if (command === 'logs')          { showAppPage('logs'); return; }
+      if (command === 'test')          { document.getElementById('testProxyBtn').click(); return; }
+      if (command === 'settings')      { showAppPage('settings'); return; }
+      if (command === 'newtab')        { createTab('home'); return; }
+      if (command === 'clear')         { tabs = []; createTab('home'); showToast('All tabs cleared'); return; }
+      if (command === 'home')          { showHomeScreen(); return; }
+      if (command === 'intro')         { playIntro(); return; }
+      if (command === 'back')          { try { sjFrame?.back(); } catch (_) { showToast('Back is unavailable', true); } return; }
+      if (command === 'forward')       { try { sjFrame?.forward(); } catch (_) { showToast('Forward is unavailable', true); } return; }
+      if (command === 'reload')        { try { sjFrame?.reload(); } catch (_) { showToast('Reload is unavailable', true); } return; }
+
+      if (command.startsWith('ext install ')) {
+        const extensionUrl = args.slice(12).trim();
+        if (!/^https?:\/\/.+\.js(?:[?#].*)?$/i.test(extensionUrl)) {
+          showToast('Use sudo ext install https://site/extension.js', true);
+          return;
+        }
+        const installed = JSON.parse(localStorage.getItem('superuser-installed-extensions') || '[]');
+        if (!installed.includes(extensionUrl)) installed.push(extensionUrl);
+        localStorage.setItem('superuser-installed-extensions', JSON.stringify(installed));
+        showToast('Extension installed');
+        addLog(`Installed extension: ${extensionUrl}`, 'ok');
+        return;
+      }
+
+      if (command.startsWith('search ')) {
+        const q = args.slice(7).trim();
+        if (!q) { cmdTextarea.value = 'sudo search '; cmdTextarea.focus(); updateAutocomplete(); return; }
+        navigate(q);
+        return;
+      }
+
+      if (command.startsWith('wisp ')) {
+        const wUrl = args.slice(5).trim();
+        if (!wUrl) { showToast('Enter a Wisp endpoint', true); return; }
+        const sel = document.getElementById('wispSelectPage');
+        const opt = new Option(wUrl, wUrl, true, true);
+        sel.appendChild(opt);
+        showToast('Wisp endpoint set to: ' + wUrl);
+        initScramjetProxy();
+        return;
+      }
+
+      if (/^sudo\s+/i.test(text) && !args.includes('.') && !args.includes('/')) {
+        showToast(`Unknown command: ${args}`, true);
+        addLog(`Unknown command: ${args}`, 'warn');
+        updateAutocomplete();
+        return;
+      }
+
+      // Default: sudo <url>
+      navigate(args);
+      return;
+    }
+
+    // 3. Direct URL or search input
+    navigate(text);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     7. BUTTONS & SHORTCUTS
+  ═══════════════════════════════════════════════════════ */
+  document.getElementById('newTabBtn').addEventListener('click', () => createTab('home'));
+  document.getElementById('collapseSidebarBtn').addEventListener('click', () => {
+    const sidebar = document.querySelector('.sidebar');
+    const collapsed = sidebar.classList.toggle('collapsed');
+    const button = document.getElementById('collapseSidebarBtn');
+    button.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    button.querySelector('span').textContent = collapsed ? '›' : '‹';
+  });
+  document.getElementById('searchTabsInput').addEventListener('input', event => {
+    const query = event.target.value.trim().toLowerCase();
+    document.querySelectorAll('#tabList .tab-item').forEach(item => {
+      item.hidden = Boolean(query && !item.textContent.toLowerCase().includes(query));
+    });
+  });
+
+  document.getElementById('settingsBtn').addEventListener('click', () => showAppPage('settings'));
+  document.getElementById('helpBtn').addEventListener('click', () => showAppPage('help'));
+  document.getElementById('logsBtn').addEventListener('click', () => showAppPage('logs'));
+
+  document.querySelectorAll('.chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => navigate(btn.dataset.url));
+  });
+
+  document.getElementById('replayIntroBtn').addEventListener('click', () => {
+    closeAllModals();
+    playIntro();
+  });
+
+  document.getElementById('replayIntroPageBtn').addEventListener('click', () => {
+    showAppPage(null);
+    playIntro();
+  });
+
+  document.getElementById('resetSwBtn').addEventListener('click', async () => {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (let r of regs) await r.unregister();
+      addLog('Service worker unregistered. Reloading...', 'warn');
+      allowApplicationUnload = true;
+      location.reload();
+    }
+  });
+
+  document.getElementById('resetSwPageBtn').addEventListener('click', async () => {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const registration of regs) await registration.unregister();
+      addLog('Service worker unregistered. Reloading...', 'warn');
+      allowApplicationUnload = true;
+      location.reload();
+    }
+  });
+
+  function onWispChange() {
+    const source = this;
+    const other = source.id === 'wispSelectPage'
+      ? document.getElementById('wispSelect')
+      : document.getElementById('wispSelectPage');
+    if (other) other.value = source.value;
+    settings.wisp = source.value || settings.wisp;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    addLog(`Switching Wisp endpoint to: ${getWispUrl()}`, 'info');
+    initScramjetProxy();
+  }
+
+  document.getElementById('wispSelect').addEventListener('change', onWispChange);
+  document.getElementById('wispSelectPage').addEventListener('change', onWispChange);
+  function useCustomWisp(inputId) {
+    const value = document.getElementById(inputId).value.trim();
+    if (!/^wss?:\/\/.+/i.test(value)) {
+      showToast('Use a ws:// or wss:// endpoint', true);
+      return;
+    }
+    settings.wisp = value;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    document.getElementById('wispSelectPage').value = '';
+    document.getElementById('wispSelect').value = '';
+    addLog(`Using custom Wisp endpoint: ${value}`, 'info');
+    initScramjetProxy();
+  }
+  document.getElementById('customWispBtnPage').addEventListener('click', () => useCustomWisp('customWispInputPage'));
+  document.getElementById('customWispBtn').addEventListener('click', () => useCustomWisp('customWispInput'));
+  document.getElementById('pageTestProxyBtn').addEventListener('click', () => document.getElementById('testProxyBtn').click());
+  document.getElementById('pageClearLogsBtn').addEventListener('click', () => document.getElementById('clearLogsBtn').click());
+  document.getElementById('topSearchProvider').value = settings.searchProvider;
+  document.getElementById('topSearchProvider').addEventListener('change', event => {
+    settings.searchProvider = event.target.value;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  });
+  document.getElementById('adBlockToggle').checked = settings.adBlock;
+  document.getElementById('adBlockToggle').addEventListener('change', event => {
+    settings.adBlock = event.target.checked;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  });
+  document.getElementById('backgroundUploadBtn').addEventListener('click', () => document.getElementById('backgroundUpload').click());
+  document.getElementById('backgroundUpload').addEventListener('change', event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('Background must be under 8 MB', true);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      settings.background = reader.result;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      applyBackground();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('clearBackgroundBtn').addEventListener('click', () => {
+    settings.background = '';
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    applyBackground();
+  });
+
+  function applyBackground() {
+    let video = document.getElementById('customBackgroundVideo');
+    if (settings.background?.startsWith('data:video/')) {
+      if (!video) {
+        video = document.createElement('video');
+        video.id = 'customBackgroundVideo';
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        Object.assign(video.style, {
+          position: 'fixed', inset: '0', width: '100%', height: '100%',
+          objectFit: 'cover', zIndex: '-1', opacity: '.35', pointerEvents: 'none'
+        });
+        document.body.prepend(video);
+      }
+      video.src = settings.background;
+      document.documentElement.style.setProperty('--home-bg-image', 'none');
+    } else {
+      video?.remove();
+      document.documentElement.style.setProperty('--home-bg-image', settings.background
+        ? `url("${settings.background}")` : 'none');
+    }
+  }
+  applyBackground();
+
+  window.addEventListener('beforeunload', (event) => {
+    if (allowApplicationUnload) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+
+  function toggleBlankMode() {
+    const tab = getActiveTab();
+    if (!tab) return;
+    if (!tab.blankMode) {
+      tab.blankMode = true;
+      tab.savedTitle = tab.title;
+      tab.savedFavicon = tab.favicon;
+      tab.title = 'New Tab';
+      tab.favicon = '';
+      renderTabs();
+      if (tab.url === 'home') navigate('https://www.google.com');
+      frameArea.requestFullscreen?.().catch(() => {});
+    } else {
+      tab.blankMode = false;
+      tab.title = tab.savedTitle || getHost(tab.url);
+      tab.favicon = tab.savedFavicon || '';
+      renderTabs();
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }
+    saveTabs();
+  }
+
+  // Global keybinds
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
+      e.preventDefault();
+      createTab('home');
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
+      e.preventDefault();
+      if (topUrlBar.classList.contains('active')) {
+        topUrlInput.focus();
+        topUrlInput.select();
+      } else {
+        cmdTextarea.focus();
+      }
+    }
+    if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+      e.preventDefault();
+      (topUrlBar.classList.contains('active') ? topUrlInput : cmdTextarea).focus();
+    }
+    if (e.key === '`' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      toggleBlankMode();
+    }
+  });
+
+  /* ═══════════════════════════════════════════════════════
+     8. MODALS & TOAST
+  ═══════════════════════════════════════════════════════ */
+  function openModal(id) {
+    closeAllModals();
+    const el = document.getElementById(id + 'Modal');
+    if (el) el.classList.add('open');
+  }
+
+  function closeAllModals() {
+    document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open'));
+  }
+
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) closeAllModals();
+    });
+  });
+
+  const toastPill = document.getElementById('toastPill');
+  let toastTimer;
+
+  function showToast(text, isErr = false) {
+    toastPill.textContent = text;
+    toastPill.className = 'toast-pill show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastPill.className = 'toast-pill';
+    }, 2800);
+  }
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function updateSystemStatus() {
+    const time = new Date();
+    document.getElementById('systemTime').textContent = time.toLocaleTimeString([], { hour12: false });
+    const started = performance.now();
+    fetch('/health', { cache: 'no-store' }).then(response => {
+      document.getElementById('serverPing').textContent = `${Math.round(performance.now() - started)}ms`;
+    }).catch(() => {
+      document.getElementById('serverPing').textContent = 'offline';
+    });
+    if (navigator.getBattery) {
+      navigator.getBattery().then(battery => {
+        const update = () => {
+          document.getElementById('systemBattery').textContent =
+            `${Math.round(battery.level * 100)}%${battery.charging ? ' +': ''}`;
+        };
+        update();
+        battery.addEventListener('levelchange', update);
+        battery.addEventListener('chargingchange', update);
+      }).catch(() => {});
+    }
+  }
+
+  function setupLearningScreen() {
+    if (localStorage.getItem('scrape_avoider') === 'true') return;
+    localStorage.setItem('scrape_avoider', 'true');
+    learningScreen.classList.remove('hidden');
+    setTimeout(() => learningScreen.classList.add('hidden'), 3000);
+    learningScreen.querySelectorAll('[data-learning-url]').forEach(link => {
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        learningScreen.classList.add('hidden');
+        navigate(link.dataset.learningUrl);
+      });
+    });
+  }
+
+  function installAdBlocker(tab) {
+    if (!settings.adBlock || !tab.frame?.contentDocument) return;
+    const doc = tab.frame.contentDocument;
+    let scheduled = false;
+    const removeAds = () => {
+      scheduled = false;
+      doc.querySelectorAll('iframe, script, img, video, link, div').forEach(element => {
+        const source = element.src || element.href || element.getAttribute('data-src') || '';
+        try {
+          if (source && AD_HOSTS.test(new URL(source, doc.baseURI).hostname)) element.remove();
+        } catch (_) {}
+      });
+      doc.querySelectorAll('[id*="ad" i], [class*="ad-" i], [class*="advert" i], [class*="sponsor" i]')
+        .forEach(element => { if (element.textContent.length < 2000) element.remove(); });
+    };
+    removeAds();
+    tab.adObserver?.disconnect();
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(removeAds);
+    };
+    tab.adObserver = new MutationObserver(schedule);
+    tab.adObserver.observe(doc.documentElement, { childList: true, subtree: true });
+  }
+
+  function renderExtensionSettings() {
+    const list = document.getElementById('extensionSettingsList');
+    if (!list) return;
+    list.innerHTML = extensionCatalog.map(extension => `
+      <label style="display:block;margin-top:8px;font-size:12px">
+        <input type="checkbox" data-extension-toggle="${escapeHtml(extension.id)}" ${enabledExtensions[extension.id] ? 'checked' : ''}>
+        ${escapeHtml(extension.title)} <span style="color:var(--text-dim)">(${escapeHtml(extension.id)})</span>
+      </label>`).join('');
+    list.querySelectorAll('[data-extension-toggle]').forEach(input => {
+      input.addEventListener('change', event => {
+        enabledExtensions[event.target.dataset.extensionToggle] = event.target.checked;
+        localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
+      });
+    });
+  }
+
+  function renderShortcuts() {
+    const home = document.getElementById('quickShortcuts');
+    const settingsList = document.getElementById('shortcutSettingsList');
+    if (home) {
+      home.innerHTML = visibleShortcuts.map(shortcut => `
+        <button class="chip-btn" data-url="${escapeHtml(shortcut.url)}">
+          <img class="shortcut-icon" src="/assets/shortcuts/icons/${encodeURIComponent(shortcut.title.toLowerCase())}.png" alt="">
+          ${escapeHtml(shortcut.title)}
+        </button>`).join('');
+      home.querySelectorAll('.chip-btn').forEach(button => {
+        button.addEventListener('click', () => navigate(button.dataset.url));
+      });
+    }
+    if (settingsList) {
+      settingsList.innerHTML = DEFAULT_SHORTCUTS.map(shortcut => `
+        <label style="display:block;margin-top:8px;font-size:12px">
+          <input type="checkbox" data-shortcut-toggle="${escapeHtml(shortcut.title)}"
+            ${visibleShortcuts.some(item => item.title === shortcut.title) ? 'checked' : ''}>
+          ${escapeHtml(shortcut.title)}
+        </label>`).join('');
+      settingsList.querySelectorAll('[data-shortcut-toggle]').forEach(input => {
+        input.addEventListener('change', event => {
+          const item = DEFAULT_SHORTCUTS.find(shortcut => shortcut.title === event.target.dataset.shortcutToggle);
+          if (event.target.checked && item) visibleShortcuts.push(item);
+          if (!event.target.checked) visibleShortcuts = visibleShortcuts.filter(shortcut => shortcut.title !== item?.title);
+          localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
+          renderShortcuts();
+        });
+      });
+    }
+  }
+
+  async function loadExtensionCatalog() {
+    try {
+      const response = await fetch('/extensions/scripts/index.json', { cache: 'no-store' });
+      extensionCatalog = await response.json();
+      renderExtensionSettings();
+    } catch (error) {
+      addLog(`Extension catalog unavailable: ${error.message}`, 'warn');
+    }
+  }
+
+  function offerSiteExtension(tab, host) {
+    const extension = extensionCatalog.find(item => host === item.id || host.endsWith(`.${item.id}`));
+    if (!extension || enabledExtensions[extension.id] || tab.extensionPrompted === extension.id) return;
+    tab.extensionPrompted = extension.id;
+    document.getElementById('extensionPromptText').textContent =
+      `${extension.title} is available for ${extension.id}:`;
+    const prompt = document.getElementById('extensionPrompt');
+    prompt.classList.add('open');
+    const run = document.getElementById('runExtensionBtn');
+    const cancel = document.getElementById('cancelExtensionBtn');
+    const close = () => prompt.classList.remove('open');
+    run.onclick = () => {
+      enabledExtensions[extension.id] = true;
+      localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
+      const script = tab.frame.contentDocument.createElement('script');
+      script.src = `/extensions/scripts/${encodeURIComponent(extension.id)}.js`;
+      tab.frame.contentDocument.documentElement.appendChild(script);
+      close();
+      renderExtensionSettings();
+    };
+    cancel.onclick = close;
+  }
+
+  // Start only after every DOM reference and event handler has been initialized.
+  document.getElementById('wispSelectPage').value = ['local', 'homework-relay',
+    'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/',
+    'wss://wisp.mercurywork.shop/'].includes(settings.wisp)
+    ? settings.wisp : '';
+  document.getElementById('wispSelect').value = document.getElementById('wispSelectPage').value;
+  if (!document.getElementById('wispSelectPage').value) {
+    document.getElementById('customWispInputPage').value = settings.wisp || '';
+    document.getElementById('customWispInput').value = settings.wisp || '';
+  }
+  updateSystemStatus();
+  setInterval(updateSystemStatus, 30000);
+  setupLearningScreen();
+  loadExtensionCatalog();
+  renderShortcuts();
+  let restoredTabs = false;
+  initScramjetProxy().then(() => {
+    if (!restoredTabs) {
+      restoredTabs = true;
+      if (!restoreTabs()) createTab('home');
+    }
+  });
+  </script>
+</body>
+</html>
