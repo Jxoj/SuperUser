@@ -1,74 +1,183 @@
-"""Build a small mirror launcher JavaScript file."""
+"""Build a mirror launcher with an embedded, downloadable offline package."""
 
+from __future__ import annotations
+
+import base64
+import io
+import zipfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-OUTPUT = ROOT / "singlefile" / "launcher.js"
+SINGLEFILE = ROOT / "singlefile"
+OUTPUT = SINGLEFILE / "launcher.js"
+RECOVERY_FILES = (
+    "index.html",
+    "sw.js",
+    "_headers",
+    "controller/controller.sw.js",
+    "controller/controller.inject.js",
+    "scramjet/scramjet.js",
+    "scramjet/scramjet.wasm",
+    "extensions/scripts/index.json",
+)
 
 LAUNCHER = r"""(() => {
   const mirrors = {
     mirror1: 'https://jxoj.github.io/SuperUser/singlefile/index.html',
     mirror2: 'https://jsuperuser.netlify.app/singlefile/index.html'
   };
+  const recoveryBundle = '__RECOVERY_BUNDLE__';
   const root = document.createElement('main');
   root.innerHTML = `
     <style>
-      :host { all: initial; }
       body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-        background: #070b12; color: #e8eef8; font: 16px system-ui, sans-serif; }
+        background: radial-gradient(ellipse at top, #17243b, #070b12 65%);
+        color: #e8eef8; font: 15px system-ui, sans-serif; }
       .card { width: min(520px, calc(100vw - 40px)); padding: 28px; border: 1px solid #263449;
-        border-radius: 18px; background: #101827; box-shadow: 0 20px 60px #0008; }
-      h1 { margin-top: 0; } p { color: #9eabc0; }
-      button, input { box-sizing: border-box; width: 100%; margin-top: 10px; padding: 12px;
-        border-radius: 10px; border: 1px solid #31425e; background: #162238; color: inherit; }
-      button { cursor: pointer; } button:hover { border-color: #69e6a1; }
-      input { outline: none; } .status { min-height: 22px; color: #69e6a1; }
+        border-radius: 18px; background: #101827ef; box-shadow: 0 20px 60px #0008; }
+      h1 { margin: 0; font-size: 25px; letter-spacing: -.04em; }
+      p { color: #9eabc0; line-height: 1.5; }
+      .choice { display: flex; align-items: center; gap: 12px; margin: 10px 0;
+        padding: 13px; border: 1px solid #263449; border-radius: 12px; cursor: pointer; }
+      .choice:has(input:checked) { border-color: #69e6a1; background: #69e6a111; }
+      .choice input { accent-color: #69e6a1; }
+      .choice span { display: grid; gap: 3px; } small { color: #9eabc0; }
+      input[type=url] { box-sizing: border-box; width: 100%; margin-top: 6px; padding: 12px;
+        border-radius: 10px; border: 1px solid #31425e; background: #0c1422; color: inherit; }
+      button { box-sizing: border-box; width: 100%; margin-top: 14px; padding: 12px;
+        border-radius: 10px; border: 1px solid #69e6a1; background: #69e6a1; color: #07110b;
+        font-weight: 700; cursor: pointer; }
+      button.secondary { color: #e8eef8; border-color: #31425e; background: #17243b; }
+      .status { min-height: 22px; margin-top: 10px; color: #69e6a1; overflow-wrap: anywhere; }
+      .recovery { display: none; margin-top: 18px; padding-top: 10px; border-top: 1px solid #263449; }
+      code { color: #a7f3c7; }
     </style>
     <section class="card">
-      <h1>SuperUser</h1>
-      <p>Choose the server mirror to launch in a new about:blank tab.</p>
-      <button data-mirror="mirror1">Mirror 1</button>
-      <button data-mirror="mirror2">Mirror 2 (Recommended)</button>
-      <input id="custom" placeholder="Custom single-file URL">
-      <button data-mirror="custom">Use custom</button>
-      <div class="status" id="status"></div>
+      <h1>SuperUser launcher</h1>
+      <p>Mirror 2 is recommended. If it is unavailable, the launcher tries Mirror 1.</p>
+      <label class="choice"><input type="radio" name="mirror" value="mirror1">
+        <span><b>Mirror 1</b><small>GitHub Pages</small></span></label>
+      <label class="choice"><input type="radio" name="mirror" value="mirror2" checked>
+        <span><b>Mirror 2 · Recommended</b><small>Netlify</small></span></label>
+      <label class="choice"><input type="radio" name="mirror" value="custom">
+        <span><b>Custom server</b><small>Enter a single-file HTML URL</small></span></label>
+      <input id="custom" type="url" placeholder="https://example.com/singlefile/index.html">
+      <button id="launch">Launch in new tab</button>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <section class="recovery" id="recovery">
+        <p>Neither mirror responded. A recovery copy is embedded in this launcher. Download it, unzip it, then serve the extracted folder on localhost to enable the required service worker:</p>
+        <button id="download">Download offline recovery package</button>
+        <p>From the extracted folder, run <code>python -m http.server 8000</code>, then open <code>http://localhost:8000/</code>.</p>
+        <button class="secondary" id="try-cached">Try the selected mirror anyway</button>
+      </section>
     </section>`;
   document.body.replaceChildren(root);
   const status = root.querySelector('#status');
-  root.querySelectorAll('[data-mirror]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const url = button.dataset.mirror === 'custom'
-        ? root.querySelector('#custom').value.trim()
-        : mirrors[button.dataset.mirror];
-      if (!/^https?:\/\/.+/i.test(url)) {
-        status.textContent = 'Enter a valid http(s) URL.';
-        return;
-      }
-      status.textContent = 'Fetching mirror...';
+  const recovery = root.querySelector('#recovery');
+  const timeoutMs = 7000;
+
+  function getTargets(choice, customUrl) {
+    if (choice === 'custom') return [customUrl];
+    if (choice === 'mirror1') return [mirrors.mirror1, mirrors.mirror2];
+    return [mirrors.mirror2, mirrors.mirror1];
+  }
+
+  async function checkMirror(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const html = await response.text();
+      if (!html.includes('SuperUser Proxy')) throw new Error('The response is not a SuperUser build');
+      return response.url || url;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  function showRecovery(target, urls, errors) {
+    status.textContent = `Mirror check failed: ${errors.join('; ')}`;
+    recovery.style.display = 'block';
+    const cachedButton = root.querySelector('#try-cached');
+    cachedButton.onclick = () => {
+      target.location.replace(urls[0]);
+      status.textContent = 'Trying the selected mirror directly; a previously cached service worker may still have the app.';
+    };
+    root.querySelector('#download').onclick = () => {
+      const bytes = Uint8Array.from(atob(recoveryBundle), char => char.charCodeAt(0));
+      const downloadUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = 'superuser-offline.zip';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
+    };
+  }
+
+  root.querySelector('#launch').addEventListener('click', async () => {
+    recovery.style.display = 'none';
+    const choice = root.querySelector('input[name="mirror"]:checked')?.value || 'mirror2';
+    const customUrl = root.querySelector('#custom').value.trim();
+    if (choice === 'custom' && !/^https?:\/\/.+/i.test(customUrl)) {
+      status.textContent = 'Enter a valid http(s) URL.';
+      return;
+    }
+
+    const urls = getTargets(choice, customUrl);
+    const target = window.open('about:blank', '_blank');
+    if (!target) {
+      status.textContent = 'Popup blocked. Allow popups and try again.';
+      return;
+    }
+    target.document.title = 'Opening SuperUser';
+    target.document.body.textContent = 'Checking SuperUser mirrors...';
+
+    const errors = [];
+    for (const url of urls) {
+      status.textContent = `Checking ${url}...`;
       try {
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const html = await response.text();
-        const target = window.open('about:blank', '_blank');
-        if (!target) throw new Error('Popup blocked');
-        target.document.open();
-        target.document.write(html);
-        target.document.close();
-        status.textContent = 'Launched.';
+        const workingUrl = await checkMirror(url);
+        status.textContent = `Opening ${workingUrl}`;
+        target.location.replace(workingUrl);
+        return;
       } catch (error) {
-        status.textContent = `Unable to launch: ${error.message}`;
+        errors.push(`${url}: ${error.message}`);
       }
-    });
+    }
+
+    showRecovery(target, urls, errors);
+    target.close();
   });
 })();
 """
 
 
+def build_recovery_bundle() -> bytes:
+    bundle = io.BytesIO()
+    with zipfile.ZipFile(bundle, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for relative in RECOVERY_FILES:
+            path = SINGLEFILE / relative
+            if not path.is_file():
+                raise FileNotFoundError(f"Missing offline recovery asset: {path}")
+            archive.write(path, relative)
+    return bundle.getvalue()
+
+
 def main() -> None:
+    encoded_bundle = base64.b64encode(build_recovery_bundle()).decode("ascii")
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(LAUNCHER, encoding="utf-8")
+    OUTPUT.write_text(
+        LAUNCHER.replace("__RECOVERY_BUNDLE__", encoded_bundle),
+        encoding="utf-8",
+    )
     print(f"Built {OUTPUT}")
+    print(f"Embedded recovery package: {len(encoded_bundle)} base64 characters")
 
 
 if __name__ == "__main__":

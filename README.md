@@ -49,15 +49,16 @@ Press **Enter** to submit a command, URL, or search. When `sudo` is typed, the
 command menu opens with keyboard navigation using **Arrow keys** or **Tab**.
 The URL bar accepts the same `sudo` commands while browsing. Settings, Help,
 and Logs are available as separate in-app pages. Each internal tab keeps its
-own loaded page when switching tabs; internal tabs do not have close buttons.
+own loaded page when switching tabs and can be closed from the sidebar.
 Closing the actual SuperUser browser tab uses the browser's native confirmation
 dialog.
 
 Additional client features include persisted tabs/settings, selectable search
 providers, lightweight ad/tracker filtering, custom image/video backgrounds,
 site userscript prompts from `extensions/scripts/index.json`, local shortcut
-icons, and a Wisp selector with self-hosted, Homework, Official, public, and
-custom endpoint options. The default transport is the local server.
+icons, and a Wisp selector with Official, self-hosted, public, and custom
+endpoint options. The Official Wisp endpoint is the default and recommended
+transport.
 
 ## Production (with nginx + SSL)
 
@@ -86,16 +87,30 @@ ws://localhost:8080/wisp/
 
 No separate process needed.
 
-The Homework option uses
-`wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/`. The public
+The Official option uses
+`wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/` and is selected
+by default. The public
 `wss://wisp.mercurywork.shop/` endpoint is also available, and custom
-`ws://` or `wss://` endpoints can be entered in Settings. Each endpoint is
-initialized through Epoxy and then verified by loading a proxied page.
+`ws://` or `wss://` endpoints can be entered in Settings. Endpoint selection is
+verified with an actual proxied HTTPS request, not just a WebSocket open.
+Self-hosted uses Wisp v2; Official and MercuryWorkshop use Wisp v1 by default.
+Settings also exposes an explicit protocol override.
 
 ## Builds
 
-Run `python build_singlefile.py` to generate `singlefile/index.html`, or
-`python build_js.py` to generate `singlefile/launcher.js`. The launcher defaults
-to Mirror 2 and fetches the selected single-file build before opening it in a
-new `about:blank` tab.
+Run `npm run build` to generate `singlefile/index.html`, the service-worker and
+Scramjet runtime assets, the Netlify CORS headers, and `singlefile/launcher.js`.
+The launcher embeds a compressed recovery package, defaults to Mirror 2,
+checks the selected mirror, and tries the other mirror if the selected one is
+unavailable. When a mirror works, the launcher opens its URL in a new tab so
+the page keeps the real HTTPS origin required by the service worker.
 
+The generated HTML inlines the application scripts and shortcut icons, and
+the small runtime assets are deployed beside it. On the first successful visit,
+the service worker caches the app shell and Scramjet runtime for use if the
+mirror later goes offline. Browser security does not allow an `about:blank`,
+`blob:`, or standalone `file:` page to register the same-origin service worker
+this proxy requires, so no browser-only launcher can make a first-ever launch
+work when every mirror is offline. If both mirrors are unreachable, the
+launcher offers its embedded recovery ZIP; extract it and serve that folder
+locally with `python -m http.server 8000`, then open `http://localhost:8000/`.

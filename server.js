@@ -14,7 +14,6 @@ import { createServer } from "node:http";
 import { readFile }     from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { WebSocket, WebSocketServer } from "ws";
 
 // wisp-js exposes its server handler from this sub-path
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
@@ -22,45 +21,6 @@ import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 /* ── paths ──────────────────────────────────────────────── */
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const PUBLIC    = resolve(__dirname);           // files live at project root
-const homeworkRelay = new WebSocketServer({ noServer: true });
-
-function relayHomeworkWisp(client) {
-  const upstream = new WebSocket("wss://homework.us.com/wisp/", {
-    origin: "https://homework.us.com",
-  });
-  const pending = [];
-  let upstreamFailed = false;
-
-  const closeBoth = () => {
-    if (client.readyState === WebSocket.OPEN || client.readyState === WebSocket.CONNECTING) client.close();
-    if (upstream.readyState === WebSocket.OPEN || upstream.readyState === WebSocket.CONNECTING) upstream.close();
-  };
-
-  client.on("message", (data, isBinary) => {
-    if (upstreamFailed) return;
-    if (upstream.readyState === WebSocket.OPEN) {
-      upstream.send(data, { binary: isBinary });
-    } else {
-      pending.push({ data, isBinary });
-    }
-  });
-  upstream.on("open", () => {
-    for (const message of pending.splice(0)) {
-      upstream.send(message.data, { binary: message.isBinary });
-    }
-  });
-  upstream.on("message", (data, isBinary) => {
-    if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary });
-  });
-  client.on("close", () => upstream.close());
-  upstream.on("close", () => client.close());
-  client.on("error", closeBoth);
-  upstream.on("error", (error) => {
-    upstreamFailed = true;
-    console.error("Homework Wisp relay error:", error.message);
-    closeBoth();
-  });
-}
 
 /* ── MIME types ─────────────────────────────────────────── */
 const MIME = {
@@ -145,13 +105,8 @@ const server = createServer((req, res) => {
 /* ── WebSocket upgrade → Wisp ───────────────────────────── */
 server.on("upgrade", (req, socket, head) => {
   const upgradePath = req.url.split("?")[0];
-  if (upgradePath === "/wisp-homework/" || upgradePath === "/wisp-homework") {
-    homeworkRelay.handleUpgrade(req, socket, head, relayHomeworkWisp);
-    return;
-  }
-
   // Route /wisp and /wisp/* WebSocket connections to wisp-js
-  if (upgradePath.startsWith("/wisp/") || upgradePath === "/wisp") {
+  if (upgradePath.endsWith("/wisp/") || upgradePath.endsWith("/wisp")) {
     wisp.routeRequest(req, socket, head);
   } else {
     socket.destroy();

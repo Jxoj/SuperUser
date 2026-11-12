@@ -299,6 +299,10 @@
       transition: all 0.15s ease;
     }
 
+    .tab-item[hidden] {
+      display: none;
+    }
+
     .tab-item:hover:not(.active) {
       background: var(--bg-elevated);
       color: var(--text);
@@ -1535,7 +1539,8 @@
         </div>
         <div class="page-card" data-searchable="wisp websocket server">
           <h3>Wisp WebSocket Server</h3><p>Choose the transport endpoint used by Scramjet.</p>
-          <select class="modal-select" id="wispSelectPage"><option value="local">Self-Hosted (Recommended)</option><option value="homework-relay">Homework Wisp</option><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp</option><option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option></select>
+          <select class="modal-select" id="wispSelectPage"><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp (Recommended)</option><option value="local">Self-Hosted</option><option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option></select>
+          <select class="modal-select" id="wispVersionSelectPage" aria-label="Wisp protocol"><option value="auto">Protocol: Auto</option><option value="v1">Protocol: Wisp v1</option><option value="v2">Protocol: Wisp v2</option></select>
           <input class="modal-input" id="customWispInputPage" placeholder="Custom wss:// endpoint" autocomplete="off">
           <button class="modal-btn" id="customWispBtnPage">Use custom</button>
         </div>
@@ -1638,10 +1643,14 @@
           <div class="modal-row-desc">Proxy transport connection endpoint</div>
         </div>
         <select class="modal-select" id="wispSelect">
-          <option value="local">Self-Hosted (Recommended)</option>
-          <option value="homework-relay">Homework Wisp</option>
-          <option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp</option>
+          <option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp (Recommended)</option>
+          <option value="local">Self-Hosted</option>
           <option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option>
+        </select>
+        <select class="modal-select" id="wispVersionSelect" aria-label="Wisp protocol">
+          <option value="auto">Protocol: Auto</option>
+          <option value="v1">Protocol: Wisp v1</option>
+          <option value="v2">Protocol: Wisp v2</option>
         </select>
         <input class="modal-input" id="customWispInput" placeholder="Custom wss:// endpoint" autocomplete="off">
         <button class="modal-btn" id="customWispBtn">Use custom</button>
@@ -1712,6 +1721,10 @@
   <script src="/controller/controller.api.js"></script>
   <!-- Local Epoxy transport bundle (fallback to CDN) -->
   <script src="/controller/epoxy.js"></script>
+  <script>
+    const APP_BASE = new URL('./', location.href).pathname;
+    const appPath = path => `${APP_BASE}${path.replace(/^\/+/, '')}`;
+  </script>
 
   <script>
   /* ═══════════════════════════════════════════════════════
@@ -1934,6 +1947,7 @@
   const frameLoaderMsg   = document.getElementById('frameLoaderMsg');
   const learningScreen   = document.getElementById('learningScreen');
   const SETTINGS_KEY     = 'superuser-settings';
+  const OFFICIAL_WISP_URL = 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/';
   const TABS_KEY         = 'superuser-tabs';
   const EXTENSIONS_KEY   = 'superuser-extensions';
   const SHORTCUTS_KEY    = 'superuser-shortcuts';
@@ -1944,13 +1958,24 @@
     { title: 'ChatGPT', url: 'https://chatgpt.com', domain: 'chatgpt.com' }
   ];
   const defaultSettings  = {
-    wisp: 'local',
+    wisp: OFFICIAL_WISP_URL,
+    wispVersion: 'auto',
     searchProvider: 'duckduckgo',
     adBlock: true,
     background: ''
   };
   let settings = { ...defaultSettings };
   try { settings = { ...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (_) {}
+  if (settings.wispVersion === 1 || settings.wispVersion === 2 ||
+      settings.wispVersion === '1' || settings.wispVersion === '2') {
+    settings.wispVersion = 'auto';
+  }
+  if (!localStorage.getItem('superuser-wisp-official-default-v1')) {
+    if (settings.wisp === 'local' || settings.wisp === 'homework-relay') {
+      settings.wisp = OFFICIAL_WISP_URL;
+    }
+    localStorage.setItem('superuser-wisp-official-default-v1', 'true');
+  }
   let extensionCatalog = [];
   let enabledExtensions = {};
   let visibleShortcuts = DEFAULT_SHORTCUTS;
@@ -1970,6 +1995,7 @@
   };
 
   let scramjet = null;
+  let activeTransport = null;
   let sjFrame  = null;
   let isProxyReady = false;
   let allowApplicationUnload = false;
@@ -1979,46 +2005,42 @@
       document.getElementById('wispSelect')?.value;
     const selected = sel || settings.wisp;
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    if (selected === 'homework-relay') {
-      return 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/';
-    }
     if (selected && selected !== 'local') return selected;
-    return `${proto}//${location.host}/wisp/`;
+    return `${proto}//${location.host}${appPath('wisp/')}`;
   }
 
   function getLocalWispUrl() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${location.host}/wisp/`;
+    return `${proto}//${location.host}${appPath('wisp/')}`;
   }
 
-  function verifyWispEndpoint(url) {
-    return new Promise(resolve => {
-      let settled = false;
-      const finish = result => {
-        if (settled) return;
-        settled = true;
-        resolve(result);
-      };
-      let socket;
-      try {
-        socket = new WebSocket(url);
-        socket.addEventListener('open', () => {
-          addLog(`Wisp WebSocket verified: ${url}`, 'ok');
-          socket.close();
-          finish(true);
-        }, { once: true });
-        socket.addEventListener('error', () => finish(false), { once: true });
-        setTimeout(() => {
-          try { socket.close(); } catch (_) {}
-          finish(false);
-        }, 3000);
-      } catch (_) {
-        finish(false);
-      }
-    });
+  function getWispVersion() {
+    if (settings.wispVersion === 'v1') return 1;
+    if (settings.wispVersion === 'v2') return 2;
+    const selected = document.getElementById('wispSelectPage')?.value ||
+      document.getElementById('wispSelect')?.value || settings.wisp;
+    return selected === 'local' ? 2 : 1;
+  }
+
+  async function probeTransport(transport) {
+    const response = await transport.request(
+      new URL('https://example.com/'),
+      'GET',
+      null,
+      [],
+      new AbortController().signal
+    );
+    if (response.body && typeof response.body.cancel === 'function') {
+      await response.body.cancel();
+    }
+    if (response.status < 200 || response.status >= 400) {
+      throw new Error(`Wisp proxy test returned HTTP ${response.status}`);
+    }
+    return response.status;
   }
 
   async function initScramjetProxy() {
+    isProxyReady = false;
     try {
       addLog('Registering service worker (/sw.js)...', 'info');
 
@@ -2026,21 +2048,38 @@
         throw new Error('Service Workers are not supported in this browser.');
       }
 
-      const reg = await navigator.serviceWorker.register('/sw.js?v=7', { updateViaCache: 'none' });
+      const swUrl = new URL(`${appPath('sw.js')}?v=10`, location.href).href;
+      const reg = await navigator.serviceWorker.register(swUrl, {
+        scope: APP_BASE,
+        updateViaCache: 'none'
+      });
       addLog(`Service worker registered (scope: ${reg.scope})`, 'ok');
 
       await navigator.serviceWorker.ready;
 
-      // Check if page is controlled. If first visit, reload to establish SW interception
-      if (!navigator.serviceWorker.controller) {
-        addLog('Service worker active. Claiming client controller...', 'warn');
-        await sleep(300);
-        if (!navigator.serviceWorker.controller) {
-          addLog('Reloading once to establish full Service Worker interception...', 'info');
-          allowApplicationUnload = true;
-          location.reload();
-          return;
-        }
+      if (navigator.serviceWorker.controller?.scriptURL !== swUrl) {
+        await new Promise(resolve => {
+          const onControllerChange = () => {
+            if (navigator.serviceWorker.controller?.scriptURL === swUrl) {
+              clearTimeout(timeout);
+              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+              resolve();
+            }
+          };
+          const timeout = setTimeout(() => {
+            navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+            resolve();
+          }, 3000);
+          navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+          onControllerChange();
+        });
+      }
+
+      if (navigator.serviceWorker.controller?.scriptURL !== swUrl) {
+        addLog('Reloading to activate the updated service worker...', 'warn');
+        allowApplicationUnload = true;
+        location.reload();
+        return;
       }
 
       const sw = navigator.serviceWorker.controller;
@@ -2049,44 +2088,52 @@
       // Epoxy transport init
       const wispUrl = getWispUrl();
       addLog(`Connecting Epoxy transport to: ${wispUrl}`, 'info');
-      if (!(await verifyWispEndpoint(wispUrl))) {
-        addLog(`Wisp endpoint did not complete a WebSocket handshake: ${wispUrl}`, 'warn');
-      }
 
       if (!EpoxyTransport) {
         throw new Error('EpoxyTransport bundle failed to load. Check /controller/epoxy.js');
       }
 
-      let transport;
-      try {
-        transport = new EpoxyTransport({ wisp: wispUrl });
-        await transport.init();
-      } catch (error) {
-        if (wispUrl === getLocalWispUrl()) throw error;
-        addLog(`Remote Wisp unavailable; falling back to local ${getLocalWispUrl()}`, 'warn');
-        transport = new EpoxyTransport({ wisp: getLocalWispUrl() });
-        await transport.init();
-      }
-      addLog('Epoxy transport handshake complete', 'ok');
-
-      // Scramjet controller init
-      addLog('Initializing Scramjet controller & WASM...', 'info');
-      scramjet = new Controller({
-        serviceworker: sw,
-        transport,
-        scramjetConfig: defaultConfig
+      const wispVersion = getWispVersion();
+      const transport = new EpoxyTransport({
+        wisp: wispUrl,
+        wisp_v2: wispVersion === 2,
+        wisp_ws_protocols: wispVersion === 2 ? ['wisp-v2'] : []
       });
+      await transport.init();
+      const status = await probeTransport(transport);
+      activeTransport = transport;
+      addLog(`Wisp v${wispVersion} tunnel verified with proxied HTTPS request (HTTP ${status})`, 'ok');
 
-      await scramjet.wait();
-      addLog('Scramjet controller ready and synchronized', 'ok');
+      if (scramjet) {
+        scramjet.setTransport(transport);
+      } else {
+        addLog('Initializing Scramjet controller & WASM...', 'info');
+        scramjet = new Controller({
+          serviceworker: sw,
+          transport,
+          config: {
+            ...$scramjetController.config,
+            prefix: appPath('~/sj/'),
+            scramjetPath: appPath('scramjet/scramjet.js'),
+            injectPath: appPath('controller/controller.inject.js'),
+            wasmPath: appPath('scramjet/scramjet.wasm')
+          },
+          scramjetConfig: defaultConfig
+        });
+        await scramjet.wait();
+        addLog('Scramjet controller ready and synchronized', 'ok');
+      }
 
       isProxyReady = true;
+      settings.wisp = document.getElementById('wispSelectPage').value ||
+        document.getElementById('wispSelect').value || settings.wisp;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 
       showToast('Proxy ready — type sudo for commands');
       addLog('SuperUser Proxy is online and ready for traffic', 'ok');
     } catch (err) {
       console.error(err);
-      addLog(`Scramjet boot failure: ${err.message}`, 'err');
+      addLog(`Wisp/proxy connection failed: ${err.message}`, 'err');
       showToast('Proxy Error: ' + err.message, true);
       toggleLogDrawer(true);
     }
@@ -2102,11 +2149,21 @@
     addLog(`Iframe Binding: ${sjFrame ? 'Bound' : 'Unbound'}`, sjFrame ? 'ok' : 'warn');
 
     try {
-      const resp = await fetch('/health');
+      const resp = await fetch(appPath('health'));
       const data = await resp.json();
       addLog(`Backend /health: ${JSON.stringify(data)}`, 'ok');
     } catch (e) {
       addLog(`Backend /health error: ${e.message}`, 'err');
+    }
+    if (activeTransport) {
+      try {
+        const status = await probeTransport(activeTransport);
+        addLog(`Selected Wisp tunnel passed proxied HTTPS test (HTTP ${status})`, 'ok');
+      } catch (error) {
+        addLog(`Selected Wisp tunnel test failed: ${error.message}`, 'err');
+      }
+    } else {
+      addLog('Selected Wisp tunnel is not initialized', 'err');
     }
   });
 
@@ -2227,6 +2284,14 @@
 
       el.addEventListener('click', () => switchTab(tab.id));
       tabList.appendChild(el);
+    });
+    filterTabs();
+  }
+
+  function filterTabs() {
+    const query = document.getElementById('searchTabsInput').value.trim().toLowerCase();
+    document.querySelectorAll('#tabList .tab-item').forEach(item => {
+      item.hidden = Boolean(query && !item.textContent.toLowerCase().includes(query));
     });
   }
 
@@ -2739,12 +2804,7 @@
     button.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
     button.querySelector('span').textContent = collapsed ? '›' : '‹';
   });
-  document.getElementById('searchTabsInput').addEventListener('input', event => {
-    const query = event.target.value.trim().toLowerCase();
-    document.querySelectorAll('#tabList .tab-item').forEach(item => {
-      item.hidden = Boolean(query && !item.textContent.toLowerCase().includes(query));
-    });
-  });
+  document.getElementById('searchTabsInput').addEventListener('input', filterTabs);
 
   document.getElementById('settingsBtn').addEventListener('click', () => showAppPage('settings'));
   document.getElementById('helpBtn').addEventListener('click', () => showAppPage('help'));
@@ -2798,6 +2858,19 @@
 
   document.getElementById('wispSelect').addEventListener('change', onWispChange);
   document.getElementById('wispSelectPage').addEventListener('change', onWispChange);
+  function onWispVersionChange() {
+    const source = this;
+    const other = source.id === 'wispVersionSelectPage'
+      ? document.getElementById('wispVersionSelect')
+      : document.getElementById('wispVersionSelectPage');
+    if (other) other.value = source.value;
+    settings.wispVersion = source.value;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    addLog(`Using Wisp protocol selection: ${source.value}`, 'info');
+    initScramjetProxy();
+  }
+  document.getElementById('wispVersionSelect').addEventListener('change', onWispVersionChange);
+  document.getElementById('wispVersionSelectPage').addEventListener('change', onWispVersionChange);
   function useCustomWisp(inputId) {
     const value = document.getElementById(inputId).value.trim();
     if (!/^wss?:\/\/.+/i.test(value)) {
@@ -2969,7 +3042,7 @@
     const time = new Date();
     document.getElementById('systemTime').textContent = time.toLocaleTimeString([], { hour12: false });
     const started = performance.now();
-    fetch('/health', { cache: 'no-store' }).then(response => {
+    fetch(appPath('health'), { cache: 'no-store' }).then(response => {
       document.getElementById('serverPing').textContent = `${Math.round(performance.now() - started)}ms`;
     }).catch(() => {
       document.getElementById('serverPing').textContent = 'offline';
@@ -3049,7 +3122,7 @@
     if (home) {
       home.innerHTML = visibleShortcuts.map(shortcut => `
         <button class="chip-btn" data-url="${escapeHtml(shortcut.url)}">
-          <img class="shortcut-icon" src="/assets/shortcuts/icons/${encodeURIComponent(shortcut.title.toLowerCase())}.png" alt="">
+          <img class="shortcut-icon" src="${appPath(`assets/shortcuts/icons/${encodeURIComponent(shortcut.title.toLowerCase())}.png`)}" alt="">
           ${escapeHtml(shortcut.title)}
         </button>`).join('');
       home.querySelectorAll('.chip-btn').forEach(button => {
@@ -3077,7 +3150,7 @@
 
   async function loadExtensionCatalog() {
     try {
-      const response = await fetch('/extensions/scripts/index.json', { cache: 'no-store' });
+      const response = await fetch(appPath('extensions/scripts/index.json'), { cache: 'no-store' });
       extensionCatalog = await response.json();
       renderExtensionSettings();
     } catch (error) {
@@ -3100,7 +3173,7 @@
       enabledExtensions[extension.id] = true;
       localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
       const script = tab.frame.contentDocument.createElement('script');
-      script.src = `/extensions/scripts/${encodeURIComponent(extension.id)}.js`;
+      script.src = appPath(`extensions/scripts/${encodeURIComponent(extension.id)}.js`);
       tab.frame.contentDocument.documentElement.appendChild(script);
       close();
       renderExtensionSettings();
@@ -3109,11 +3182,12 @@
   }
 
   // Start only after every DOM reference and event handler has been initialized.
-  document.getElementById('wispSelectPage').value = ['local', 'homework-relay',
-    'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/',
+  document.getElementById('wispSelectPage').value = ['local', OFFICIAL_WISP_URL,
     'wss://wisp.mercurywork.shop/'].includes(settings.wisp)
     ? settings.wisp : '';
   document.getElementById('wispSelect').value = document.getElementById('wispSelectPage').value;
+  document.getElementById('wispVersionSelectPage').value = settings.wispVersion;
+  document.getElementById('wispVersionSelect').value = settings.wispVersion;
   if (!document.getElementById('wispSelectPage').value) {
     document.getElementById('customWispInputPage').value = settings.wisp || '';
     document.getElementById('customWispInput').value = settings.wisp || '';
