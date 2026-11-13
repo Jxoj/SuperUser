@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import json
 import re
 import shutil
 from pathlib import Path
@@ -36,30 +34,6 @@ def inline_scripts(html: str) -> str:
     return pattern.sub(replace, html)
 
 
-def inline_icons(html: str) -> str:
-    icon_dir = ROOT / "assets" / "shortcuts" / "icons"
-    titles = {
-        "chatgpt": "ChatGPT",
-        "discord": "Discord",
-        "google": "Google",
-        "youtube": "YouTube",
-    }
-    icon_data = {}
-    for path in sorted(icon_dir.glob("*.png")):
-        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-        icon_data[titles.get(path.stem, path.stem.title())] = f"data:image/png;base64,{encoded}"
-
-    html = html.replace(
-        'src="${appPath(`assets/shortcuts/icons/${encodeURIComponent(shortcut.title.toLowerCase())}.png`)}"',
-        'src="${shortcutIcons[shortcut.title] || ""}"',
-    )
-    icon_map = json.dumps(icon_data, separators=(",", ":"))
-    marker = "  const logDrawer"
-    if marker not in html:
-        raise ValueError("Could not locate the main application script")
-    return html.replace(marker, f"  const shortcutIcons = {icon_map};\n{marker}", 1)
-
-
 def copy_runtime_assets() -> None:
     output_dir = OUTPUT.parent
     for relative in RUNTIME_FILES:
@@ -83,12 +57,24 @@ def copy_runtime_assets() -> None:
         )
     shutil.copy2(ROOT / "sw.js", output_dir / "sw.js")
     shutil.copy2(ROOT / "_headers", output_dir / "_headers")
+    games_source = ROOT / "internals" / "games"
+    if games_source.is_dir():
+        shutil.copytree(
+            games_source,
+            output_dir / "internals" / "games",
+            dirs_exist_ok=True,
+        )
+    learning_source = ROOT / "Mockups" / "learning.html"
+    if not learning_source.is_file():
+        raise FileNotFoundError(f"Missing learning mockup: {learning_source}")
+    learning_destination = output_dir / "Mockups" / "learning.html"
+    learning_destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(learning_source, learning_destination)
 
 
 def main() -> None:
     html = SOURCE.read_text(encoding="utf-8")
     html = inline_scripts(html)
-    html = inline_icons(html)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     copy_runtime_assets()
     OUTPUT.write_text(

@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StemSpark - Interactive Math & Science Learning Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        spark: {
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e',
+                            purple: '#8b5cf6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.3);
+        }
+        .glow-effect-cyan {
+            box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.3);
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brand-500 selection:text-white pb-12">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 w-full glass-panel border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="setActiveTab('dashboard')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-spark-cyan flex items-center justify-center shadow-lg shadow-brand-500/30">
+                        <i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-500 bg-clip-text text-transparent">StemSpark</span>
+                        <span class="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">LABS</span>
+                    </div>
+                </div>
+
+                <!-- Main Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-1">
+                    <button id="nav-dashboard" onclick="setActiveTab('dashboard')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-brand-400 bg-brand-500/10 flex items-center space-x-2">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button id="nav-courses" onclick="setActiveTab('courses')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        <span>Courses</span>
+                    </button>
+                    <button id="nav-labs" onclick="setActiveTab('labs')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2">
+                        <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                        <span>Interactive Labs</span>
+                    </button>
+                    <button id="nav-progress" onclick="setActiveTab('progress')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2">
+                        <i data-lucide="trophy" class="w-4 h-4"></i>
+                        <span>Progress</span>
+                    </button>
+                </nav>
+
+                <!-- User HUD & Profile -->
+                <div class="flex items-center space-x-4">
+                    <!-- Streak Counter -->
+                    <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold" title="7 Day Learning Streak">
+                        <i data-lucide="flame" class="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse"></i>
+                        <span id="streak-counter">7 Days</span>
+                    </div>
+
+                    <!-- XP Points -->
+                    <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-spark-purple/10 border border-spark-purple/20 text-spark-purple text-xs font-bold" title="Total Experience Points">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-spark-purple"></i>
+                        <span id="user-xp">1,450 XP</span>
+                    </div>
+
+                    <!-- Profile Avatar Dropdown Button -->
+                    <div class="relative group">
+                        <button class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 border-2 border-brand-500/40 hover:border-brand-500 transition-colors text-slate-300 hover:text-white" title="Student Profile">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Row -->
+        <div class="md:hidden flex items-center justify-around border-t border-slate-800 py-2 px-2 bg-slate-900/90">
+            <button onclick="setActiveTab('dashboard')" class="mobile-nav-btn text-xs text-brand-400 font-medium flex flex-col items-center gap-1">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span>Home</span>
+            </button>
+            <button onclick="setActiveTab('courses')" class="mobile-nav-btn text-xs text-slate-400 font-medium flex flex-col items-center gap-1">
+                <i data-lucide="book-open" class="w-5 h-5"></i>
+                <span>Courses</span>
+            </button>
+            <button onclick="setActiveTab('labs')" class="mobile-nav-btn text-xs text-slate-400 font-medium flex flex-col items-center gap-1">
+                <i data-lucide="flask-conical" class="w-5 h-5"></i>
+                <span>Labs</span>
+            </button>
+            <button onclick="setActiveTab('progress')" class="mobile-nav-btn text-xs text-slate-400 font-medium flex flex-col items-center gap-1">
+                <i data-lucide="trophy" class="w-5 h-5"></i>
+                <span>Stats</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex-1">
+
+        <!-- ==================== VIEW 1: DASHBOARD ==================== -->
+        <section id="view-dashboard" class="space-y-8 transition-opacity duration-300">
+            
+            <!-- Hero Greeting Banner -->
+            <div class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-brand-900 via-indigo-950 to-slate-900 p-6 sm:p-8 border border-brand-500/20 shadow-2xl">
+                <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute right-1/3 -top-10 w-64 h-64 bg-spark-cyan/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                    <div class="lg:col-span-2 space-y-3">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 text-xs font-semibold border border-brand-500/30">
+                            <i data-lucide="compass" class="w-3.5 h-3.5"></i>
+                            <span>Daily STEM Focus: Kinematics & Polynomials</span>
+                        </div>
+                        <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+                            Welcome back! <span class="inline-block animate-bounce">🚀</span>
+                        </h1>
+                        <p class="text-slate-300 text-sm sm:text-base max-w-xl">
+                            You've completed <span class="text-white font-semibold">65%</span> of your weekly STEM goals. Jump back into your interactive labs or tackle today's physics challenge!
+                        </p>
+                    </div>
+
+                    <!-- Daily Challenge Widget Card -->
+                    <div class="glass-panel p-5 rounded-2xl border border-white/10 shadow-lg space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="p-2 rounded-lg bg-amber-500/20 text-amber-400">
+                                    <i data-lucide="target" class="w-5 h-5"></i>
+                                </span>
+                                <h3 class="font-bold text-sm text-white">Daily Spark Challenge</h3>
+                            </div>
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-spark-purple/20 text-spark-purple border border-spark-purple/30">+50 XP</span>
+                        </div>
+
+                        <p class="text-xs text-slate-300 font-medium" id="daily-question-text">
+                            If a projectile is launched at an angle of 45°, which component of initial velocity determines its maximum height?
+                        </p>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs" id="daily-options-container">
+                            <button onclick="checkDailyAnswer(0, false)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
+                                A) Horizontal ($v_x$)
+                            </button>
+                            <button onclick="checkDailyAnswer(1, true)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
+                                B) Vertical ($v_y$)
+                            </button>
+                            <button onclick="checkDailyAnswer(2, false)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
+                                C) Total Speed ($v$)
+                            </button>
+                            <button onclick="checkDailyAnswer(3, false)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
+                                D) Gravity ($g$)
+                            </button>
+                        </div>
+                        <div id="daily-feedback" class="hidden text-xs font-semibold p-2 rounded-lg"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Learning Dashboard Cards -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+                        <i data-lucide="play-circle" class="w-5 h-5 text-brand-400"></i>
+                        <span>Continue Learning</span>
+                    </h2>
+                    <button onclick="setActiveTab('courses')" class="text-sm text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1">
+                        <span>View All Courses</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Resume Card 1 -->
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                                Mathematics • Intermediate
+                            </span>
+                            <span class="text-xs text-slate-400 flex items-center space-x-1">
+                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                <span>25 mins left</span>
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">
+                            Algebra II: Quadratic Equation Transformations
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1 mb-4 line-clamp-2">
+                            Master how coefficients $a, b, c$ manipulate vertex coordinates, axis of symmetry, and parabolic curvature using dynamic graph sliders.
+                        </p>
+                        
+                        <!-- Progress Bar -->
+                        <div class="space-y-1.5 mb-5">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-slate-300">Progress</span>
+                                <span class="text-brand-400">65%</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-brand-500 to-spark-cyan rounded-full" style="width: 65%;"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="openLessonModal('quadratic')" class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm flex items-center justify-center space-x-2 transition shadow-lg shadow-brand-600/25">
+                            <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                            <span>Resume Lesson & Interactive Lab</span>
+                        </button>
+                    </div>
+
+                    <!-- Resume Card 2 -->
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-spark-cyan/40 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-spark-cyan/20 text-spark-cyan border border-spark-cyan/30">
+                                Physics • Intermediate
+                            </span>
+                            <span class="text-xs text-slate-400 flex items-center space-x-1">
+                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                <span>40 mins left</span>
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white group-hover:text-spark-cyan transition-colors">
+                            Projectile Motion & Trajectory Vectors
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1 mb-4 line-clamp-2">
+                            Simulate cannonball trajectories across different gravity environments (Earth, Moon, Mars) and analyze vector components.
+                        </p>
+
+                        <!-- Progress Bar -->
+                        <div class="space-y-1.5 mb-5">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-slate-300">Progress</span>
+                                <span class="text-spark-cyan">40%</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-spark-cyan to-spark-emerald rounded-full" style="width: 40%;"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="openLessonModal('projectile')" class="w-full py-2.5 px-4 rounded-xl bg-spark-cyan/20 hover:bg-spark-cyan text-white hover:text-slate-900 border border-spark-cyan/40 font-semibold text-sm flex items-center justify-center space-x-2 transition shadow-lg shadow-spark-cyan/10">
+                            <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                            <span>Launch Kinematics Simulator</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats & Recommended Labs Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="glass-panel p-4 rounded-2xl flex items-center space-x-4 border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xl">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-extrabold text-white">24</p>
+                        <p class="text-xs text-slate-400">Labs Completed</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl flex items-center space-x-4 border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xl">
+                        <i data-lucide="clock-4" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-extrabold text-white">18.5 hrs</p>
+                        <p class="text-xs text-slate-400">Interactive Time</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl flex items-center space-x-4 border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
+                        <i data-lucide="award" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-extrabold text-white">Top 5%</p>
+                        <p class="text-xs text-slate-400">Community Rank</p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== VIEW 2: COURSES CATALOG ==================== -->
+        <section id="view-courses" class="hidden space-y-6">
+            
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Explore Interactive Courses</h1>
+                    <p class="text-slate-400 text-sm">Interactive visual modules for high school & college STEM subjects.</p>
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative w-full md:w-80">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="course-search-input" onkeyup="filterCourses()" placeholder="Search algebra, physics, cells..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500 transition">
+                </div>
+            </div>
+
+            <!-- Subject Filter Tabs -->
+            <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                <button onclick="setSubjectFilter('all')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-600 text-white transition">
+                    All Subjects
+                </button>
+                <button onclick="setSubjectFilter('math')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
+                    Mathematics
+                </button>
+                <button onclick="setSubjectFilter('physics')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
+                    Physics
+                </button>
+                <button onclick="setSubjectFilter('chemistry')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
+                    Chemistry
+                </button>
+                <button onclick="setSubjectFilter('biology')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
+                    Biology
+                </button>
+            </div>
+
+            <!-- Courses Grid -->
+            <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically Rendered by JS -->
+            </div>
+
+        </section>
+
+        <!-- ==================== VIEW 3: STANDALONE INTERACTIVE LABS ==================== -->
+        <section id="view-labs" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">STEM Interactive Sandbox Labs</h1>
+                    <p class="text-slate-400 text-sm">Experiment directly with live physical models, circuit builders, and graphing calculators.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Lab Card 1: Quadratic Function Grapher -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="p-3 rounded-xl bg-brand-500/20 text-brand-400">
+                            <i data-lucide="line-chart" class="w-6 h-6"></i>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-white text-lg">Quadratic Grapher & Root Finder</h3>
+                            <p class="text-xs text-slate-400">Math Lab • Interactive Parabola Simulation</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-300 mb-4">
+                        Adjust parabola constants $a, b, c$ to observe real-time transformations, vertex movement, and discriminant roots behavior.
+                    </p>
+                    <button onclick="openLessonModal('quadratic')" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition">
+                        Open Graph Sandbox
+                    </button>
+                </div>
+
+                <!-- Lab Card 2: Projectile Kinematics Simulator -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-spark-cyan/40 transition">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="p-3 rounded-xl bg-spark-cyan/20 text-spark-cyan">
+                            <i data-lucide="rocket" class="w-6 h-6"></i>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-white text-lg">Projectile Kinematics Lab</h3>
+                            <p class="text-xs text-slate-400">Physics Lab • Launch Vector Physics</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-300 mb-4">
+                        Launch projectiles at customizable launch angles, speeds, and planetary gravity constants. View real-time velocity vectors.
+                    </p>
+                    <button onclick="openLessonModal('projectile')" class="w-full py-2.5 rounded-xl bg-spark-cyan/20 hover:bg-spark-cyan text-white hover:text-slate-900 border border-spark-cyan/40 font-semibold text-sm transition">
+                        Open Projectile Sandbox
+                    </button>
+                </div>
+
+                <!-- Lab Card 3: Electric Circuit Builder -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-amber-500/40 transition">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="p-3 rounded-xl bg-amber-500/20 text-amber-400">
+                            <i data-lucide="zap" class="w-6 h-6"></i>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-white text-lg">Ohm's Law & Circuit Lab</h3>
+                            <p class="text-xs text-slate-400">Physics / EE Lab • Interactive Voltage & Resistance</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-300 mb-4">
+                        Simulate DC electric circuits, toggle switches, adjust voltage sources and resistor values to visualize electron velocity and power dissipation.
+                    </p>
+                    <button onclick="openLessonModal('circuit')" class="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-white hover:text-slate-900 border border-amber-500/40 font-semibold text-sm transition">
+                        Open Circuit Sandbox
+                    </button>
+                </div>
+
+                <!-- Lab Card 4: 3D Molecular Model Viewer -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-emerald-500/40 transition">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="p-3 rounded-xl bg-emerald-500/20 text-emerald-400">
+                            <i data-lucide="atom" class="w-6 h-6"></i>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-white text-lg">Interactive Molecular Visualizer</h3>
+                            <p class="text-xs text-slate-400">Chemistry Lab • Ball-and-Stick Geometry</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-300 mb-4">
+                        Rotate and inspect molecular atomic bonding geometries including $H_2O$, $CO_2$, and $CH_4$ with real-time bond angle calculations.
+                    </p>
+                    <button onclick="openLessonModal('chemistry')" class="w-full py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-white hover:text-slate-900 border border-emerald-500/40 font-semibold text-sm transition">
+                        Open Molecular Viewer
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 4: PROGRESS & ANALYTICS ==================== -->
+        <section id="view-progress" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Your STEM Mastery & Stats</h1>
+                    <p class="text-slate-400 text-sm">Detailed overview of your concept retention, lab accuracy, and learning streak.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Skill Radar / Breakdown -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 lg:col-span-2 space-y-6">
+                    <h3 class="text-lg font-bold text-white">Subject Mastery Overview</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1.5">
+                                <span class="text-slate-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
+                                    <span>Algebra & Calculus</span>
+                                </span>
+                                <span class="text-brand-400">82% Mastery</span>
+                            </div>
+                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-brand-500 rounded-full" style="width: 82%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1.5">
+                                <span class="text-slate-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-spark-cyan"></span>
+                                    <span>Classical Mechanics & Physics</span>
+                                </span>
+                                <span class="text-spark-cyan">68% Mastery</span>
+                            </div>
+                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-spark-cyan rounded-full" style="width: 68%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1.5">
+                                <span class="text-slate-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                    <span>Organic & Inorganic Chemistry</span>
+                                </span>
+                                <span class="text-emerald-400">45% Mastery</span>
+                            </div>
+                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-emerald-500 rounded-full" style="width: 45%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1.5">
+                                <span class="text-slate-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                                    <span>Cellular Biology & Genetics</span>
+                                </span>
+                                <span class="text-purple-400">30% Mastery</span>
+                            </div>
+                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-purple-500 rounded-full" style="width: 30%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Badges Earned Card -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
+                    <h3 class="text-lg font-bold text-white">Recent Achievements</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700">
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">
+                                🏆
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Parabola Master</h4>
+                                <p class="text-xs text-slate-400">Solved 10 vertex form problems</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700">
+                            <div class="w-10 h-10 rounded-lg bg-spark-cyan/20 text-spark-cyan flex items-center justify-center font-bold text-lg">
+                                🚀
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Kinematics Ace</h4>
+                                <p class="text-xs text-slate-400">Completed trajectory launch simulations</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700">
+                            <div class="w-10 h-10 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-lg">
+                                ⚡
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">7-Day Flame</h4>
+                                <p class="text-xs text-slate-400">Maintained daily learning streak</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== INTERACTIVE LESSON MODAL OVERLAY ==================== -->
+    <div id="lesson-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            <!-- Modal Header Bar -->
+            <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 bg-slate-900/90">
+                <div class="flex items-center space-x-3">
+                    <span id="modal-subject-tag" class="px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                        Math Lab
+                    </span>
+                    <h2 id="modal-title" class="text-base sm:text-lg font-bold text-white truncate max-w-md">
+                        Interactive Lesson Title
+                    </h2>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-slate-400 font-semibold hidden sm:inline-block">Lesson Step <span text-brand-400 id="modal-step">1/3</span></span>
+                    <button onclick="closeLessonModal()" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body Content -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
+                
+                <!-- Lesson Explanation Banner -->
+                <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2">
+                    <div class="flex items-center space-x-2 text-brand-400 text-xs font-bold uppercase tracking-wider">
+                        <i data-lucide="book-open-check" class="w-4 h-4"></i>
+                        <span>Key Concept & Formula</span>
+                    </div>
+                    <p id="modal-description" class="text-sm text-slate-200 leading-relaxed">
+                        Concept description goes here...
+                    </p>
+                    <div id="modal-formula-box" class="mt-2 p-3 rounded-xl bg-slate-950 border border-brand-500/30 text-brand-300 font-mono text-xs sm:text-sm flex items-center justify-between">
+                        <span id="modal-formula-text">$y = a(x - h)^2 + k$</span>
+                        <span class="text-slate-500 text-xs">Standard Form</span>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC SIMULATION CONTAINER -->
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i data-lucide="sliders" class="w-4 h-4 text-spark-cyan"></i>
+                            <span id="sim-title">Live Simulation & Visual Sandbox</span>
+                        </h3>
+                        <span class="text-xs text-slate-400">Interactive Canvas • Drag/Adjust Sliders</span>
+                    </div>
+
+                    <!-- Canvas Box -->
+                    <div class="relative w-full h-64 sm:h-80 bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                        <canvas id="sim-canvas" class="w-full h-full block"></canvas>
+                        
+                        <!-- Overlay Canvas Stats Badge -->
+                        <div id="sim-stats-overlay" class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300 font-mono">
+                            Loading dynamic variables...
+                        </div>
+                    </div>
+
+                    <!-- Interactive Controls Panel (Sliders / Toggles) -->
+                    <div id="sim-controls-panel" class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                        <!-- Controls dynamically generated by JS -->
+                    </div>
+                </div>
+
+                <!-- PRACTICAL QUIZ ASSESSMENT -->
+                <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-spark-purple"></i>
+                            <span>Concept Knowledge Check</span>
+                        </h3>
+                        <span class="text-xs text-spark-purple font-semibold bg-spark-purple/10 px-2.5 py-0.5 rounded-full border border-spark-purple/20">+100 XP</span>
+                    </div>
+
+                    <p id="quiz-question" class="text-xs sm:text-sm text-slate-200 font-medium">
+                        Quiz question will appear here based on the active lesson.
+                    </p>
+
+                    <div id="quiz-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+                        <!-- Options generated dynamically -->
+                    </div>
+
+                    <div id="quiz-feedback" class="hidden p-3 rounded-xl text-xs font-semibold border"></div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center">
+                <button onclick="closeLessonModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition">
+                    Exit Lesson
+                </button>
+                <button onclick="completeCurrentLesson()" id="finish-btn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-spark-cyan hover:from-brand-500 hover:to-spark-cyan/80 text-white font-bold text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center space-x-2">
+                    <span>Complete Lesson (+100 XP)</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APP LOGIC & SIMULATION ENGINES -->
+    <script>
+        // Global App State
+        let currentTab = 'dashboard';
+        let currentSubjectFilter = 'all';
+        let userXP = 1450;
+        let activeLessonId = null;
+        let animFrameId = null;
+
+        // Course Catalog Data
+        const coursesData = [
+            {
+                id: 'quadratic',
+                title: 'Quadratic Functions & Parabolic Transformations',
+                subject: 'math',
+                subjectName: 'Mathematics',
+                difficulty: 'Intermediate',
+                lessonsCount: 12,
+                duration: '2.5 hrs',
+                progress: 65,
+                tag: 'Graph Visualizer',
+                color: 'brand',
+                desc: 'Learn how $f(x) = ax^2 + bx + c$ bends, shifts, and intersects axes with dynamic slider graphs.',
+                formula: 'f(x) = ax² + bx + c',
+                quiz: {
+                    question: 'What happens to the parabola graph when coefficient "a" is negative?',
+                    options: [
+                        { text: 'A) The parabola opens downward (∩ shape)', correct: true },
+                        { text: 'B) The graph shifts to the right', correct: false },
+                        { text: 'C) The parabola turns into a straight line', correct: false },
+                        { text: 'D) The y-intercept becomes zero', correct: false }
+                    ],
+                    explanation: 'Correct! When coefficient a < 0, the leading term causes the parabola to open downwards, forming a maximum vertex point.'
+                }
+            },
+            {
+                id: 'projectile',
+                title: 'Kinematics: 2D Projectile Motion Vectors',
+                subject: 'physics',
+                subjectName: 'Physics',
+                difficulty: 'Intermediate',
+                lessonsCount: 15,
+                duration: '3.5 hrs',
+                progress: 40,
+                tag: 'Launch Physics',
+                color: 'spark-cyan',
+                desc: 'Decompose initial velocity vectors into horizontal and vertical components across planetary gravity fields.',
+                formula: 'Range R = (v² · sin(2θ)) / g',
+                quiz: {
+                    question: 'At what launch angle (neglecting air resistance) is maximum horizontal range achieved?',
+                    options: [
+                        { text: 'A) 30 degrees', correct: false },
+                        { text: 'B) 45 degrees', correct: true },
+                        { text: 'C) 60 degrees', correct: false },
+                        { text: 'D) 90 degrees', correct: false }
+                    ],
+                    explanation: 'Spot on! sin(2 × 45°) = sin(90°) = 1, maximizing horizontal trajectory distance.'
+                }
+            },
+            {
+                id: 'circuit',
+                title: 'Electric Circuits & Ohm\'s Law Simulation',
+                subject: 'physics',
+                subjectName: 'Physics',
+                difficulty: 'Beginner',
+                lessonsCount: 9,
+                duration: '2.0 hrs',
+                progress: 80,
+                tag: 'Circuit Builder',
+                color: 'amber',
+                desc: 'Calculate current flow $I = V/R$, observe electron drift speeds, and monitor lamp power brightness.',
+                formula: 'V = I · R  |  P = I² · R',
+                quiz: {
+                    question: 'If voltage (V) across a fixed resistor is doubled, what happens to current (I)?',
+                    options: [
+                        { text: 'A) Current is halved', correct: false },
+                        { text: 'B) Current remains unchanged', correct: false },
+                        { text: 'C) Current is doubled', correct: true },
+                        { text: 'D) Current quadruples', correct: false }
+                    ],
+                    explanation: 'Exactly right! According to Ohm\'s Law (I = V/R), current is directly proportional to voltage.'
+                }
+            },
+            {
+                id: 'chemistry',
+                title: '3D Molecular Geometry & Valence Shells',
+                subject: 'chemistry',
+                subjectName: 'Chemistry',
+                difficulty: 'Beginner',
+                lessonsCount: 10,
+                duration: '2.2 hrs',
+                progress: 15,
+                tag: '3D Molecular Model',
+                color: 'emerald',
+                desc: 'Inspect interactive 3D chemical bonds, electron pair repulsion, and molecular symmetry angles.',
+                formula: 'VSEPR Theory Angles (e.g. 104.5° for H₂O)',
+                quiz: {
+                    question: 'What is the molecular geometry shape of Water (H₂O)?',
+                    options: [
+                        { text: 'A) Linear (180°)', correct: false },
+                        { text: 'B) Bent (~104.5°)', correct: true },
+                        { text: 'C) Trigonal Planar (120°)', correct: false },
+                        { text: 'D) Tetrahedral (109.5°)', correct: false }
+                    ],
+                    explanation: 'Correct! Two lone pairs on oxygen compress the H-O-H bond angle down to approximately 104.5°.'
+                }
+            },
+            {
+                id: 'calculus',
+                title: 'Calculus: Derivatives & Slope Visualizer',
+                subject: 'math',
+                subjectName: 'Mathematics',
+                difficulty: 'Advanced',
+                lessonsCount: 18,
+                duration: '4.5 hrs',
+                progress: 0,
+                tag: 'Calculus Sandbox',
+                color: 'brand',
+                desc: 'Explore instantaneous rate of change $f\'(x)$ by sliding secant lines into tangent lines.',
+                formula: 'f\'(x) = lim(Δx→0) [f(x+Δx) - f(x)] / Δx',
+                quiz: {
+                    question: 'What is the derivative of f(x) = x³ with respect to x?',
+                    options: [
+                        { text: 'A) 3x²', correct: true },
+                        { text: 'B) x²', correct: false },
+                        { text: 'C) 3x', correct: false },
+                        { text: 'D) 6x', correct: false }
+                    ],
+                    explanation: 'Great job! By the power rule d/dx[xⁿ] = n·xⁿ⁻¹, the derivative of x³ is 3x².'
+                }
+            },
+            {
+                id: 'biology',
+                title: 'Cellular Respiration & Mitochondria Energy',
+                subject: 'biology',
+                subjectName: 'Biology',
+                difficulty: 'Intermediate',
+                lessonsCount: 8,
+                duration: '1.8 hrs',
+                progress: 10,
+                tag: 'Microorganism Lab',
+                color: 'purple',
+                desc: 'Trace ATP generation pathways through glycolysis, Krebs cycle, and electron transport chains.',
+                formula: 'C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + 36 ATP',
+                quiz: {
+                    question: 'Which organelle is known as the powerhouse generating ATP synthesis in eukaryotic cells?',
+                    options: [
+                        { text: 'A) Ribosome', correct: false },
+                        { text: 'B) Mitochondrion', correct: true },
+                        { text: 'C) Golgi Apparatus', correct: false },
+                        { text: 'D) Endoplasmic Reticulum', correct: false }
+                    ],
+                    explanation: 'Correct! Mitochondria produce cellular ATP energy through oxidative phosphorylation.'
+                }
+            }
+        ];
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            if (globalThis.lucide?.createIcons) lucide.createIcons();
+            renderCourses();
+        });
+
+        // Tab Navigation Switcher
+        function setActiveTab(tabId) {
+            currentTab = tabId;
+
+            // Hide all views
+            ['dashboard', 'courses', 'labs', 'progress'].forEach(view => {
+                const el = document.getElementById(`view-${view}`);
+                if (el) el.classList.add('hidden');
+            });
+
+            // Show selected view
+            const activeView = document.getElementById(`view-${tabId}`);
+            if (activeView) activeView.classList.remove('hidden');
+
+            // Update Desktop Nav Styling
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = 'nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2';
+            });
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.className = 'nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-brand-400 bg-brand-500/10 flex items-center space-x-2';
+            }
+        }
+
+        // Subject Filter Handler
+        function setSubjectFilter(filter) {
+            currentSubjectFilter = filter;
+            document.querySelectorAll('.subject-filter-btn').forEach(btn => {
+                btn.className = 'subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition';
+            });
+            event.target.className = 'subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-600 text-white transition';
+            renderCourses();
+        }
+
+        function filterCourses() {
+            renderCourses();
+        }
+
+        // Render Course Cards List
+        function renderCourses() {
+            const grid = document.getElementById('courses-grid');
+            if (!grid) return;
+
+            const searchQuery = (document.getElementById('course-search-input')?.value || '').toLowerCase();
+
+            const filtered = coursesData.filter(course => {
+                const matchesSubject = (currentSubjectFilter === 'all') || (course.subject === currentSubjectFilter);
+                const matchesSearch = course.title.toLowerCase().includes(searchQuery) || course.desc.toLowerCase().includes(searchQuery);
+                return matchesSubject && matchesSearch;
+            });
+
+            grid.innerHTML = filtered.map(course => `
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                ${course.subjectName}
+                            </span>
+                            <span class="text-xs text-slate-400 flex items-center space-x-1">
+                                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                                <span>${course.lessonsCount} Lessons</span>
+                            </span>
+                        </div>
+
+                        <h3 class="text-base font-bold text-white group-hover:text-brand-300 transition-colors mb-2">
+                            ${course.title}
+                        </h3>
+
+                        <p class="text-xs text-slate-400 mb-4 line-clamp-2">
+                            ${course.desc}
+                        </p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-slate-400">Completion</span>
+                                <span class="text-brand-400">${course.progress}%</span>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-brand-500 rounded-full" style="width: ${course.progress}%;"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="openLessonModal('${course.id}')" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-brand-600 text-slate-200 hover:text-white border border-slate-700 hover:border-brand-500 font-semibold text-xs transition flex items-center justify-center space-x-2">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                            <span>${course.progress > 0 ? 'Resume Course' : 'Start Course'}</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            if (globalThis.lucide?.createIcons) lucide.createIcons();
+        }
+
+        // Daily Question Checker
+        function checkDailyAnswer(index, isCorrect) {
+            const feedback = document.getElementById('daily-feedback');
+            const btns = document.querySelectorAll('.daily-opt');
+            
+            btns.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === 1) {
+                    btn.classList.add('bg-emerald-500/20', 'border-emerald-500/50', 'text-emerald-300');
+                } else if (i === index && !isCorrect) {
+                    btn.classList.add('bg-rose-500/20', 'border-rose-500/50', 'text-rose-300');
+                }
+            });
+
+            feedback.classList.remove('hidden');
+            if (isCorrect) {
+                feedback.className = 'text-xs font-semibold p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300';
+                feedback.innerHTML = '✨ Spot on! Vertical velocity ($v_y = v \\sin\\theta$) governs peak height! +50 XP added.';
+                userXP += 50;
+                document.getElementById('user-xp').innerText = `${userXP.toLocaleString()} XP`;
+                if (typeof confetti === 'function') confetti({ particleCount: 40, spread: 60, origin: { y: 0.3 } });
+            } else {
+                feedback.className = 'text-xs font-semibold p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300';
+                feedback.innerHTML = '❌ Not quite. Vertical component ($v_y$) is countered by gravity to determine apex height.';
+            }
+        }
+
+        // Open Interactive Lesson Modal & Launch Canvas Simulator
+        function openLessonModal(courseId) {
+            const course = coursesData.find(c => c.id === courseId) || coursesData[0];
+            activeLessonId = course.id;
+
+            document.getElementById('modal-title').innerText = course.title;
+            document.getElementById('modal-subject-tag').innerText = course.subjectName;
+            document.getElementById('modal-description').innerText = course.desc;
+            document.getElementById('modal-formula-text').innerText = course.formula;
+            document.getElementById('sim-title').innerText = `${course.title} - Live Interactive Sandbox`;
+
+            // Quiz render
+            document.getElementById('quiz-question').innerText = course.quiz.question;
+            const quizGrid = document.getElementById('quiz-options-grid');
+            quizGrid.innerHTML = course.quiz.options.map((opt, i) => `
+                <button onclick="checkLessonQuiz(${i}, ${opt.correct}, '${course.id}')" class="quiz-btn text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-200 transition font-medium">
+                    ${opt.text}
+                </button>
+            `).join('');
+            
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.add('hidden');
+
+            // Show Modal
+            document.getElementById('lesson-modal').classList.remove('hidden');
+            if (globalThis.lucide?.createIcons) lucide.createIcons();
+
+            // Setup Simulation Canvas based on Course ID
+            setTimeout(() => {
+                initSimulationEngine(course.id);
+            }, 100);
+        }
+
+        function closeLessonModal() {
+            document.getElementById('lesson-modal').classList.add('hidden');
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+        }
+
+        function checkLessonQuiz(index, isCorrect, courseId) {
+            const course = coursesData.find(c => c.id === courseId);
+            const feedback = document.getElementById('quiz-feedback');
+            const btns = document.querySelectorAll('.quiz-btn');
+
+            btns.forEach((btn, i) => {
+                btn.disabled = true;
+                if (course.quiz.options[i].correct) {
+                    btn.className = 'quiz-btn text-left p-3 rounded-xl bg-emerald-500/20 border border-emerald-500 text-xs text-emerald-300 font-semibold';
+                } else if (i === index) {
+                    btn.className = 'quiz-btn text-left p-3 rounded-xl bg-rose-500/20 border border-rose-500 text-xs text-rose-300 font-semibold';
+                }
+            });
+
+            feedback.classList.remove('hidden');
+            if (isCorrect) {
+                feedback.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300';
+                feedback.innerText = course.quiz.explanation;
+                if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+            } else {
+                feedback.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-500/10 border border-rose-500/30 text-rose-300';
+                feedback.innerText = 'Incorrect. ' + course.quiz.explanation;
+            }
+        }
+
+        function completeCurrentLesson() {
+            userXP += 100;
+            document.getElementById('user-xp').innerText = `${userXP.toLocaleString()} XP`;
+            
+            // Boost progress of active lesson
+            const c = coursesData.find(item => item.id === activeLessonId);
+            if (c) c.progress = Math.min(100, c.progress + 25);
+
+            renderCourses();
+            if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } });
+            closeLessonModal();
+        }
+
+        // ==================== SIMULATION ENGINES ====================
+
+        let simState = {};
+
+        function initSimulationEngine(type) {
+            const canvas = document.getElementById('sim-canvas');
+            const ctx = canvas.getContext('2d');
+            const controls = document.getElementById('sim-controls-panel');
+            
+            // Resize Canvas to container
+            canvas.width = canvas.parentElement.clientWidth || 600;
+            canvas.height = canvas.parentElement.clientHeight || 300;
+
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+
+            if (type === 'quadratic' || type === 'calculus') {
+                // QUADRATIC SIMULATION
+                simState = { a: 1, b: 0, c: -4 };
+                controls.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>a (curvature): <b id="val-a" class="text-brand-400">1</b></span>
+                        </div>
+                        <input type="range" min="-3" max="3" step="0.2" value="1" oninput="simState.a = parseFloat(this.value); document.getElementById('val-a').innerText=this.value;" class="w-full accent-brand-500">
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>b (slope): <b id="val-b" class="text-brand-400">0</b></span>
+                        </div>
+                        <input type="range" min="-6" max="6" step="0.5" value="0" oninput="simState.b = parseFloat(this.value); document.getElementById('val-b').innerText=this.value;" class="w-full accent-brand-500">
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>c (y-intercept): <b id="val-c" class="text-brand-400">-4</b></span>
+                        </div>
+                        <input type="range" min="-8" max="8" step="1" value="-4" oninput="simState.c = parseFloat(this.value); document.getElementById('val-c').innerText=this.value;" class="w-full accent-brand-500">
+                    </div>
+                `;
+
+                function drawQuadratic() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const cx = canvas.width / 2;
+                    const cy = canvas.height / 2;
+                    const scale = 20; // 20px per unit
+
+                    // Draw Grid
+                    ctx.strokeStyle = '#1e293b';
+                    ctx.lineWidth = 1;
+                    for (let x = 0; x < canvas.width; x += scale) {
+                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+                    }
+                    for (let y = 0; y < canvas.height; y += scale) {
+                        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+                    }
+
+                    // Axes
+                    ctx.strokeStyle = '#475569';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); ctx.stroke();
+
+                    // Plot Curve f(x) = a x^2 + b x + c
+                    const a = simState.a, b = simState.b, c = simState.c;
+                    ctx.strokeStyle = '#6366f1';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+
+                    let first = true;
+                    for (let px = 0; px <= canvas.width; px += 2) {
+                        const x = (px - cx) / scale;
+                        const y = a * x * x + b * x + c;
+                        const py = cy - y * scale;
+
+                        if (first) { ctx.moveTo(px, py); first = false; }
+                        else { ctx.lineTo(px, py); }
+                    }
+                    ctx.stroke();
+
+                    // Vertex marker (-b / 2a)
+                    if (a !== 0) {
+                        const vx = -b / (2 * a);
+                        const vy = a * vx * vx + b * vx + c;
+                        const vpx = cx + vx * scale;
+                        const vpy = cy - vy * scale;
+
+                        ctx.fillStyle = '#06b6d4';
+                        ctx.beginPath(); ctx.arc(vpx, vpy, 6, 0, Math.PI * 2); ctx.fill();
+                    }
+
+                    // Update Overlay Text
+                    const disc = b*b - 4*a*c;
+                    document.getElementById('sim-stats-overlay').innerText = `f(x) = ${a}x² ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c} | Vertex: (${(-b/(2*a||1)).toFixed(1)}, ${(c - b*b/(4*a||1)).toFixed(1)})`;
+
+                    animFrameId = requestAnimationFrame(drawQuadratic);
+                }
+                drawQuadratic();
+
+            } else if (type === 'projectile') {
+                // PROJECTILE SIMULATION
+                simState = { angle: 45, v0: 35, g: 9.8, t: 0 };
+                controls.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>Launch Angle: <b id="val-ang" class="text-spark-cyan">45°</b></span>
+                        </div>
+                        <input type="range" min="15" max="85" step="1" value="45" oninput="simState.angle = parseFloat(this.value); simState.t=0; document.getElementById('val-ang').innerText=this.value+'°';" class="w-full accent-spark-cyan">
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>Initial Velocity: <b id="val-v0" class="text-spark-cyan">35 m/s</b></span>
+                        </div>
+                        <input type="range" min="10" max="60" step="2" value="35" oninput="simState.v0 = parseFloat(this.value); simState.t=0; document.getElementById('val-v0').innerText=this.value+' m/s';" class="w-full accent-spark-cyan">
+                    </div>
+                    <div class="flex items-center justify-center pt-2">
+                        <button onclick="simState.t = 0;" class="px-4 py-1.5 rounded-xl bg-spark-cyan/20 text-spark-cyan border border-spark-cyan/40 text-xs font-bold hover:bg-spark-cyan hover:text-slate-900 transition">
+                            Re-launch Cannonball
+                        </button>
+                    </div>
+                `;
+
+                function drawProjectile() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    const rad = (simState.angle * Math.PI) / 180;
+                    const vx = simState.v0 * Math.cos(rad);
+                    const vy = simState.v0 * Math.sin(rad);
+                    const g = simState.g;
+
+                    // Ground line
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(40, canvas.height - 30); ctx.lineTo(canvas.width - 20, canvas.height - 30); ctx.stroke();
+
+                    // Trajectory Path Line
+                    ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+                    ctx.setLineDash([4, 4]);
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    
+                    const maxT = (2 * vy) / g;
+                    for (let t = 0; t <= maxT; t += 0.05) {
+                        const px = 40 + vx * t * 3.5;
+                        const py = (canvas.height - 30) - (vy * t - 0.5 * g * t * t) * 3.5;
+                        if (t === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Animated Projectile Position
+                    simState.t += 0.03;
+                    if (simState.t > maxT) simState.t = 0;
+
+                    const curX = 40 + vx * simState.t * 3.5;
+                    const curY = (canvas.height - 30) - (vy * simState.t - 0.5 * g * simState.t * simState.t) * 3.5;
+
+                    // Draw Projectile Ball
+                    ctx.fillStyle = '#06b6d4';
+                    ctx.beginPath(); ctx.arc(curX, curY, 8, 0, Math.PI * 2); ctx.fill();
+
+                    // Velocity Vector Arrow
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(curX, curY);
+                    ctx.lineTo(curX + vx * 0.8, curY - (vy - g * simState.t) * 0.8);
+                    ctx.stroke();
+
+                    const range = (simState.v0 * simState.v0 * Math.sin(2 * rad)) / g;
+                    const maxHeight = (vy * vy) / (2 * g);
+                    document.getElementById('sim-stats-overlay').innerText = `Range: ${range.toFixed(1)}m | Max Height: ${maxHeight.toFixed(1)}m`;
+
+                    animFrameId = requestAnimationFrame(drawProjectile);
+                }
+                drawProjectile();
+
+            } else if (type === 'circuit') {
+                // ELECTRIC CIRCUIT SIMULATION
+                simState = { volts: 12, ohms: 10, switchOn: true, electronOffset: 0 };
+                controls.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>Voltage (V): <b id="val-v" class="text-amber-400">12V</b></span>
+                        </div>
+                        <input type="range" min="3" max="24" step="1" value="12" oninput="simState.volts = parseFloat(this.value); document.getElementById('val-v').innerText=this.value+'V';" class="w-full accent-amber-500">
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>Resistance (Ω): <b id="val-r" class="text-amber-400">10Ω</b></span>
+                        </div>
+                        <input type="range" min="2" max="30" step="1" value="10" oninput="simState.ohms = parseFloat(this.value); document.getElementById('val-r').innerText=this.value+'Ω';" class="w-full accent-amber-500">
+                    </div>
+                    <div class="flex items-center justify-center pt-2">
+                        <button onclick="simState.switchOn = !simState.switchOn; this.innerText = simState.switchOn ? 'Switch Circuit OFF' : 'Switch Circuit ON';" class="px-4 py-1.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs font-bold transition">
+                            Switch Circuit OFF
+                        </button>
+                    </div>
+                `;
+
+                function drawCircuit() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    const padX = 80, padY = 50;
+                    const w = canvas.width - padX * 2;
+                    const h = canvas.height - padY * 2;
+
+                    // Draw Circuit Wires
+                    ctx.strokeStyle = '#475569';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(padX, padY, w, h);
+
+                    // Draw Battery Symbol (Left wire)
+                    const bx = padX, by = padY + h / 2;
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(bx - 10, by - 25, 20, 50);
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(bx - 15, by - 12); ctx.lineTo(bx + 15, by - 12); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(bx - 8, by + 12); ctx.lineTo(bx + 8, by + 12); ctx.stroke();
+
+                    // Draw Lamp Bulb (Right wire)
+                    const lx = padX + w, ly = padY + h / 2;
+                    const current = simState.switchOn ? simState.volts / simState.ohms : 0;
+                    const brightness = Math.min(1, current / 2.4);
+
+                    ctx.fillStyle = `rgba(245, 158, 11, ${brightness * 0.8})`;
+                    ctx.beginPath(); ctx.arc(lx, ly, 25, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.stroke();
+
+                    // Electrons Flowing Animation
+                    if (simState.switchOn) {
+                        simState.electronOffset += current * 1.2;
+                    }
+
+                    const perimeter = 2 * (w + h);
+                    ctx.fillStyle = '#38bdf8';
+                    for (let d = 0; d < perimeter; d += 35) {
+                        const pos = (d + simState.electronOffset) % perimeter;
+                        let ex = 0, ey = 0;
+                        if (pos < w) { ex = padX + pos; ey = padY; }
+                        else if (pos < w + h) { ex = padX + w; ey = padY + (pos - w); }
+                        else if (pos < 2 * w + h) { ex = padX + w - (pos - (w + h)); ey = padY + h; }
+                        else { ex = padX; ey = padY + h - (pos - (2 * w + h)); }
+
+                        ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI * 2); ctx.fill();
+                    }
+
+                    const power = current * simState.volts;
+                    document.getElementById('sim-stats-overlay').innerText = `Current (I): ${current.toFixed(2)} A | Power (P): ${power.toFixed(1)} W`;
+
+                    animFrameId = requestAnimationFrame(drawCircuit);
+                }
+                drawCircuit();
+
+            } else {
+                // MOLECULAR / DEFAULT SIMULATION
+                simState = { angle: 0 };
+                controls.innerHTML = `
+                    <div class="col-span-3 text-center text-xs text-slate-400">
+                        Drag or observe real-time 3D valence atom rotation
+                    </div>
+                `;
+
+                function drawMolecule() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const cx = canvas.width / 2;
+                    const cy = canvas.height / 2;
+
+                    simState.angle += 0.02;
+
+                    const r = 70;
+                    const h1x = cx + Math.cos(simState.angle) * r;
+                    const h1y = cy + Math.sin(simState.angle) * 30 - 30;
+
+                    const h2x = cx + Math.cos(simState.angle + 2.2) * r;
+                    const h2y = cy + Math.sin(simState.angle + 2.2) * 30 + 30;
+
+                    // Bonds
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 6;
+                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(h1x, h1y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(h2x, h2y); ctx.stroke();
+
+                    // Central Oxygen Atom
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Inter'; ctx.fillText('O', cx - 4, cy + 4);
+
+                    // Hydrogen 1
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.arc(h1x, h1y, 16, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.fillText('H', h1x - 4, h1y + 4);
+
+                    // Hydrogen 2
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.arc(h2x, h2y, 16, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.fillText('H', h2x - 4, h2y + 4);
+
+                    document.getElementById('sim-stats-overlay').innerText = `Molecule: H₂O Water | Bond Angle: 104.5°`;
+                    animFrameId = requestAnimationFrame(drawMolecule);
+                }
+                drawMolecule();
+            }
+        }
+    </script>
+</body>
+</html>

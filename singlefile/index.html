@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SuperUser Proxy</title>
+  <link rel="icon" id="appFavicon" href="/assets/shortcuts/icons/google.png">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -573,6 +574,8 @@
       align-items: center;
       justify-content: center;
       z-index: 10;
+      padding: 24px 24px 120px;
+      overflow-y: auto;
       transition: opacity 0.2s ease;
     }
 
@@ -638,36 +641,38 @@
     }
 
     .quick-chips {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
-      max-width: 560px;
+      width: min(720px, 100%);
     }
 
     #quickShortcuts {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 112px));
+      justify-content: start;
+      gap: 12px;
     }
 
-    .chip-btn {
+    .shortcut-tile {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
       background: var(--bg-panel);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      display: inline-flex;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 7px;
+      justify-content: center;
+      gap: 10px;
       color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      padding: 6px 14px;
+      font: 12px 'Inter', sans-serif;
+      padding: 16px 10px 12px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
 
-    .chip-btn:hover {
+    .shortcut-tile-wrap { position: relative; }
+
+    .shortcut-tile:hover {
       border-color: var(--green);
       color: var(--green);
       background: var(--green-dark);
@@ -675,34 +680,173 @@
     }
 
     .shortcut-icon {
-      width: 18px;
-      height: 18px;
-      border-radius: 5px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
       object-fit: contain;
     }
 
-    .search-provider {
-      width: 120px;
-      background: transparent;
+    .shortcut-glyph {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: var(--bg-elevated);
+      color: var(--green);
+      font-size: 22px;
+    }
+
+    .shortcut-remove {
+      position: absolute;
+      z-index: 1;
+      top: 7px;
+      right: 7px;
+      width: 22px;
+      height: 22px;
       border: 0;
-      border-left: 1px solid var(--border);
-      color: var(--text-muted);
-      font-family: 'Inter', sans-serif;
-      font-size: 11px;
-      outline: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-dim);
       cursor: pointer;
+    }
+
+    .shortcut-remove:hover { color: var(--danger); background: rgba(239, 68, 68, .12); }
+
+    .shortcut-add-wrap { position: relative; }
+
+    .shortcut-add-menu {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      z-index: 1200;
+      width: min(380px, calc(100vw - 32px));
+      max-height: min(80vh, 620px);
+      overflow-y: auto;
+      padding: 18px;
+      border: 1px solid var(--border-focus);
+      border-radius: 16px;
+      background: var(--bg-panel);
+      box-shadow: 0 24px 80px #000c;
+      transform: translate(-50%, -50%);
+    }
+
+    .shortcut-add-menu[hidden] { display: none; }
+    .shortcut-add-menu h3 { margin: 2px 0 12px; color: var(--text); font-size: 16px; }
+    .shortcut-add-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .shortcut-add-close:hover { background: var(--bg-elevated); color: var(--text); }
+    .shortcut-custom-form { display: grid; gap: 7px; padding: 8px 4px 2px; }
+    .shortcut-default-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+    .shortcut-default-form label { grid-column: 1 / -1; color: var(--text-muted); font-size: 12px; }
+    .shortcut-default-form select {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 12px 'Inter', sans-serif;
+    }
+    .shortcut-custom-form input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 12px 'Inter', sans-serif;
+    }
+    .shortcut-custom-form input:focus { border-color: var(--green); }
+
+    .search-provider {
+      position: relative;
+      flex: 0 0 auto;
+      border-left: 1px solid var(--border);
+      padding: 0 7px;
+    }
+
+    .search-provider-trigger {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .search-provider-trigger:hover,
+    .search-provider.open .search-provider-trigger { background: var(--bg-elevated); }
+
+    .search-provider-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      z-index: 50;
+      width: 180px;
+      padding: 5px;
+      border: 1px solid var(--border-focus);
+      border-radius: 10px;
+      background: var(--bg-panel);
+      box-shadow: 0 14px 36px #0009;
+    }
+
+    .search-provider-menu[hidden] { display: none; }
+
+    .search-provider-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-muted);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .search-provider-option:hover,
+    .search-provider-option[aria-checked="true"] { background: var(--bg-elevated); color: var(--text); }
+
+    .search-provider-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
     }
 
     .learning-screen {
       position: fixed;
       inset: 0;
       z-index: 1100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       background: #070b12;
       transition: opacity .35s ease, visibility .35s ease;
     }
+
+    .learning-screen iframe { display: block; width: 100%; height: 100%; border: 0; }
 
     .learning-screen.hidden {
       opacity: 0;
@@ -710,47 +854,28 @@
       pointer-events: none;
     }
 
-    .learning-card {
-      width: min(680px, calc(100% - 32px));
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: clamp(24px, 5vw, 48px);
-      box-shadow: 0 24px 80px rgba(0,0,0,.5);
-    }
-
-    .learning-card h1 {
-      color: var(--green);
-      font-size: clamp(28px, 5vw, 52px);
-      margin-bottom: 12px;
-    }
-
-    .learning-card p {
-      color: var(--text-muted);
-      line-height: 1.7;
-      font-size: 14px;
-      margin-bottom: 18px;
-    }
-
-    .learning-resources {
+    .entry-notice {
+      position: fixed;
+      inset: 0;
+      z-index: 8000;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 8px;
+      place-items: center;
+      background: rgba(0, 0, 0, .76);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .2s ease, visibility .2s ease;
     }
 
-    .learning-resources a {
-      color: var(--text);
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      text-decoration: none;
-      font-size: 12px;
-    }
+    .entry-notice.show { opacity: 1; visibility: visible; }
 
-    .learning-resources a:hover {
-      border-color: var(--green);
+    .entry-notice div {
+      padding: 18px 24px;
+      border: 1px solid var(--green);
+      border-radius: 12px;
+      background: var(--bg-panel);
       color: var(--green);
+      font: 600 16px 'JetBrains Mono', monospace;
+      box-shadow: 0 0 36px var(--green-glow);
     }
 
     .extension-prompt {
@@ -811,6 +936,32 @@
       gap: 20px;
       margin-bottom: 24px;
     }
+
+    .settings-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 18px;
+    }
+
+    .settings-nav-btn {
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--bg-panel);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .settings-nav-btn:hover,
+    .settings-nav-btn.active {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dark);
+    }
+
+    .settings-panel { display: none; }
+    .settings-panel.active { display: block; }
 
     .app-page-title {
       color: var(--green);
@@ -945,6 +1096,61 @@
       font-size: 12px;
       color: var(--green);
     }
+
+    .browser-error {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow-y: auto;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 50% 32%, rgba(34, 197, 94, .12), transparent 50%),
+        var(--bg);
+    }
+
+    .browser-error[hidden] { display: none; }
+
+    .browser-error-card {
+      width: min(520px, 100%);
+      padding: clamp(24px, 5vw, 42px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg-panel);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
+      text-align: center;
+    }
+
+    .browser-error-code {
+      color: var(--green);
+      font: 800 clamp(64px, 15vw, 108px)/.95 'JetBrains Mono', monospace;
+      letter-spacing: -.08em;
+    }
+
+    .browser-error-label {
+      margin: 18px 0 8px;
+      color: var(--text-dim);
+      font: 700 10px 'JetBrains Mono', monospace;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .browser-error-title { margin: 0; font-size: clamp(22px, 5vw, 30px); }
+    .browser-error-message { margin: 12px auto 0; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
+    .browser-error-url { margin: 14px 0 0; color: var(--text-dim); font: 11px 'JetBrains Mono', monospace; overflow-wrap: anywhere; }
+    .browser-error-actions { display: flex; justify-content: center; gap: 10px; margin-top: 24px; }
+    .browser-error-actions button {
+      padding: 9px 16px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--bg-elevated);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .browser-error-actions button:first-child { border-color: var(--green); color: var(--green); }
+    .browser-error-actions button:hover { filter: brightness(1.15); }
 
     /* ═══════════════════════════════════════════════════════
        TERMINAL COMMAND BAR
@@ -1089,159 +1295,6 @@
       border-color: var(--green);
       color: var(--green);
       background: var(--green-dark);
-    }
-
-    /* ═══════════════════════════════════════════════════════
-       LIVE ERROR & DEBUG LOG DRAWER
-    ═══════════════════════════════════════════════════════ */
-    .log-drawer {
-      position: fixed;
-      bottom: 86px;
-      right: 20px;
-      width: min(540px, calc(100vw - 40px));
-      height: 320px;
-      background: #0d0d0f;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85);
-      z-index: 90;
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-      animation: fadeIn 0.15s ease;
-    }
-
-    .log-drawer.open {
-      display: flex;
-    }
-
-    .log-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 12px;
-      background: #141416;
-      border-bottom: 1px solid var(--border);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
-    .log-header-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .log-status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--green);
-    }
-
-    .log-status-dot.err {
-      background: var(--danger);
-      box-shadow: 0 0 8px var(--danger);
-    }
-
-    .log-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .log-action-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text-dim);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      padding: 2px 6px;
-      cursor: pointer;
-    }
-
-    .log-action-btn:hover {
-      color: var(--text);
-      border-color: var(--border-focus);
-    }
-
-    .log-body {
-      flex: 1;
-      padding: 10px 12px;
-      overflow-y: auto;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      line-height: 1.6;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .log-body::-webkit-scrollbar { width: 3px; }
-    .log-body::-webkit-scrollbar-thumb { background: var(--border); }
-
-    .log-row {
-      display: flex;
-      gap: 8px;
-      word-break: break-all;
-    }
-
-    .log-ts {
-      color: var(--text-dim);
-      flex-shrink: 0;
-    }
-
-    .log-tag {
-      font-weight: 600;
-      flex-shrink: 0;
-    }
-    .log-tag.info { color: var(--cyan); }
-    .log-tag.ok   { color: var(--green); }
-    .log-tag.warn { color: #f59e0b; }
-    .log-tag.err  { color: var(--danger); }
-
-    .log-msg {
-      color: var(--text);
-    }
-
-    /* Floating toggle badge */
-    .log-toggle-badge {
-      position: fixed;
-      bottom: 24px;
-      right: 20px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-pill);
-      color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      padding: 6px 12px;
-      cursor: pointer;
-      z-index: 60;
-      display: none;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-    }
-
-    .log-toggle-badge:hover {
-      border-color: var(--border-focus);
-      color: var(--text);
-      background: var(--bg-elevated);
-    }
-
-    .log-toggle-badge .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-    }
-
-    .log-toggle-badge .dot.err {
-      background: var(--danger);
-      box-shadow: 0 0 6px var(--danger);
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -1420,7 +1473,7 @@
   <!-- ═══════════════════════════════════════════════════════
        INTRO OVERLAY (TYPEWRITER + BUMP + RIPPLE)
   ═══════════════════════════════════════════════════════ -->
-  <div id="introOverlay">
+  <div id="introOverlay" class="hidden">
     <canvas id="rippleCanvas"></canvas>
     <div class="intro-stage" id="introStage">
       <span class="intro-prompt" id="introPrompt">&gt;</span>
@@ -1473,13 +1526,17 @@
 
         <div class="top-url-input-wrap">
           <span class="top-url-lock">🔒</span>
-          <select class="search-provider" id="topSearchProvider" title="Search provider">
-            <option value="duckduckgo">DuckDuckGo</option>
-            <option value="google">Google</option>
-            <option value="bing">Bing</option>
-            <option value="startpage">Startpage</option>
-            <option value="youtube">YouTube</option>
-          </select>
+          <div class="search-provider" id="searchProviderControl">
+            <button class="search-provider-trigger" id="searchProviderButton" type="button" aria-label="Search provider" aria-haspopup="listbox" aria-expanded="false">D</button>
+            <div class="search-provider-menu" id="searchProviderMenu" role="listbox" aria-label="Search provider" hidden></div>
+            <select id="topSearchProvider" aria-hidden="true" tabindex="-1" hidden>
+              <option value="duckduckgo">DuckDuckGo</option>
+              <option value="google">Google</option>
+              <option value="bing">Bing</option>
+              <option value="startpage">Startpage</option>
+              <option value="youtube">YouTube</option>
+            </select>
+          </div>
           <input type="text" id="topUrlInput" placeholder="Enter URL or search query..." autocomplete="off" spellcheck="false">
           <button class="top-go-btn" id="topGoBtn">GO</button>
         </div>
@@ -1501,7 +1558,7 @@
 
         <div class="system-status" aria-live="polite">
           <div class="status-chip">Server <strong id="serverPing">checking…</strong></div>
-          <div class="status-chip">Time <strong id="systemTime">--:--:--</strong></div>
+          <div class="status-chip">Time <strong id="systemTime">--:-- --</strong></div>
           <div class="status-chip">Battery <strong id="systemBattery">N/A</strong></div>
         </div>
 
@@ -1517,57 +1574,67 @@
           <div class="spinner"></div>
           <div class="frame-loader-msg" id="frameLoaderMsg">Connecting via Wisp...</div>
         </div>
-
-        <section class="learning-screen hidden" id="learningScreen">
-          <article class="learning-card">
-            <h1>Kid Learning</h1>
-            <p>SuperUser keeps learning sessions focused with a fast, private browser shell, useful shortcuts, and a clean space for research.</p>
-            <div class="learning-resources">
-              <a href="https://www.khanacademy.org/" data-learning-url="https://www.khanacademy.org/">Khan Academy</a>
-              <a href="https://www.nationalgeographic.com/" data-learning-url="https://www.nationalgeographic.com/">National Geographic</a>
-              <a href="https://www.britannica.com/" data-learning-url="https://www.britannica.com/">Britannica</a>
-              <a href="https://www.ck12.org/" data-learning-url="https://www.ck12.org/">CK-12</a>
+        <div id="browserFrames"></div>
+        <section class="browser-error" id="browserErrorScreen" aria-live="polite" hidden>
+          <article class="browser-error-card">
+            <div class="browser-error-code" id="browserErrorCode">404</div>
+            <div class="browser-error-label" id="browserErrorLabel">Page not found</div>
+            <h1 class="browser-error-title" id="browserErrorTitle">This page took a wrong turn.</h1>
+            <p class="browser-error-message" id="browserErrorMessage">The site returned an error while loading this page.</p>
+            <p class="browser-error-url" id="browserErrorUrl"></p>
+            <div class="browser-error-actions">
+              <button type="button" id="retryErrorPageBtn">Try again</button>
+              <button type="button" id="homeErrorPageBtn">New tab</button>
             </div>
           </article>
         </section>
-        <div id="browserFrames"></div>
       </section>
 
       <section class="app-page" id="settingsPage" data-page="settings">
         <div class="app-page-header">
           <div><div class="app-page-title">Settings</div><div class="app-page-subtitle">Configure the proxy experience.</div></div>
-          <input class="page-search" data-page-search="settings" placeholder="Search settings..." autocomplete="off">
+          <input class="page-search" id="settingsSearch" data-page-search="settings" placeholder="Search settings..." autocomplete="off">
         </div>
-        <div class="page-card" data-searchable="wisp websocket server">
-          <h3>Wisp WebSocket Server</h3><p>Choose the transport endpoint used by Scramjet.</p>
-          <select class="modal-select" id="wispSelectPage"><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp (Recommended)</option><option value="local">Self-Hosted</option><option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option></select>
-          <select class="modal-select" id="wispVersionSelectPage" aria-label="Wisp protocol"><option value="auto">Protocol: Auto</option><option value="v1">Protocol: Wisp v1</option><option value="v2">Protocol: Wisp v2</option></select>
-          <input class="modal-input" id="customWispInputPage" placeholder="Custom wss:// endpoint" autocomplete="off">
-          <button class="modal-btn" id="customWispBtnPage">Use custom</button>
-        </div>
-        <div class="page-card" data-searchable="ad blocker ads performance">
-          <h3>Ad blocking</h3><p>Block common ad and tracking hosts before they load.</p>
-          <label><input type="checkbox" id="adBlockToggle" checked> Enable fast ad blocking</label>
-        </div>
-        <div class="page-card" data-searchable="background image video custom">
-          <h3>Custom background</h3><p>Use an image or video as the app background.</p>
-          <button class="modal-btn" id="backgroundUploadBtn">Choose background</button>
-          <button class="modal-btn" id="clearBackgroundBtn">Clear</button>
-        </div>
-        <div class="page-card" data-searchable="extensions userscripts youtube blooket wayground">
-          <h3>Site extensions</h3><p>Enable built-in userscripts per supported site. Scripts are loaded only after you confirm.</p>
-          <div id="extensionSettingsList"></div>
-        </div>
-        <div class="page-card" data-searchable="shortcuts google youtube discord chatgpt">
-          <h3>Shortcuts</h3><p>Choose which home shortcuts are visible.</p>
-          <div id="shortcutSettingsList"></div>
-        </div>
-        <div class="page-card" data-searchable="intro animation">
-          <h3>Intro Animation</h3><p>Replay the SuperUser intro animation.</p><button class="modal-btn" id="replayIntroPageBtn">Replay Intro</button>
-        </div>
-        <div class="page-card" data-searchable="service worker reset cache">
-          <h3>Reset Service Worker</h3><p>Unregister and reload the proxy cache.</p><button class="modal-btn" id="resetSwPageBtn">Reset SW</button>
-        </div>
+        <nav class="settings-nav" aria-label="Settings pages">
+          <button type="button" class="settings-nav-btn active" data-settings-page="proxy">Proxy</button>
+          <button type="button" class="settings-nav-btn" data-settings-page="extensions">Extensions</button>
+          <button type="button" class="settings-nav-btn" data-settings-page="personalization">Personalization</button>
+          <button type="button" class="settings-nav-btn" data-settings-page="general">General</button>
+        </nav>
+        <section class="settings-panel active" data-settings-panel="proxy">
+          <div class="page-card" data-searchable="wisp websocket server">
+            <h3>Wisp WebSocket Server</h3><p>Choose the transport endpoint used by Scramjet.</p>
+            <select class="modal-select" id="wispSelectPage"><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp (Recommended)</option><option value="local">Self-Hosted</option><option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option></select>
+            <select class="modal-select" id="wispVersionSelectPage" aria-label="Wisp protocol"><option value="auto">Protocol: Auto</option><option value="v1">Protocol: Wisp v1</option><option value="v2">Protocol: Wisp v2</option></select>
+            <input class="modal-input" id="customWispInputPage" placeholder="Custom wss:// endpoint" autocomplete="off">
+            <button class="modal-btn" id="customWispBtnPage">Use custom</button>
+          </div>
+          <div class="page-card" data-searchable="ad blocker ads performance youtube">
+            <h3>Ad blocking</h3><p>Block common ad and tracking hosts before they load.</p>
+            <label><input type="checkbox" id="adBlockToggle" checked> Enable fast ad blocking</label>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="extensions">
+          <div class="page-card" data-searchable="extensions userscripts youtube blooket wayground">
+            <h3>Site extensions</h3><p>Enable built-in userscripts per supported site. Scripts are loaded only after you confirm.</p>
+            <div id="extensionSettingsList"></div>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="personalization">
+          <div class="page-card" data-searchable="background image video custom">
+            <h3>Custom background</h3><p>Use an image or video as the app background.</p>
+            <button class="modal-btn" id="backgroundUploadBtn">Choose background</button>
+            <button class="modal-btn" id="clearBackgroundBtn">Clear</button>
+          </div>
+          <div class="page-card" data-searchable="intro animation">
+            <h3>Intro Animation</h3><p>Replay the SuperUser intro animation.</p><button class="modal-btn" id="replayIntroPageBtn">Replay Intro</button>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="general">
+          <div class="page-card" data-searchable="service worker reset cache">
+            <h3>Reset Service Worker</h3><p>Unregister and reload the proxy cache.</p><button class="modal-btn" id="resetSwPageBtn">Reset SW</button>
+          </div>
+        </section>
       </section>
 
       <section class="app-page" id="helpPage" data-page="help">
@@ -1608,26 +1675,11 @@
     </main>
   </div>
 
-  <!-- FLOATING LOGS TOGGLE BADGE -->
-  <button class="log-toggle-badge" id="logToggleBadge">
-    <div class="dot" id="logBadgeDot"></div>
-    <span>Logs</span>
-  </button>
-
-  <!-- LIVE ERROR & DEBUG LOG DRAWER -->
-  <div class="log-drawer" id="logDrawer">
-    <div class="log-header">
-      <div class="log-header-left">
-        <div class="log-status-dot" id="logHeaderDot"></div>
-        <span>System & Error Logs</span>
-      </div>
-      <div class="log-actions">
-        <button class="log-action-btn" id="testProxyBtn">Test Proxy</button>
-        <button class="log-action-btn" id="clearLogsBtn">Clear</button>
-        <button class="log-action-btn" id="closeLogsBtn">✕</button>
-      </div>
-    </div>
-    <div class="log-body" id="logBody"></div>
+  <section class="learning-screen hidden" id="learningScreen" aria-label="Super Learning">
+    <iframe id="learningMockupFrame" title="Super Learning" loading="eager"></iframe>
+  </section>
+  <div class="entry-notice" id="entryNotice" role="status" aria-live="polite">
+    <div>Entering &gt;SuperUser</div>
   </div>
 
   <!-- SETTINGS MODAL -->
@@ -1690,7 +1742,7 @@
           <tr><td class="cmd-name">sudo yt &lt;query&gt;</td><td class="cmd-expl">Search YouTube</td></tr>
           <tr><td class="cmd-name">sudo</td><td class="cmd-expl">Show all commands</td></tr>
           <tr><td class="cmd-name">sudo help</td><td class="cmd-expl">Open this commands reference</td></tr>
-          <tr><td class="cmd-name">sudo logs</td><td class="cmd-expl">Toggle live error & debug log drawer</td></tr>
+          <tr><td class="cmd-name">sudo logs</td><td class="cmd-expl">Open system and proxy diagnostics</td></tr>
           <tr><td class="cmd-name">sudo test</td><td class="cmd-expl">Run proxy connection diagnostics</td></tr>
           <tr><td class="cmd-name">sudo newtab</td><td class="cmd-expl">Open a new tab</td></tr>
           <tr><td class="cmd-name">sudo clear</td><td class="cmd-expl">Close all tabs and return home</td></tr>
@@ -1744,7 +1796,7 @@ return { apply, construct };
   	font-weight: bold;
   	font-family: monospace;
   	font-size: 0.9em;
-  `,`${"debug"===e?"color: gray":""}`,...i)},log:function(e,...t){this.fmt("log",e,...t)},warn:function(e,...t){this.fmt("warn",e,...t)},error:function(e,...t){this.fmt("error",e,...t)},debug:function(e,...t){this.fmt("debug",e,...t)},time(e,t,r){let n,s=(0,i.wU)()-t;n=s<1?"BLAZINGLY FAST":s<500?"decent speed":"really slow",this.print("debug","[time]",`${r} was ${n} (${s.toFixed(2)}ms)`)}}},6372(e,t,r){r.d(t,{c:()=>s});var i=r(5994),n=r(2075);class s{cookies={};byDomain=new Map;defaultPath(e){let t=e.pathname;if(!t||!t.startsWith("/"))return"/";let r=t.lastIndexOf("/");return r<=0?"/":t.slice(0,r)}pathMatches(e,t){return e===t||!!e.startsWith(t)&&(!!t.endsWith("/")||"/"===e.charAt(t.length))}indexCookie(e){let t=e.domain.slice(1),r=this.byDomain.get(t);r||(r=[],this.byDomain.set(t,r)),r.push(e)}unindexCookie(e){let t=e.domain.slice(1),r=this.byDomain.get(t);if(!r)return;let i=r.indexOf(e);i>=0&&r.splice(i,1),0===r.length&&this.byDomain.delete(t)}removeById(e){let t=this.cookies[e];t&&this.unindexCookie(t),delete this.cookies[e]}setCookies(e,t){for(let r of(0,n.Ay)(e)){let e=r.name.toLowerCase();if(e.startsWith("__secure-")){if(!r.secure)continue}else if(e.startsWith("__host-")&&(!r.secure||r.domain||"/"!==r.path))continue;let n=!r.domain,s=r.expires?.getTime(),o=Number.isFinite(s)?s:void 0,a={...r,hostOnly:n,expires:o};a.domain||(a.domain=t.hostname),a.domain.startsWith(".")||(a.domain="."+a.domain),a.path&&a.path.startsWith("/")||(a.path=this.defaultPath(t)),a.sameSite||(a.sameSite="lax");let A=`${a.domain}@${a.path}@${a.name}`;if("number"==typeof a.maxAge)if(Number.isFinite(a.maxAge))if(a.maxAge<=0){this.removeById(A);continue}else a.expires=i.mR.now()+1e3*a.maxAge;else delete a.maxAge;let l=this.cookies[A];l&&this.unindexCookie(l),this.cookies[A]=a,this.indexCookie(a)}}getCookies(e,t,r="strict"){let n=i.mR.now(),s=e.hostname,o=e.pathname,a=[],A=s;for(;void 0!==A;){let e=this.byDomain.get(A);if(e)for(let i of e){if(void 0!==i.expires&&i.expires<n||i.hostOnly&&A!==s||i.httpOnly&&t||!this.pathMatches(o,i.path))continue;let e=(i.sameSite??"lax").toLowerCase();if("cross-site"===r){if("none"!==e)continue}else if("lax"===r&&"strict"===e)continue;a.push(i)}let i=A.indexOf(".");A=-1===i?void 0:A.slice(i+1)}return a.map(e=>e.name?`${e.name}=${e.value}`:e.value).join("; ")}load(e){if("object"==typeof e)return void console.error("??");let t=(0,i.P4)(e);this.cookies={},this.byDomain.clear();let r=Object.keys(t);for(let e=0;e<r.length;e++){let i=r[e],n=t[i];if("string"==typeof n.expires){let e=Date.parse(n.expires);n.expires=Number.isFinite(e)?e:void 0}this.cookies[i]=n,this.indexCookie(n)}}clear(){this.cookies={},this.byDomain.clear()}dump(){return(0,i.Xj)(this.cookies)}}},3786(e,t,r){r.d(t,{u:()=>i});class i{headers={};set(e,t){this.headers[e.toLowerCase()]=t}get(e){let t=e.toLowerCase();return t in this.headers?this.headers[t]:null}delete(e){delete this.headers[e.toLowerCase()]}has(e){return e.toLowerCase()in this.headers}toRawHeaders(){let e=[];for(let t in this.headers)e.push([t,this.headers[t]]);return e}toNativeHeaders(){let e=new Headers;for(let t in this.headers)e.set(t,this.headers[t]);return e}static fromRawHeaders(e){let t=new i;for(let[r,i]of e)t.has(r),t.set(r,i);return t}static fromNativeHeaders(e){let t=new i;for(let[r,i]of e.entries())t.set(r,i);return t}clone(){let e=new i;for(let t in this.headers)e.set(t,this.headers[t]);return e}}},1496(e,t,r){r.d(t,{V:()=>a});var i=r(4795),n=r(3515),s=r(5657),o=r(5994);let a=[{fn:(e,t,r)=>(0,s.Oy)(e,t,r,{navigateType:"location"}),src:["embed","img","frame","input","track"],href:["a","area","image"],data:["object"],action:["form"],formaction:["button","input","textarea","submit"],poster:["video"],"xlink:href":["image"]},{fn:(e,t,r,i)=>{let n=i?.type?.toLowerCase()==="module"||i?.rel?.toLowerCase()==="modulepreload";return(0,s.Oy)(e,t,r,{isModule:n})},src:["script"],href:["link"]},{fn:(e,t,r)=>(0,s.Oy)(e,t,r,{topFrame:r.topFrameName,parentFrame:r.parentFrameName,isIframe:"1"}),src:["iframe"]},{fn:(e,t,r)=>null,sandbox:["iframe"]},{fn:(e,t,r)=>e.startsWith("blob:")?(0,s.$n)(e,t,r):(0,s.Oy)(e,t,r),src:["video","audio","source"]},{fn:()=>"",integrity:["script","link"]},{fn:()=>null,nonce:"*",csp:["iframe"],credentialless:["iframe"]},{fn:(e,t,r)=>(0,n.PV)(e,t,r),srcset:["img","source"],imagesrcset:["link"]},{fn:(e,t,r)=>(0,n.Qs)(e,t,{origin:new o.xP(r.origin.origin),base:new o.xP(r.origin.origin),topFrameName:r.topFrameName,parentFrameName:r.parentFrameName,referrerPolicy:r.referrerPolicy},{loadScripts:!0,inline:!0,source:r.origin.href,apisource:"set HTMLIFrameElement.prototype.srcdoc"}),srcdoc:["iframe"]},{fn:(e,t,r)=>(0,i.s)(e,t,r),style:"*"},{fn:(e,t,r)=>"_top"===e||"_unfencedTop"===e?r.topFrameName:"_parent"===e?r.parentFrameName:e,target:["a","base"]},{fn:(e,t,r)=>e.startsWith("#")?e:(0,s.Oy)(e,t,r),href:["use","textPath","mpath","feImage","animate","animateMotion","animateTransform","set","discard","linearGradient","radialGradient","pattern","filter"]}]},4e3(e,t,r){r.d(t,{$H:()=>a.$H,$n:()=>A.$n,Ej:()=>a.Ej,GZ:()=>a.GZ,Gx:()=>a.Gx,IP:()=>A.IP,Kq:()=>A.Kq,Kx:()=>a.Kx,Lw:()=>a.Lw,OV:()=>a.OV,Oy:()=>A.Oy,PV:()=>A.PV,QU:()=>a.QU,Qs:()=>A.Qs,Tc:()=>c,U5:()=>l,UV:()=>a.UV,VP:()=>o.V,cP:()=>n.c,dJ:()=>a.dJ,f9:()=>A.f9,g:()=>a.g,gP:()=>A.gP,ht:()=>A.ht,iP:()=>A.iP,j5:()=>a.j5,nK:()=>A.nK,nb:()=>A.nb,on:()=>A.on,s5:()=>a.s5,sM:()=>A.sM,u3:()=>a.u3,uh:()=>s.u,v2:()=>A.v2});var i=r(5994),n=r(6372),s=r(3786),o=r(1496),a=r(6965),A=r(2348);function l(e,t,r){let n=t.config.flags[e];for(let n in t.config.siteFlags){let s=t.config.siteFlags[n];if(new i.fs(n).test(r.href)&&e in s)return s[e]}return n}let c={version:"2.0.67-alpha.1",build:"758986f",date:"2026-05-24T19:53:31.784Z"}},6965(e,t,r){r.d(t,{$H:()=>I,Ej:()=>a,GZ:()=>y,Gx:()=>m,Kx:()=>C,Lw:()=>g,OV:()=>S,QU:()=>b,UV:()=>w,dJ:()=>p,g:()=>x,j5:()=>f,s5:()=>d,u3:()=>u});var i=r(5994);let n=/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g;function s(e){return e.replace(n,"")}function o(e){return e.toLowerCase()}function a(e){let t=s(e);if(!t)return null;let r=t.indexOf(";"),i=s(-1===r?t:t.slice(0,r));if(!i)return null;let n=i.indexOf("/");if(n<=0||n===i.length-1)return null;let a=s(i.slice(0,n)),A=s(i.slice(n+1));return a&&A?{type:a,subtype:A,essence:`${o(a)}/${o(A)}`}:null}function A(e){return"string"==typeof e?a(e):e}let l=new i.YG(["application/font-cff","application/font-otf","application/font-sfnt","application/font-ttf","application/font-woff","application/vnd.ms-fontobject","application/vnd.ms-opentype"]),c=new i.YG(["application/x-rar-compressed","application/zip","application/x-gzip"]),h=new i.YG(["application/ecmascript","application/javascript","application/x-ecmascript","application/x-javascript","text/ecmascript","text/javascript","text/javascript1.0","text/javascript1.1","text/javascript1.2","text/javascript1.3","text/javascript1.4","text/javascript1.5","text/jscript","text/livescript","text/x-ecmascript","text/x-javascript"]);function u(e){let t=A(e);return null!==t&&"image"===o(t.type)}function g(e){let t=A(e);if(!t)return!1;let r=o(t.type);return"audio"===r||"video"===r||"application/ogg"===t.essence}function d(e){let t=A(e);return!!t&&("font"===o(t.type)||l.has(t.essence))}function p(e){let t=A(e);return!!t&&("application/zip"===t.essence||o(t.subtype).endsWith("+zip"))}function f(e){let t=A(e);return null!==t&&c.has(t.essence)}function m(e){let t=A(e);return!!t&&(!!o(t.subtype).endsWith("+xml")||"text/xml"===t.essence||"application/xml"===t.essence)}function w(e){let t=A(e);return null!==t&&"text/html"===t.essence}function y(e){let t=A(e);return!!t&&(!!(m(t)||w(t))||"application/pdf"===t.essence)}function b(e){let t=A(e);return null!==t&&h.has(t.essence)}function I(e){let t=s(e);return!!t&&h.has(o(t))}function C(e){if(null==e)return!0;let t=s(e);return!t||"module"===o(t)||I(t)}function x(e){if(null==e)return!1;let t=s(e);return""!==t&&"module"===o(t)}function S(e){let t=A(e);return!!t&&(!!("text"===o(t.type)||u(t)||d(t)||g(t)||w(t)||b(t)||m(t))||"application/pdf"===t.essence||"application/json"===t.essence)}},6879(e,t,r){r.d(t,{n:()=>A});var i=r(5994);function n(e){return 9===e||10===e||12===e||13===e||32===e}function s(e,t){for(;t<e.length&&n(e.charCodeAt(t));)t+=1;return t}function o(e){return e>=48&&e<=57}function a(e){return e>=65&&e<=90||e>=97&&e<=122}function A(e){if(0===e.length)return null;let t=0,r=t=s(e,0);for(;t<e.length&&o(e.charCodeAt(t));)t+=1;let A=e.slice(r,t);if(0===A.length&&46!==e.charCodeAt(t))return null;let l=A.length>0?(0,i.dE)(A,10):0;for(;t<e.length;){let r=e.charCodeAt(t);if(o(r)||46===r){t+=1;continue}break}if(t>=e.length)return{time:l,urlStart:-1,urlEnd:-1,url:null};let c=e.charCodeAt(t);if(59!==c&&44!==c&&!n(c))return null;if((t=s(e,t))<e.length){let r=e.charCodeAt(t);(59===r||44===r)&&(t+=1)}if((t=s(e,t))>=e.length)return{time:l,urlStart:-1,urlEnd:-1,url:null};let h=t,u=e.slice(t,t+3);if(3===u.length){let r=e.charCodeAt(t),i=e.charCodeAt(t+1),n=e.charCodeAt(t+2);if(a(r)&&a(i)&&a(n)&&("U"===u[0]||"u"===u[0])&&("R"===u[1]||"r"===u[1])&&("L"===u[2]||"l"===u[2])){let r=t+3;r=s(e,r),61===e.charCodeAt(r)&&(r+=1,h=r=s(e,r))}}let g="";if(h<e.length){let t=e.charCodeAt(h);(34===t||39===t)&&(g=e[h],h+=1)}let d=e.length;if(""!==g){let t=e.indexOf(g,h);-1!==t&&(d=t)}let p=e.slice(h,d);return{time:l,urlStart:h,urlEnd:d,url:p}}},4795(e,t,r){r.d(t,{f:()=>o,s:()=>s});var i=r(5657),n=r(5994);function s(e,t,r){return a("rewrite",e,t,r)}function o(e,t){return a("unrewrite",e,t)}function a(e,t,r,s){return(t=(t=(0,n.Qf)(t)).replace(/(?i:url)\(['"]?(.+?)['"]?\)/gm,(t,n)=>{let o="rewrite"===e?(0,i.Oy)(n.trim(),r,s):(0,i.v2)(n.trim(),r);return t.replace(n,o)})).replace(/@import\s+((?i:url)\s*?\(.{0,9999}?\)|['"].{0,9999}?['"]|.{0,9999}?)($|\s|;)/gm,(t,n)=>t.replace(n,n.replace(/^(url\(['"]?|['"]|)(.+?)(['"]|['"]?\)|)$/gm,(t,n,o,a)=>{if(n.startsWith("url"))return t;let A="rewrite"===e?(0,i.Oy)(o.trim(),r,s):(0,i.v2)(o.trim(),r);return`${n}${A}${a}`})))}},3515(e,t,r){r.d(t,{Kq:()=>y,PV:()=>x,Qs:()=>I,nK:()=>C});var i=r(1894),n=r(5883),s=r(2026),o=r(1258),a=r(5657),A=r(4795),l=r(6549),c=r(1496),h=r(6879),u=r(8254),g=r(3129),d=r(5994),p=r(4e3),f=r(6965),m=r(7742).A;let w={encodeEntities:"utf8",decodeEntities:!1};class y{context;meta;htmlcontext;handler;parser;completedElements=new WeakSet;emittedLengths=new WeakMap;rewrittenNodes=new WeakMap;ended=!1;constructor(e,t,r){this.context=e,this.meta=t,this.htmlcontext=r,this.handler=new s.DV(void 0,void 0,e=>{this.completedElements.add(e)}),this.parser=new n.i(this.handler,{startingForeignContext:r.foreignContext})}write(e){if(this.ended)throw Error("IncrementalHtmlRewriter stream already ended");return this.parser.write(e),this.flush()}end(e=""){return this.ended?"":(e&&this.parser.write(e),this.parser.end(),this.ended=!0,this.flush())}flush(){let e="";for(let t of this.handler.root.childNodes){let r=this.getAvailableOutput(t);if(null===r)break;let i=this.emittedLengths.get(t)??0;r.length>i&&(e+=r.slice(i),this.emittedLengths.set(t,r.length))}return e}getAvailableOutput(e){if(e.type!==i.vw&&e.type!==i.eF&&e.type!==i.OF)return(0,o.A)(e,w);if(!this.completedElements.has(e))return null;let t=this.rewrittenNodes.get(e);return void 0===t&&(t=b(e,this.context,this.meta,this.htmlcontext),this.rewrittenNodes.set(e,t)),t}}function b(e,t,r,p){var y;let b,I,C;"string"!=typeof e&&(y=e,e=(0,o.A)(y,w));let x=new s.DV((e,t)=>t),B=new n.i(x,{startingForeignContext:p.foreignContext});B.write(e),B.end(),g.C.dispatch(t.hooks.rewriter.html.pre,{handler:x,meta:r,htmlcontext:p,origHtml:e},void 0),function e(t,r,i){if("base"===t.name&&void 0!==t.attribs.href&&(i.base=new d.xP(t.attribs.href,i.origin)),t.attribs){for(let e of c.V)for(let n in e){let s=e[n.toLowerCase()];if("function"!=typeof s&&("*"===s||s.includes(t.name))&&void 0!==t.attribs[n]){let s=t.attribs[n],o=e.fn(s,r,i,t.attribs);null===o?delete t.attribs[n]:t.attribs[n]=o,t.attribs[`scramjet-attr-${n}`]=s}}for(let[e,n]of(0,d.nJ)(t.attribs))S.includes(e)&&(t.attribs[`scramjet-attr-${e}`]=n,t.attribs[e]=(0,l.o)(n,`(inline ${e} on element)`,r,i))}if("style"===t.name&&void 0!==t.children[0]&&(t.children[0].data=(0,A.s)(t.children[0].data,r,i)),"script"===t.name&&t.attribs.type?.toLowerCase()==="importmap"&&void 0!==t.children[0]){let e=t.children[0].data;try{let n=(0,d.P4)(e);if(n.imports)for(let e in n.imports){let t=n.imports[e];"string"==typeof t&&(t=(0,a.Oy)(t,r,i,{isModule:!0}),n.imports[e]=t)}t.children[0].data=(0,d.Xj)(n)}catch(e){m.error("Failed to parse importmap JSON:",e)}}if("script"===t.name&&(0,f.Kx)(t.attribs.type)&&void 0!==t.children[0]){let e=t.children[0].data,n=(0,f.g)(t.attribs.type);t.attribs["scramjet-attr-script-source-src"]=(0,u.i)((0,d.vh)(e)),e=e.replace(/<!--[\s\S]*?-->/g,""),t.children[0].data=(0,l.o)(e,"(inline script element)",r,i,n)}if("meta"===t.name&&void 0!==t.attribs["http-equiv"]){if("content-security-policy"===t.attribs["http-equiv"].toLowerCase())t=new s.Mw(t.attribs.content);else if("refresh"===t.attribs["http-equiv"].toLowerCase()){let e=(0,h.n)(t.attribs.content||"");if(e&&null!==e.url&&e.url.length>0){let n=(0,a.Oy)(e.url.trim(),r,i);t.attribs.content=t.attribs.content.slice(0,e.urlStart)+n+t.attribs.content.slice(e.urlEnd)}}}if(t.childNodes)for(let n in t.childNodes)t.childNodes[n]=e(t.childNodes[n],r,i);return t}(x.root,t,r);let E=function(){for(let e of x.root.childNodes)if(e.type!==i.WL&&e.type!==i.Mw&&e.type!==i.EY)if(e.type!==i.vw||"html"!==e.name)return!0;else b=e;if(!b)return!0;for(let e of b.childNodes)if(e.type!==i.WL&&e.type!==i.Mw&&e.type!==i.EY){if(e.type===i.vw&&"head"===e.name){if(C)return!0;I=e}else if(e.type===i.vw&&"body"===e.name)C=e;else if(!I)return!0;return!1}}();if(p.loadScripts){let e=t.interface.getInjectScripts(r,x,p,e=>new s.Hg("script",{src:e,"scramjet-injected":"true"}));E?(m.warn(`detected quirky document structure parsing @ ${r.origin.href}!`),x.root.children.unshift(...e)):(I||(I=new s.Hg("head",{},[]),b.children.unshift(I)),I.children.unshift(...e))}let D={};return(g.C.dispatch(t.hooks.rewriter.html.post,{handler:x,meta:r,htmlcontext:p,origHtml:e},D),void 0!==D.setRawHtml)?D.setRawHtml:(0,o.A)(x.root,w)}function I(e,t,r,i){let n=(0,d.wU)(),s=b(e,t,r,i);return(0,p.U5)("rewriterLogs",t,r.base)&&m.time(r,n,"html rewrite"),s}function C(e,t){let r=new s.DV((e,t)=>t),i=new n.i(r,{startingForeignContext:t});return i.write(e),i.end(),!function e(t){if("attribs"in t)for(let e in t.attribs){if("scramjet-attr-script-source-src"==e){t.children[0]&&"data"in t.children[0]&&(t.children[0].data=(0,d.lw)(t.attribs[e]));continue}e.startsWith("scramjet-attr-")&&(t.attribs[e.slice(14)]=t.attribs[e],delete t.attribs[e])}if("childNodes"in t)for(let r of t.childNodes)e(r)}(r.root),(0,o.A)(r.root,{...w})}function x(e,t,r){return e.split(/ .*,/).map(e=>e.trim()).map(e=>{let[i,...n]=e.split(/\s+/),s=(0,a.Oy)(i.trim(),t,r);return n.length>0?`${s} ${n.join(" ")}`:s}).join(", ")}let S=["onbeforexrselect","onabort","onbeforeinput","onbeforematch","onbeforetoggle","onblur","oncancel","oncanplay","oncanplaythrough","onchange","onclick","onclose","oncontentvisibilityautostatechange","oncontextlost","oncontextmenu","oncontextrestored","oncuechange","ondblclick","ondrag","ondragend","ondragenter","ondragleave","ondragover","ondragstart","ondrop","ondurationchange","onemptied","onended","onerror","onfocus","onformdata","oninput","oninvalid","onkeydown","onkeypress","onkeyup","onload","onloadeddata","onloadedmetadata","onloadstart","onmousedown","onmouseenter","onmouseleave","onmousemove","onmouseout","onmouseover","onmouseup","onmousewheel","onpause","onplay","onplaying","onprogress","onratechange","onreset","onresize","onscroll","onsecuritypolicyviolation","onseeked","onseeking","onselect","onslotchange","onstalled","onsubmit","onsuspend","ontimeupdate","ontoggle","onvolumechange","onwaiting","onwebkitanimationend","onwebkitanimationiteration","onwebkitanimationstart","onwebkittransitionend","onwheel","onauxclick","ongotpointercapture","onlostpointercapture","onpointerdown","onpointermove","onpointerrawupdate","onpointerup","onpointercancel","onpointerover","onpointerout","onpointerenter","onpointerleave","onselectstart","onselectionchange","onanimationend","onanimationiteration","onanimationstart","ontransitionrun","ontransitionstart","ontransitionend","ontransitioncancel","oncopy","oncut","onpaste","onscrollend","onscrollsnapchange","onscrollsnapchanging"]},2348(e,t,r){r.d(t,{$n:()=>o.$n,IP:()=>o.IP,Kq:()=>n.Kq,Oy:()=>o.Oy,PV:()=>n.PV,Qs:()=>n.Qs,f9:()=>i.f,gP:()=>s.g,ht:()=>A.h,iP:()=>a.i,nK:()=>n.nK,nb:()=>A.n,on:()=>s.o,sM:()=>i.s,v2:()=>o.v2});var i=r(4795),n=r(3515),s=r(6549),o=r(5657),a=r(1668),A=r(3430)},6549(e,t,r){r.d(t,{g:()=>a,o:()=>A});var i=r(4e3),n=r(3430),s=r(5994),o=r(7742).A;function a(e,t,r,A,l=!1){return function(e,t,r,a,A){let[l,c]=(0,n.n)(r,a),h={};for(let e of(0,s.BR)(r.config.flags))h[e]=(0,i.U5)(e,r,a.base);try{let n,c=(0,s.wU)();n="string"==typeof e?l.rewrite_js({...r.config.globals,prefix:r.prefix.pathname},h,r.interface.codecEncode,e,a.base.href,t||"(unknown)",A):l.rewrite_js_bytes({...r.config.globals,prefix:r.prefix.pathname},h,r.interface.codecEncode,e,a.base.href,t||"(unknown)",A),(0,i.U5)("rewriterLogs",r,a.base)&&o.time(a,c,`oxc rewrite for "${t||"(unknown)"}"`);let{js:u,map:g,scramtag:d,errors:p}=n;return{js:"string"==typeof e?(0,s.hS)(u):u,tag:d,map:g,errors:p}}finally{c()}}(e,t,r,A,l)}function A(e,t,r,n,l=!1){try{let A=a(e,t,r,n,l),c=A.js;if((0,i.U5)("sourcemaps",r,n.base)){let e=globalThis[r.config.globals.pushsourcemapfn];if(e)e((0,s.Z7)(A.map),A.tag);else{"string"!=typeof c&&(c=(0,s.hS)(c));let e=`${r.config.globals.pushsourcemapfn}([${A.map.join(",")}], "${A.tag}");`,t=new s.fs(/^\s*(['"])use strict\1;?/);c=t.test(c)?c.replace(t,`$&
+  `,`${"debug"===e?"color: gray":""}`,...i)},log:function(e,...t){this.fmt("log",e,...t)},warn:function(e,...t){this.fmt("warn",e,...t)},error:function(e,...t){this.fmt("error",e,...t)},debug:function(e,...t){this.fmt("debug",e,...t)},time(e,t,r){let n,s=(0,i.wU)()-t;n=s<1?"BLAZINGLY FAST":s<500?"decent speed":"really slow",this.print("debug","[time]",`${r} was ${n} (${s.toFixed(2)}ms)`)}}},6372(e,t,r){r.d(t,{c:()=>s});var i=r(5994),n=r(2075);class s{cookies={};byDomain=new Map;defaultPath(e){let t=e.pathname;if(!t||!t.startsWith("/"))return"/";let r=t.lastIndexOf("/");return r<=0?"/":t.slice(0,r)}pathMatches(e,t){return e===t||!!e.startsWith(t)&&(!!t.endsWith("/")||"/"===e.charAt(t.length))}indexCookie(e){let t=e.domain.slice(1),r=this.byDomain.get(t);r||(r=[],this.byDomain.set(t,r)),r.push(e)}unindexCookie(e){let t=e.domain.slice(1),r=this.byDomain.get(t);if(!r)return;let i=r.indexOf(e);i>=0&&r.splice(i,1),0===r.length&&this.byDomain.delete(t)}removeById(e){let t=this.cookies[e];t&&this.unindexCookie(t),delete this.cookies[e]}setCookies(e,t){for(let r of(0,n.Ay)(e)){let e=r.name.toLowerCase();if(e.startsWith("__secure-")){if(!r.secure)continue}else if(e.startsWith("__host-")&&(!r.secure||r.domain||"/"!==r.path))continue;let n=!r.domain,s=r.expires?.getTime(),o=Number.isFinite(s)?s:void 0,a={...r,hostOnly:n,expires:o};a.domain||(a.domain=t.hostname),a.domain.startsWith(".")||(a.domain="."+a.domain),a.path&&a.path.startsWith("/")||(a.path=this.defaultPath(t)),a.sameSite||(a.sameSite="lax");let A=`${a.domain}@${a.path}@${a.name}`;if("number"==typeof a.maxAge)if(Number.isFinite(a.maxAge))if(a.maxAge<=0){this.removeById(A);continue}else a.expires=i.mR.now()+1e3*a.maxAge;else delete a.maxAge;let l=this.cookies[A];l&&this.unindexCookie(l),this.cookies[A]=a,this.indexCookie(a)}}getCookies(e,t,r="strict"){let n=i.mR.now(),s=e.hostname,o=e.pathname,a=[],A=s;for(;void 0!==A;){let e=this.byDomain.get(A);if(e)for(let i of e){if(void 0!==i.expires&&i.expires<n||i.hostOnly&&A!==s||i.httpOnly&&t||!this.pathMatches(o,i.path))continue;let e=(i.sameSite??"lax").toLowerCase();if("cross-site"===r){if("none"!==e)continue}else if("lax"===r&&"strict"===e)continue;a.push(i)}let i=A.indexOf(".");A=-1===i?void 0:A.slice(i+1)}return a.map(e=>e.name?`${e.name}=${e.value}`:e.value).join("; ")}load(e){if("object"==typeof e)return void console.error("??");let t=(0,i.P4)(e);this.cookies={},this.byDomain.clear();let r=Object.keys(t);for(let e=0;e<r.length;e++){let i=r[e],n=t[i];if("string"==typeof n.expires){let e=Date.parse(n.expires);n.expires=Number.isFinite(e)?e:void 0}this.cookies[i]=n,this.indexCookie(n)}}clear(){this.cookies={},this.byDomain.clear()}dump(){return(0,i.Xj)(this.cookies)}}},3786(e,t,r){r.d(t,{u:()=>i});class i{headers={};set(e,t){this.headers[e.toLowerCase()]=t}get(e){let t=e.toLowerCase();return t in this.headers?this.headers[t]:null}delete(e){delete this.headers[e.toLowerCase()]}has(e){return e.toLowerCase()in this.headers}toRawHeaders(){let e=[];for(let t in this.headers)e.push([t,this.headers[t]]);return e}toNativeHeaders(){let e=new Headers;for(let t in this.headers)e.set(t,this.headers[t]);return e}static fromRawHeaders(e){let t=new i;for(let[r,i]of e)t.has(r),t.set(r,i);return t}static fromNativeHeaders(e){let t=new i;for(let[r,i]of e.entries())t.set(r,i);return t}clone(){let e=new i;for(let t in this.headers)e.set(t,this.headers[t]);return e}}},1496(e,t,r){r.d(t,{V:()=>a});var i=r(4795),n=r(3515),s=r(5657),o=r(5994);let a=[{fn:(e,t,r)=>(0,s.Oy)(e,t,r,{navigateType:"location"}),src:["embed","img","frame","input","track"],href:["a","area","image"],data:["object"],action:["form"],formaction:["button","input","textarea","submit"],poster:["video"],"xlink:href":["image"]},{fn:(e,t,r,i)=>{let n=i?.type?.toLowerCase()==="module"||i?.rel?.toLowerCase()==="modulepreload";return(0,s.Oy)(e,t,r,{isModule:n})},src:["script"],href:["link"]},{fn:(e,t,r)=>(0,s.Oy)(e,t,r,{topFrame:r.topFrameName,parentFrame:r.parentFrameName,isIframe:"1"}),src:["iframe"]},{fn:(e,t,r)=>null,sandbox:["iframe"]},{fn:(e,t,r)=>e.startsWith("blob:")?(0,s.$n)(e,t,r):(0,s.Oy)(e,t,r),src:["video","audio","source"]},{fn:()=>"",integrity:["script","link"]},{fn:()=>null,nonce:"*",csp:["iframe"],credentialless:["iframe"]},{fn:(e,t,r)=>(0,n.PV)(e,t,r),srcset:["img","source"],imagesrcset:["link"]},{fn:(e,t,r)=>(0,n.Qs)(e,t,{origin:new o.xP(r.origin.origin),base:new o.xP(r.origin.origin),topFrameName:r.topFrameName,parentFrameName:r.parentFrameName,referrerPolicy:r.referrerPolicy},{loadScripts:!0,inline:!0,source:r.origin.href,apisource:"set HTMLIFrameElement.prototype.srcdoc"}),srcdoc:["iframe"]},{fn:(e,t,r)=>(0,i.s)(e,t,r),style:"*"},{fn:(e,t,r)=>"_top"===e||"_unfencedTop"===e?r.topFrameName:"_parent"===e?r.parentFrameName:e,target:["a","base"]},{fn:(e,t,r)=>e.startsWith("#")?e:(0,s.Oy)(e,t,r),href:["use","textPath","mpath","feImage","animate","animateMotion","animateTransform","set","discard","linearGradient","radialGradient","pattern","filter"]}]},4e3(e,t,r){r.d(t,{$H:()=>a.$H,$n:()=>A.$n,Ej:()=>a.Ej,GZ:()=>a.GZ,Gx:()=>a.Gx,IP:()=>A.IP,Kq:()=>A.Kq,Kx:()=>a.Kx,Lw:()=>a.Lw,OV:()=>a.OV,Oy:()=>A.Oy,PV:()=>A.PV,QU:()=>a.QU,Qs:()=>A.Qs,Tc:()=>c,U5:()=>l,UV:()=>a.UV,VP:()=>o.V,cP:()=>n.c,dJ:()=>a.dJ,f9:()=>A.f9,g:()=>a.g,gP:()=>A.gP,ht:()=>A.ht,iP:()=>A.iP,j5:()=>a.j5,nK:()=>A.nK,nb:()=>A.nb,on:()=>A.on,s5:()=>a.s5,sM:()=>A.sM,u3:()=>a.u3,uh:()=>s.u,v2:()=>A.v2});var i=r(5994),n=r(6372),s=r(3786),o=r(1496),a=r(6965),A=r(2348);function l(e,t,r){let n=t.config.flags[e];for(let n in t.config.siteFlags){let s=t.config.siteFlags[n];if(new i.fs(n).test(r.href)&&e in s)return s[e]}return n}let c={version:"2.0.67-alpha.1",build:"758986f",date:"2026-05-24T19:53:31.784Z"}},6965(e,t,r){r.d(t,{$H:()=>I,Ej:()=>a,GZ:()=>y,Gx:()=>m,Kx:()=>C,Lw:()=>g,OV:()=>S,QU:()=>b,UV:()=>w,dJ:()=>p,g:()=>x,j5:()=>f,s5:()=>d,u3:()=>u});var i=r(5994);let n=/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g;function s(e){return e.replace(n,"")}function o(e){return e.toLowerCase()}function a(e){let t=s(e);if(!t)return null;let r=t.indexOf(";"),i=s(-1===r?t:t.slice(0,r));if(!i)return null;let n=i.indexOf("/");if(n<=0||n===i.length-1)return null;let a=s(i.slice(0,n)),A=s(i.slice(n+1));return a&&A?{type:a,subtype:A,essence:`${o(a)}/${o(A)}`}:null}function A(e){return"string"==typeof e?a(e):e}let l=new i.YG(["application/font-cff","application/font-otf","application/font-sfnt","application/font-ttf","application/font-woff","application/vnd.ms-fontobject","application/vnd.ms-opentype"]),c=new i.YG(["application/x-rar-compressed","application/zip","application/x-gzip"]),h=new i.YG(["application/ecmascript","application/javascript","application/x-ecmascript","application/x-javascript","text/ecmascript","text/javascript","text/javascript1.0","text/javascript1.1","text/javascript1.2","text/javascript1.3","text/javascript1.4","text/javascript1.5","text/jscript","text/livescript","text/x-ecmascript","text/x-javascript"]);function u(e){let t=A(e);return null!==t&&"image"===o(t.type)}function g(e){let t=A(e);if(!t)return!1;let r=o(t.type);return"audio"===r||"video"===r||"application/ogg"===t.essence}function d(e){let t=A(e);return!!t&&("font"===o(t.type)||l.has(t.essence))}function p(e){let t=A(e);return!!t&&("application/zip"===t.essence||o(t.subtype).endsWith("+zip"))}function f(e){let t=A(e);return null!==t&&c.has(t.essence)}function m(e){let t=A(e);return!!t&&(!!o(t.subtype).endsWith("+xml")||"text/xml"===t.essence||"application/xml"===t.essence)}function w(e){let t=A(e);return null!==t&&"text/html"===t.essence}function y(e){let t=A(e);return!!t&&(!!(m(t)||w(t))||"application/pdf"===t.essence)}function b(e){let t=A(e);return null!==t&&h.has(t.essence)}function I(e){let t=s(e);return!!t&&h.has(o(t))}function C(e){if(null==e)return!0;let t=s(e);return!t||"module"===o(t)||I(t)}function x(e){if(null==e)return!1;let t=s(e);return""!==t&&"module"===o(t)}function S(e){let t=A(e);return!!t&&(!!("text"===o(t.type)||u(t)||d(t)||g(t)||w(t)||b(t)||m(t))||"application/pdf"===t.essence||"application/json"===t.essence)}},6879(e,t,r){r.d(t,{n:()=>A});var i=r(5994);function n(e){return 9===e||10===e||12===e||13===e||32===e}function s(e,t){for(;t<e.length&&n(e.charCodeAt(t));)t+=1;return t}function o(e){return e>=48&&e<=57}function a(e){return e>=65&&e<=90||e>=97&&e<=122}function A(e){if(0===e.length)return null;let t=0,r=t=s(e,0);for(;t<e.length&&o(e.charCodeAt(t));)t+=1;let A=e.slice(r,t);if(0===A.length&&46!==e.charCodeAt(t))return null;let l=A.length>0?(0,i.dE)(A,10):0;for(;t<e.length;){let r=e.charCodeAt(t);if(o(r)||46===r){t+=1;continue}break}if(t>=e.length)return{time:l,urlStart:-1,urlEnd:-1,url:null};let c=e.charCodeAt(t);if(59!==c&&44!==c&&!n(c))return null;if((t=s(e,t))<e.length){let r=e.charCodeAt(t);(59===r||44===r)&&(t+=1)}if((t=s(e,t))>=e.length)return{time:l,urlStart:-1,urlEnd:-1,url:null};let h=t,u=e.slice(t,t+3);if(3===u.length){let r=e.charCodeAt(t),i=e.charCodeAt(t+1),n=e.charCodeAt(t+2);if(a(r)&&a(i)&&a(n)&&("U"===u[0]||"u"===u[0])&&("R"===u[1]||"r"===u[1])&&("L"===u[2]||"l"===u[2])){let r=t+3;r=s(e,r),61===e.charCodeAt(r)&&(r+=1,h=r=s(e,r))}}let g="";if(h<e.length){let t=e.charCodeAt(h);(34===t||39===t)&&(g=e[h],h+=1)}let d=e.length;if(""!==g){let t=e.indexOf(g,h);-1!==t&&(d=t)}let p=e.slice(h,d);return{time:l,urlStart:h,urlEnd:d,url:p}}},4795(e,t,r){r.d(t,{f:()=>o,s:()=>s});var i=r(5657),n=r(5994);function s(e,t,r){return a("rewrite",e,t,r)}function o(e,t){return a("unrewrite",e,t)}function a(e,t,r,s){return(t=(t=(0,n.Qf)(t)).replace(/url\(['"]?(.+?)['"]?\)/gim,(t,n)=>{let o="rewrite"===e?(0,i.Oy)(n.trim(),r,s):(0,i.v2)(n.trim(),r);return t.replace(n,o)})).replace(/@import\s+((?:url)\s*?\(.{0,9999}?\)|['"].{0,9999}?['"]|.{0,9999}?)($|\s|;)/gim,(t,n)=>t.replace(n,n.replace(/^(url\(['"]?|['"]|)(.+?)(['"]|['"]?\)|)$/gim,(t,n,o,a)=>{if(/^url/i.test(n))return t;let A="rewrite"===e?(0,i.Oy)(o.trim(),r,s):(0,i.v2)(o.trim(),r);return`${n}${A}${a}`})))}},3515(e,t,r){r.d(t,{Kq:()=>y,PV:()=>x,Qs:()=>I,nK:()=>C});var i=r(1894),n=r(5883),s=r(2026),o=r(1258),a=r(5657),A=r(4795),l=r(6549),c=r(1496),h=r(6879),u=r(8254),g=r(3129),d=r(5994),p=r(4e3),f=r(6965),m=r(7742).A;let w={encodeEntities:"utf8",decodeEntities:!1};class y{context;meta;htmlcontext;handler;parser;completedElements=new WeakSet;emittedLengths=new WeakMap;rewrittenNodes=new WeakMap;ended=!1;constructor(e,t,r){this.context=e,this.meta=t,this.htmlcontext=r,this.handler=new s.DV(void 0,void 0,e=>{this.completedElements.add(e)}),this.parser=new n.i(this.handler,{startingForeignContext:r.foreignContext})}write(e){if(this.ended)throw Error("IncrementalHtmlRewriter stream already ended");return this.parser.write(e),this.flush()}end(e=""){return this.ended?"":(e&&this.parser.write(e),this.parser.end(),this.ended=!0,this.flush())}flush(){let e="";for(let t of this.handler.root.childNodes){let r=this.getAvailableOutput(t);if(null===r)break;let i=this.emittedLengths.get(t)??0;r.length>i&&(e+=r.slice(i),this.emittedLengths.set(t,r.length))}return e}getAvailableOutput(e){if(e.type!==i.vw&&e.type!==i.eF&&e.type!==i.OF)return(0,o.A)(e,w);if(!this.completedElements.has(e))return null;let t=this.rewrittenNodes.get(e);return void 0===t&&(t=b(e,this.context,this.meta,this.htmlcontext),this.rewrittenNodes.set(e,t)),t}}function b(e,t,r,p){var y;let b,I,C;"string"!=typeof e&&(y=e,e=(0,o.A)(y,w));let x=new s.DV((e,t)=>t),B=new n.i(x,{startingForeignContext:p.foreignContext});B.write(e),B.end(),g.C.dispatch(t.hooks.rewriter.html.pre,{handler:x,meta:r,htmlcontext:p,origHtml:e},void 0),function e(t,r,i){if("base"===t.name&&void 0!==t.attribs.href&&(i.base=new d.xP(t.attribs.href,i.origin)),t.attribs){for(let e of c.V)for(let n in e){let s=e[n.toLowerCase()];if("function"!=typeof s&&("*"===s||s.includes(t.name))&&void 0!==t.attribs[n]){let s=t.attribs[n],o=e.fn(s,r,i,t.attribs);null===o?delete t.attribs[n]:t.attribs[n]=o,t.attribs[`scramjet-attr-${n}`]=s}}for(let[e,n]of(0,d.nJ)(t.attribs))S.includes(e)&&(t.attribs[`scramjet-attr-${e}`]=n,t.attribs[e]=(0,l.o)(n,`(inline ${e} on element)`,r,i))}if("style"===t.name&&void 0!==t.children[0]&&(t.children[0].data=(0,A.s)(t.children[0].data,r,i)),"script"===t.name&&t.attribs.type?.toLowerCase()==="importmap"&&void 0!==t.children[0]){let e=t.children[0].data;try{let n=(0,d.P4)(e);if(n.imports)for(let e in n.imports){let t=n.imports[e];"string"==typeof t&&(t=(0,a.Oy)(t,r,i,{isModule:!0}),n.imports[e]=t)}t.children[0].data=(0,d.Xj)(n)}catch(e){m.error("Failed to parse importmap JSON:",e)}}if("script"===t.name&&(0,f.Kx)(t.attribs.type)&&void 0!==t.children[0]){let e=t.children[0].data,n=(0,f.g)(t.attribs.type);t.attribs["scramjet-attr-script-source-src"]=(0,u.i)((0,d.vh)(e)),e=e.replace(/<!--[\s\S]*?-->/g,""),t.children[0].data=(0,l.o)(e,"(inline script element)",r,i,n)}if("meta"===t.name&&void 0!==t.attribs["http-equiv"]){if("content-security-policy"===t.attribs["http-equiv"].toLowerCase())t=new s.Mw(t.attribs.content);else if("refresh"===t.attribs["http-equiv"].toLowerCase()){let e=(0,h.n)(t.attribs.content||"");if(e&&null!==e.url&&e.url.length>0){let n=(0,a.Oy)(e.url.trim(),r,i);t.attribs.content=t.attribs.content.slice(0,e.urlStart)+n+t.attribs.content.slice(e.urlEnd)}}}if(t.childNodes)for(let n in t.childNodes)t.childNodes[n]=e(t.childNodes[n],r,i);return t}(x.root,t,r);let E=function(){for(let e of x.root.childNodes)if(e.type!==i.WL&&e.type!==i.Mw&&e.type!==i.EY)if(e.type!==i.vw||"html"!==e.name)return!0;else b=e;if(!b)return!0;for(let e of b.childNodes)if(e.type!==i.WL&&e.type!==i.Mw&&e.type!==i.EY){if(e.type===i.vw&&"head"===e.name){if(C)return!0;I=e}else if(e.type===i.vw&&"body"===e.name)C=e;else if(!I)return!0;return!1}}();if(p.loadScripts){let e=t.interface.getInjectScripts(r,x,p,e=>new s.Hg("script",{src:e,"scramjet-injected":"true"}));E?(m.warn(`detected quirky document structure parsing @ ${r.origin.href}!`),x.root.children.unshift(...e)):(I||(I=new s.Hg("head",{},[]),b.children.unshift(I)),I.children.unshift(...e))}let D={};return(g.C.dispatch(t.hooks.rewriter.html.post,{handler:x,meta:r,htmlcontext:p,origHtml:e},D),void 0!==D.setRawHtml)?D.setRawHtml:(0,o.A)(x.root,w)}function I(e,t,r,i){let n=(0,d.wU)(),s=b(e,t,r,i);return(0,p.U5)("rewriterLogs",t,r.base)&&m.time(r,n,"html rewrite"),s}function C(e,t){let r=new s.DV((e,t)=>t),i=new n.i(r,{startingForeignContext:t});return i.write(e),i.end(),!function e(t){if("attribs"in t)for(let e in t.attribs){if("scramjet-attr-script-source-src"==e){t.children[0]&&"data"in t.children[0]&&(t.children[0].data=(0,d.lw)(t.attribs[e]));continue}e.startsWith("scramjet-attr-")&&(t.attribs[e.slice(14)]=t.attribs[e],delete t.attribs[e])}if("childNodes"in t)for(let r of t.childNodes)e(r)}(r.root),(0,o.A)(r.root,{...w})}function x(e,t,r){return e.split(/ .*,/).map(e=>e.trim()).map(e=>{let[i,...n]=e.split(/\s+/),s=(0,a.Oy)(i.trim(),t,r);return n.length>0?`${s} ${n.join(" ")}`:s}).join(", ")}let S=["onbeforexrselect","onabort","onbeforeinput","onbeforematch","onbeforetoggle","onblur","oncancel","oncanplay","oncanplaythrough","onchange","onclick","onclose","oncontentvisibilityautostatechange","oncontextlost","oncontextmenu","oncontextrestored","oncuechange","ondblclick","ondrag","ondragend","ondragenter","ondragleave","ondragover","ondragstart","ondrop","ondurationchange","onemptied","onended","onerror","onfocus","onformdata","oninput","oninvalid","onkeydown","onkeypress","onkeyup","onload","onloadeddata","onloadedmetadata","onloadstart","onmousedown","onmouseenter","onmouseleave","onmousemove","onmouseout","onmouseover","onmouseup","onmousewheel","onpause","onplay","onplaying","onprogress","onratechange","onreset","onresize","onscroll","onsecuritypolicyviolation","onseeked","onseeking","onselect","onslotchange","onstalled","onsubmit","onsuspend","ontimeupdate","ontoggle","onvolumechange","onwaiting","onwebkitanimationend","onwebkitanimationiteration","onwebkitanimationstart","onwebkittransitionend","onwheel","onauxclick","ongotpointercapture","onlostpointercapture","onpointerdown","onpointermove","onpointerrawupdate","onpointerup","onpointercancel","onpointerover","onpointerout","onpointerenter","onpointerleave","onselectstart","onselectionchange","onanimationend","onanimationiteration","onanimationstart","ontransitionrun","ontransitionstart","ontransitionend","ontransitioncancel","oncopy","oncut","onpaste","onscrollend","onscrollsnapchange","onscrollsnapchanging"]},2348(e,t,r){r.d(t,{$n:()=>o.$n,IP:()=>o.IP,Kq:()=>n.Kq,Oy:()=>o.Oy,PV:()=>n.PV,Qs:()=>n.Qs,f9:()=>i.f,gP:()=>s.g,ht:()=>A.h,iP:()=>a.i,nK:()=>n.nK,nb:()=>A.n,on:()=>s.o,sM:()=>i.s,v2:()=>o.v2});var i=r(4795),n=r(3515),s=r(6549),o=r(5657),a=r(1668),A=r(3430)},6549(e,t,r){r.d(t,{g:()=>a,o:()=>A});var i=r(4e3),n=r(3430),s=r(5994),o=r(7742).A;function a(e,t,r,A,l=!1){return function(e,t,r,a,A){let[l,c]=(0,n.n)(r,a),h={};for(let e of(0,s.BR)(r.config.flags))h[e]=(0,i.U5)(e,r,a.base);try{let n,c=(0,s.wU)();n="string"==typeof e?l.rewrite_js({...r.config.globals,prefix:r.prefix.pathname},h,r.interface.codecEncode,e,a.base.href,t||"(unknown)",A):l.rewrite_js_bytes({...r.config.globals,prefix:r.prefix.pathname},h,r.interface.codecEncode,e,a.base.href,t||"(unknown)",A),(0,i.U5)("rewriterLogs",r,a.base)&&o.time(a,c,`oxc rewrite for "${t||"(unknown)"}"`);let{js:u,map:g,scramtag:d,errors:p}=n;return{js:"string"==typeof e?(0,s.hS)(u):u,tag:d,map:g,errors:p}}finally{c()}}(e,t,r,A,l)}function A(e,t,r,n,l=!1){try{let A=a(e,t,r,n,l),c=A.js;if((0,i.U5)("sourcemaps",r,n.base)){let e=globalThis[r.config.globals.pushsourcemapfn];if(e)e((0,s.Z7)(A.map),A.tag);else{"string"!=typeof c&&(c=(0,s.hS)(c));let e=`${r.config.globals.pushsourcemapfn}([${A.map.join(",")}], "${A.tag}");`,t=new s.fs(/^\s*(['"])use strict\1;?/);c=t.test(c)?c.replace(t,`$&
 ${e}`):`${e}
 ${c}`}}if((0,i.U5)("rewriterLogs",r,n.base))for(let e of A.errors)o.error("oxc parse error",e);return c}catch(a){if(o.warn("failed rewriting js for",t||"(unknown)",a.message,"string"!=typeof e?(0,s.hS)(e):e),(0,i.U5)("allowInvalidJs",r,n.base))return e;throw a}}Error.stackTraceLimit=50},5657(e,t,r){r.d(t,{$n:()=>l,IP:()=>A,Oy:()=>c,v2:()=>h});var i=r(6549),n=r(7492),s=r(5994),o=r(7742).A;function a(e,t){try{return new s.xP(e,t)}catch{return null}}function A(e,t,r){let i=new s.xP(e.substring(5));return"blob:"+r.origin.origin+i.pathname}function l(e,t,r){let i=new s.xP(e.substring(5));return"blob:"+t.prefix.origin+i.pathname}function c(e,t,r,o){if((e=(0,s.Qf)(e)).startsWith("javascript:"))return"javascript:"+(0,i.o)(e.slice(11),"(javascript: url)",t,r);if(e.startsWith("blob:"))return t.prefix.href+e;if(e.startsWith("data:")){if(e.length+t.prefix.href.length+1024>2097152){let{objectUrl:i}=function(e){let t,r=e.indexOf(",");if(-1===r)return null;let i=e.slice(5,r),n=e.slice(r+1),o=i.split(";"),a=o.shift()||"",A=o.some(e=>"base64"===e.toLowerCase()),l=o.filter(e=>e&&"base64"!==e.toLowerCase()),c=a||"text/plain";if(!a&&(l.some(e=>e.toLowerCase().startsWith("charset="))||l.push("charset=US-ASCII")),l.length&&(c+=";"+l.join(";")),A){let e=n.replace(/\s/g,"");e=e.replace(/-/g,"+").replace(/_/g,"/");let r=(0,s.lw)(e);t=new Uint8Array(r.length);for(let e=0;e<r.length;e++)t[e]=r.charCodeAt(e)}else{let e=n;try{e=decodeURIComponent(n)}catch{}t=(0,s.vh)(e)}let h=new Blob([t],{type:c}),u=(0,s.FA)(h);return{blob:h,objectUrl:u}}(e);return t.prefix.href+A(i,t,r)+"?"+n.QP.fakeDataURL+"=1"}return t.prefix.href+e}{if(e.startsWith("mailto:")||e.startsWith("about:"))return e;let i=r.base.href;i.startsWith("about:")&&(i=h(self.location.href,t));let A=a(e,i);if(!A||"http:"!=A.protocol&&"https:"!=A.protocol)return e;let l=t.interface.codecEncode(A.hash.slice(1));A.hash="";let c=new s.JE,u=o?.referrerPolicy??r.referrerPolicy;u&&c.set(n.QP.referrerPolicy,u),o?.isModule&&c.set(n.QP.isModule,"module"),o?.topFrame&&c.set(n.QP.topFrame,o.topFrame),o?.parentFrame&&c.set(n.QP.parentFrame,o.parentFrame),o?.isIframe&&c.set(n.QP.isIframe,o.isIframe),o?.mode&&c.set(n.QP.mode,o.mode),o?.credentials&&c.set(n.QP.credentials,o.credentials),o?.destination&&c.set(n.QP.destination,o.destination),r.origin.origin!==t.prefix.origin&&c.set(n.QP.initiatorOrigin,r.origin.origin);let g="";return c.toString()&&(g="?"+c.toString()),t.prefix.href+t.interface.codecEncode(A.href)+g+(l?"#"+l:"")}}function h(e,t){if((e=(0,s.Qf)(e)).startsWith("javascript:")||e.startsWith("blob:"))return e;if(e.startsWith(t.prefix.href+"blob:"))return e.substring(t.prefix.href.length);if(e.startsWith(t.prefix.href+"data:"))return e.substring(t.prefix.href.length);if(e.startsWith("mailto:")||e.startsWith("about:"))return e;else{if(!(e.startsWith("http:")||e.startsWith("https:")))return""==e||o.error("unrewriteurl: unexpected url",e),e;let r=a(e);if(!r||"http:"!=r.protocol&&"https:"!=r.protocol)return e;if(!r.href.startsWith(t.prefix.href))return o.error("unrewriteurl: unexpected url",e),e;let i=t.interface.codecDecode(r.hash.slice(1));return r.hash="",r.search="",t.interface.codecDecode(r.href.slice(t.prefix.href.length))+(i?"#"+i:"")}}},3430(e,t,r){let i;r.d(t,{h:()=>A,n:()=>h});var n=r(5469),s=r(4e3),o=r(5994),a=r(7742).A;function A(e){i=e instanceof Uint8Array?e:new Uint8Array(e)}let l="\0asm".split("").map(e=>e.charCodeAt(0)),c=[];function h(e,t){let r;if(!(i instanceof Uint8Array))throw new o.$D("rewriter wasm not found (was setWasm called?)");if(![...i.slice(0,4)].every((e,t)=>e===l[t]))throw new o.$D("rewriter wasm does not have wasm magic (was it fetched correctly?)\nrewriter wasm contents: "+(0,o.hS)(i));(0,n.QR)({module:new WebAssembly.Module(i)});let A=c.findIndex(e=>!e.inUse),h=c.length;return -1===A?((0,s.U5)("rewriterLogs",e,t.base)&&a.log(`creating new rewriter, ${h} rewriters made already`),r={rewriter:new n.LW,inUse:!1},c.push(r)):r=c[A],r.inUse=!0,[r.rewriter,()=>r.inUse=!1]}},1668(e,t,r){r.d(t,{i:()=>a});var i=r(4e3),n=r(6549),s=r(5994),o=r(8254);function a(e,t,r,a,A){let l=e=>r?`import "${e}"
 `:`importScripts("${e}");
@@ -3471,28 +3523,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   /* ═══════════════════════════════════════════════════════
      0. LIVE SYSTEM & ERROR LOGGING ENGINE
   ═══════════════════════════════════════════════════════ */
-  const shortcutIcons = {"ChatGPT":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAGTklEQVRoge3Za4xdVRUH8B99DK0tgk6RzlAUg0gVJdEEfAS0StTEFozhi/ERSUwwgo+EGKImokUlGgk+kiogJig2FkywaIsYnxBFNGbiC8QpAV+ltJY+p48pnbl+WPtk73vuvTNnpnf6qf/kJvfus+/ea+291n89DidwAseEk/q83jwMpO9HMNnn9TvQDwVOxqvxJlyAZWl8J/6CX2EE433Yq+94DTZgN1o9PrtxV5rbd8z2BubjStyA4TR2AFvxTPp9OlZgUfr9FNbij1iJ5cLkdmIUj2LPLOWZMT6IMfmEb8WlGMLS9FmB1eL0D6W5h7BL+EZ5S/vwO3wYg3Mt/CrsSBuP4jJxkt2wCFcLoUuBx4XQY5goxifxS1w0V8IvxX1ps63CcbthvriRzUnYSsARXC9u5rW4GO/COvyrmLcFb5wLBd4qbL2FT/aY83J8U7tj/zPNH5pi7fOxHkfTf/6Mc/shdImbCoHOqT07A5/Ak9oZ6JYkXBMsxTeK/38LC45V6AG8JS1W2f6PsLCYsxp/KDY+IsznUmFOJU7FO4XvLOmy3wvw27TOLrz+WIQ/C7dhv3YnXFfMGcYjshOO4P3iNEssECZ4v1DwMDbiEp10/p40p4UbZyv8S/Fr7ada2edXinkvw/Y0/mOc2WWtV4iD2Kv9IFoiDtys3SSH8Pf0/OdYPFPhl+EnxSYPCY7e2kOBp9P42to6y/Ep4TPVWvvxA9yDg8X4Y7gGp4kb2ZjGHxFmNSN8plh4szClFTLV9VLghjT2HLxbu18cxk+FvwyIGHGFsPcqsE2IOLAa35cptYr2jbCyEPRvMpWd3UCBG/E6/DAJXJrKf/GOLvstw7V4vJi7V6QkFZ3OKDpfm/54FFcV400UeFxmqirY/af4vRNf053fz8PXC8Grz89ExtsIC2Xb2yJMZyYKlPx/m0ivzxfcXqYTo/gYnl/bf56IwPfKLLQdlzdVYFBcWcUoJdc3UeCQiBFv1s7/80UOtVFO7CbwQBJuQDuW4COF0lvEYUyL4TS5he/UnjVR4HbhwL2wWGSu5W2N4buiKKrjatmXvqdT0Y4s8iieLTarR9EKHQslbBXU2AuH0pxqrwPitN8nbnyt9nzp24IQYI1IANtQV2BMnCYRWE4tnrWK72/He4VzHS3GmxRI1Z67hZncLU55WGSq6+QoPi5udSzJsmY6BQ6KiolghfJa/4ffp+9np4XXi1SgVz0wFSbxG3H6VwrTJWi4vIUREeTgQjUT7bbxZlFsLBE0WpWEBwVzfB7bxOlfIajveWlOy/QoOxULBNvcJZtKXa69eCJ9X45TplPgYWxK3y/HB4pn2/BpkUmul224SnnPNL0Td8uVyL5Xx6TsVwMaptcXyGy0S5x8PfUdEJH1QbksLGm03KgbjT4tGKzCF9L4NmG+FRamNVuiTbNMQ1wm0+MREVzeoPPWBpOCo5oHspkocFaxdr0OmRIDIvkqN31G71TgXHxVpAu9Uokd8s02VeAqOY3/eFPhiTD/J9mM9hWCjOKjOlMBwm9KoatM9B7BMJ+bgQIvwV/T+L9r86dFGZU3CA7+hXwa9VSgqrju056JPiw6D5VzV6n6VAqcI6j03mKdeq0xLU4X6XRLnB5RbHxIdNHKAmWDCPVlxfUErtNZjFw/jQI7xO0+WKx1f5JnRlgsyrkqJy+9/8X4klxKlp9dIpp2u+5hmVG291BgQnsv6QFR3s4KX0yLHBRVUomT5ObumEyhq3TmUEtFoT8iV1+Paq+0vqz9IPaLaP/C2QpPpAl75NLyuV3mLBK8/zadnYj56dkmOb9viVJzTW3e3bIJ3S5aOb2SxsYYwB3y1d5k6khboluH7knR/DqjNvdFckl587EKXcdKmcqexZ2iTdILQzo7dHtM3aG7Ls07IJis71glU2rFybeIzsMlIk9fLfKkkWLeuKDVbh26cu2qXbNJ925dX3ChYKWytz8hHHifduao0olr5Gy2jnnCD/4h8//FcyV8hcEk1EM6u2yTgkKrZO2wcMw1oqd0inDyIeHYt8r+sU971tsYs33FdJrg8PNEfJgUgekxUQR9Vk6bx0VPaEf6PZieVabylDC9OxyHt5pNcZHj9PKv3++JS5yMVwlzeaWcCvT19etcKlDiuL8AP4ETaIj/AwKCWZD9x8pDAAAAAElFTkSuQmCC","Discord":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAARVBMVEVHcExYZfJYZfJYZfJYZfJYZfJXY/BYZfJYZfJYZfJYZfL///9PXvJFVfHN0fuLk/atsvjt7/6fpvd6hPXg4vxqdfT3+P85VkAXAAAACnRSTlMAwfYxUNMNl3PrECvWWwAAAkZJREFUWIWtV+uaqyAMrFcECSpq3/9Rj3gBEhDtcubHfs2WSZNJIPD53KCtO9bwUoiSN6yr27t1cVSMCwLOqtf0LmCfPrpXdBZnH2DPv56iG6SjaJsnvhBNQs/6mW5Q/yl7HzdKFG/5QhSZ/KiHn/gRD6/zv0B0eKm/D1SL9ne+EH4/vOifEI3jP/ZvHK6r49/L6EcfiQpIgHmwNDnMAKGTkt0EIEGMS9/3Qp4Qm7GMIvQRVwC0YW9Qo9oxqsNeBiBLDxXI+QPn8hgU8cANvyLxD/f8vh9IFlUoIXxTDr4kBBZkIMcUv+9HHAIPulim+X1PcmjJNnoKIAihJkVMKxBRocMapktwABWiLPBGlIkeuKBQDgUuArh1k1qcsajJGSgH/il9c3ZagQRrzZvh1J19Rol2kqvB3rNSH4Y2QbsOx3XADuyiQ6kzI4n1xSKgFMBmunqSnIVbrTq+CCUS0Wl4RCCjESAVOS6jk90suoQbd8MVxWc0qJFslEZFAH0ZejO8Dlk9CvNbWboqmiC8rv4u/jd+HTu0mZCDe/gOarSd12cyTaFFB8rvDjg+0uxpsoCeMGnSrkm8RmLkULWt+NWw6msHTUqvoC9NUSNW9FiHebLr5Daetg7Y/myfLs/TjNsoHCxX8OTsO7KbBjyduthokzCocACYTlYDHW43w1WCpHzjQQaz0V5z6OLoPI/86/9dMLKvOPmXrOxrXv5FM/+qm3/Zzr/u5z848p88+Y+uT/az71GJ54fnHkXe09cg8/G94+3z/x9ga4VDUwhpYgAAAABJRU5ErkJggg==","Google":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAApVBMVEVHcEz4+Pj8/Pz9/f38/Pz59/by8/Pz8/T7+/v9/f309PX29/fy8vP29/f///84qlfsUENHiPT8wBLrTD88rFpJivNEhvUqp006g/T7/PvT4P3rRjjqPSzg8Ojva1uWz6T7ugWWt/j4xcH+78jA4slxv4T85eTtW0v61tRctGaDrPdSj/YtffRmmvb1p6L+3I790mKuuUHykIg+nZ3G2Pv0lCs8o3o82clfAAAADnRSTlMAoetQ0/wdM7c/jGYSeQFEN8MAAAMjSURBVFiF5VdZm6IwEBQURBFQRGOGwxOvUWd0dvf//7QNEpLOAeLDPm09+QFV6erudGKn888wsgeeYTiOYXgD+2227TqmD2A67jsi3Z6vgdNtSXdNHf0ZRxuJgXb1Cr3BK77RRC9gNNLtxuVpEA3ZHLymF6i10W3H9/2aXKp8a38k2FvtFPrSR/tbNp7GSRLH4+y2l172Vf4IC19sDkk8HRNMCeI4OWyE13ikCAj532Qlu1IgSLIj/KIn8z349sHphE8l4uQBv/EkAzB1WTwGmDIkGbQpmnBA8g5Tkc4kEiEPTk0FLJk/1fPFSoAAMmA/TsZZdiCV1PFhCDZ/emP+ieWNRUzj/SYjEgrf9/mmGPIEMH6cgeY5Zhq+P2QCbILgRyWQ3IRv8VFmE5iqg+2KplDi16Dy4LInX2H4bIL40UDjcJUahAS/SeEPuIHG4cgp2K4KhdVBlzEdTHkffj0FwhVs2Q8FKXuH5Tb8LgXCb7DKZSHhcuYvy2bkkzCk2AKBxYxjUmB+fSmwahb45AbL8dptKzApBWZcoPuehUlNBG0tTCoBXxIAVaACX0DgMmegCkoS+TijfRDegcB5XeFcKixAGelYqw4OXHZieEepLwD7he31orSwZs8t2spsouOnQBQEua/BtYzg8sGeVLOdzxOShHtEgHYq/xcNYMZPumq08yxuV/egEIiCVObjTzUFbKyywuJTyScuZIVrGcBkwR1gNtL4tWSHIqqAlpCe0vWFncAvK+BYyGkIJA+nHXWL0xz9zJUUwoOBn6wWEyBBRPmSID8hFAR/ZnMpA/B8BXcLZuKZCVQgKEEUFmAfiLeMHlQIGD8gP4OIChAbk1QfgHi9ogqBjAj9gATIVy1wOvpphBR2EUEES+t0JHBzpPNzVQGhJZz1WOZ3+sJRQAqHRHoudBbW3LKESw6RWJ4Qw2kpNaan8uGeqjR2yyd2ysYY6vj6izbWHXK1F+5hqyMR16xfwG2hgN16PqlF7b+VCqYm/2/YaAq/gu3USmCn3V8327A0Gtgy2v/zG7mOqIEtx1Uv6M3oe0bPtAjMnuG9ytz/jb8i8rQexpJ/GAAAAABJRU5ErkJggg==","YouTube":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAATlBMVEVHcEz/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/ADP/////EUb/ACL/RGP/7/P/q7n/hpn/zNX/3eP/Z34pvHLoAAAAD3RSTlMA6zaWxYZkrPTcSyF7D/rE87ViAAABdklEQVRYhe2W226DMAyGnaMJhCTtKLTv/6ILXYXQWicZvtkFv4SEhPwp+JQf4NSpf6VhkL21RiFq7ZwQIoS4KQQhnHNaIypjbS+H4Ve4Ryd2AbTC8wnCod+Fm5bQdxlm/EY4HP8ijMfjY2QeIMY1k5oRH3Suv+OcwA0gm8pPSUjoOfEx9mB5AEsX4dIEMKBIwPJ1rQMUIAlI6VZHIN0GGZCm+VpBaCDbYAVkxKMMcDVASkssHcKBqAFyKi40QkBXB6Q7nYoOSPYOkBEPitAIWP+DCUjL5zO0AshyAjnNewDdUKGpCoWW7hr6oDhUotqJ01zpxOIwpelWmSZdBtRXgi7tg3vDRsHCRpoLM7RJgSe/NYSvVxNvKwcLkgWIEiTZii3KN9PIuhv1yLudcxWBdzn2q8NgJKF7eqTjaezkj8s6/BP95lLxgMsIuHer0qImV8u7hEYrPxnmMRvm7Ji9N0apbJtfyu/KGO+zS842efy7ET91qqZvZj+d0TOLUpwAAAAASUVORK5CYII="};
-  const logDrawer       = document.getElementById('logDrawer');
-  const logBody         = document.getElementById('logBody');
-  const logBadgeDot     = document.getElementById('logBadgeDot');
-  const logHeaderDot    = document.getElementById('logHeaderDot');
-  const logToggleBadge  = document.getElementById('logToggleBadge');
-
-  let hasErrors = false;
-
   function addLog(msg, type = 'info') {
     const row = document.createElement('div');
     row.className = 'log-row';
 
-    const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const ts = new Date().toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+    });
     const tagClass = type === 'err' ? 'err' : type === 'ok' ? 'ok' : type === 'warn' ? 'warn' : 'info';
     const tagText = type === 'err' ? 'ERR' : type === 'ok' ? 'OK' : type === 'warn' ? 'WARN' : 'INFO';
-
-    if (type === 'err') {
-      hasErrors = true;
-      logBadgeDot.classList.add('err');
-      logHeaderDot.classList.add('err');
-    }
 
     row.innerHTML = `
       <span class="log-ts">[${ts}]</span>
@@ -3500,25 +3539,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <span class="log-msg">${escapeHtml(msg)}</span>
     `;
 
-    logBody.appendChild(row);
-    logBody.scrollTop = logBody.scrollHeight;
-    const pageRow = row.cloneNode(true);
-    pageRow.dataset.searchable = msg;
-    document.getElementById('pageLogList')?.appendChild(pageRow);
+    row.dataset.searchable = msg;
+    const pageLogList = document.getElementById('pageLogList');
+    pageLogList?.appendChild(row);
+    if (pageLogList) pageLogList.scrollTop = pageLogList.scrollHeight;
   }
 
-  function toggleLogDrawer(force) {
-    const isNowOpen = force !== undefined ? force : !logDrawer.classList.contains('open');
-    logDrawer.classList.toggle('open', isNowOpen);
-  }
-
-  logToggleBadge.addEventListener('click', () => showAppPage('logs'));
-  document.getElementById('closeLogsBtn').addEventListener('click', () => toggleLogDrawer(false));
-  document.getElementById('clearLogsBtn').addEventListener('click', () => {
-    logBody.innerHTML = '';
-    hasErrors = false;
-    logBadgeDot.classList.remove('err');
-    logHeaderDot.classList.remove('err');
+  document.getElementById('pageClearLogsBtn').addEventListener('click', () => {
+    document.getElementById('pageLogList').innerHTML = '';
     addLog('Logs cleared', 'info');
   });
 
@@ -3671,8 +3699,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     finishIntro();
   }
 
-  playIntro();
-
   /* ═══════════════════════════════════════════════════════
      2. SCRAMJET CONTROLLER & WISP PROXY ENGINE
   ═══════════════════════════════════════════════════════ */
@@ -3682,6 +3708,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   const browserFrames   = document.getElementById('browserFrames');
   const frameArea       = document.getElementById('frameArea');
+  const browserErrorScreen = document.getElementById('browserErrorScreen');
   const homeScreen      = document.getElementById('homeScreen');
   const topUrlBar       = document.getElementById('topUrlBar');
   const topUrlInput     = document.getElementById('topUrlInput');
@@ -3697,17 +3724,22 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     { title: 'Google', url: 'https://www.google.com', domain: 'google.com' },
     { title: 'YouTube', url: 'https://www.youtube.com', domain: 'youtube.com' },
     { title: 'Discord', url: 'https://discord.com/app', domain: 'discord.com' },
-    { title: 'ChatGPT', url: 'https://chatgpt.com', domain: 'chatgpt.com' }
+    { title: 'ChatGPT', url: 'https://chatgpt.com', domain: 'chatgpt.com' },
+    { title: 'Games', url: 'su://games', icon: '🎮' }
   ];
   const defaultSettings  = {
     wisp: OFFICIAL_WISP_URL,
     wispVersion: 'auto',
     searchProvider: 'duckduckgo',
     adBlock: true,
-    background: ''
+    background: false
   };
   let settings = { ...defaultSettings };
   try { settings = { ...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (_) {}
+  if (typeof settings.background !== 'boolean') {
+    settings.background = false;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
   if (settings.wispVersion === 1 || settings.wispVersion === 2 ||
       settings.wispVersion === '1' || settings.wispVersion === '2') {
     settings.wispVersion = 'auto';
@@ -3724,8 +3756,19 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   try { enabledExtensions = JSON.parse(localStorage.getItem(EXTENSIONS_KEY) || '{}'); } catch (_) {}
   try {
     const savedShortcuts = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || 'null');
-    if (Array.isArray(savedShortcuts)) visibleShortcuts = savedShortcuts;
+    if (Array.isArray(savedShortcuts)) {
+      visibleShortcuts = savedShortcuts.filter(shortcut =>
+        shortcut && typeof shortcut.title === 'string' && typeof shortcut.url === 'string');
+    }
   } catch (_) {}
+  if (!localStorage.getItem('superuser-games-shortcut-v1')) {
+    const gamesShortcut = DEFAULT_SHORTCUTS.find(shortcut => shortcut.title === 'Games');
+    if (gamesShortcut && !visibleShortcuts.some(shortcut => shortcut.title === gamesShortcut.title)) {
+      visibleShortcuts = [...visibleShortcuts, gamesShortcut];
+      localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
+    }
+    localStorage.setItem('superuser-games-shortcut-v1', 'true');
+  }
 
   const AD_HOSTS = /(^|\.)((doubleclick|googlesyndication|googleadservices|adnxs|adsrvr|advertising|imasdk|adform|criteo|taboola|outbrain|scorecardresearch)\.)/i;
   const searchUrls = {
@@ -3735,6 +3778,42 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     startpage: query => `https://www.startpage.com/sp/search?query=${encodeURIComponent(query)}`,
     youtube: query => `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
   };
+  const searchProviders = [
+    { id: 'duckduckgo', name: 'DuckDuckGo', icon: 'D' },
+    { id: 'google', name: 'Google', icon: 'G' },
+    { id: 'bing', name: 'Bing', icon: 'b' },
+    { id: 'startpage', name: 'Startpage', icon: 'S' },
+    { id: 'youtube', name: 'YouTube', icon: '▶' }
+  ];
+
+  function renderSearchProviderMenu() {
+    const select = document.getElementById('topSearchProvider');
+    const button = document.getElementById('searchProviderButton');
+    const menu = document.getElementById('searchProviderMenu');
+    if (!select || !button || !menu) return;
+    if (!searchProviders.some(provider => provider.id === select.value)) {
+      select.value = 'duckduckgo';
+    }
+    const selected = searchProviders.find(provider => provider.id === select.value);
+    button.textContent = selected.icon;
+    button.title = selected.name;
+    button.setAttribute('aria-label', `Search provider: ${selected.name}`);
+    menu.innerHTML = searchProviders.map(provider => `
+      <button class="search-provider-option" type="button" role="option"
+        aria-checked="${provider.id === select.value}" data-search-provider="${provider.id}">
+        <span class="search-provider-icon" aria-hidden="true">${provider.icon}</span>
+        <span>${provider.name}</span>
+      </button>`).join('');
+    menu.querySelectorAll('[data-search-provider]').forEach(option => {
+      option.addEventListener('click', () => {
+        select.value = option.dataset.searchProvider;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        menu.hidden = true;
+        button.setAttribute('aria-expanded', 'false');
+        renderSearchProviderMenu();
+      });
+    });
+  }
 
   let scramjet = null;
   let activeTransport = null;
@@ -3765,20 +3844,26 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   async function probeTransport(transport) {
-    const response = await transport.request(
-      new URL('https://example.com/'),
-      'GET',
-      null,
-      [],
-      new AbortController().signal
-    );
-    if (response.body && typeof response.body.cancel === 'function') {
-      await response.body.cancel();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await transport.request(
+        new URL('https://example.com/'),
+        'GET',
+        null,
+        [],
+        controller.signal
+      );
+      if (response.body && typeof response.body.cancel === 'function') {
+        await response.body.cancel();
+      }
+      if (response.status < 200 || response.status >= 400) {
+        throw new Error(`Wisp proxy test returned HTTP ${response.status}`);
+      }
+      return response.status;
+    } finally {
+      clearTimeout(timeout);
     }
-    if (response.status < 200 || response.status >= 400) {
-      throw new Error(`Wisp proxy test returned HTTP ${response.status}`);
-    }
-    return response.status;
   }
 
   async function initScramjetProxy() {
@@ -3790,7 +3875,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         throw new Error('Service Workers are not supported in this browser.');
       }
 
-      const swUrl = new URL(`${appPath('sw.js')}?v=10`, location.href).href;
+      const swUrl = new URL(`${appPath('sw.js')}?v=11`, location.href).href;
       const reg = await navigator.serviceWorker.register(swUrl, {
         scope: APP_BASE,
         updateViaCache: 'none'
@@ -3821,7 +3906,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         addLog('Reloading to activate the updated service worker...', 'warn');
         allowApplicationUnload = true;
         location.reload();
-        return;
+        return false;
       }
 
       const sw = navigator.serviceWorker.controller;
@@ -3870,19 +3955,21 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       settings.wisp = document.getElementById('wispSelectPage').value ||
         document.getElementById('wispSelect').value || settings.wisp;
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      updateSystemStatus();
 
       showToast('Proxy ready — type sudo for commands');
       addLog('SuperUser Proxy is online and ready for traffic', 'ok');
+      return true;
     } catch (err) {
       console.error(err);
       addLog(`Wisp/proxy connection failed: ${err.message}`, 'err');
       showToast('Proxy Error: ' + err.message, true);
-      toggleLogDrawer(true);
+      return false;
     }
   }
 
   // Test Proxy Diagnostics
-  document.getElementById('testProxyBtn').addEventListener('click', async () => {
+  document.getElementById('pageTestProxyBtn').addEventListener('click', async () => {
     addLog('--- RUNNING PROXY DIAGNOSTICS ---', 'info');
     addLog(`SW Support: ${'serviceWorker' in navigator}`, 'info');
     addLog(`SW Controller: ${navigator.serviceWorker.controller ? 'Active' : 'NULL (Reload Required)'}`, navigator.serviceWorker.controller ? 'ok' : 'err');
@@ -3962,11 +4049,43 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }));
   }
 
+  function migrateInternalGameUrl(url) {
+    try {
+      const gamesPath = new URL(appPath('internals/games/'), location.href).pathname;
+      const proxyPath = new URL(appPath('~/sj/'), location.href).pathname;
+      let candidate = url;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const currentUrl = new URL(candidate, location.href);
+        if (currentUrl.origin === location.origin && currentUrl.pathname.startsWith(gamesPath)) {
+          const path = currentUrl.pathname.slice(gamesPath.length);
+          const provider = path.split('/')[0];
+          if (!provider || provider === 'index.html') return `su://games${currentUrl.search}`;
+          if (!/^[a-z0-9_-]+$/i.test(provider)) return url;
+          return `su://games/${provider}${currentUrl.search}`;
+        }
+        if (currentUrl.origin !== location.origin || !currentUrl.pathname.startsWith(proxyPath)) return candidate;
+        const segments = currentUrl.pathname.slice(proxyPath.length).split('/').reverse();
+        const target = segments.map(segment => {
+          try { return decodeURIComponent(segment); } catch (_) { return ''; }
+        }).find(segment => /^https?:\/\//i.test(segment));
+        if (!target) return candidate;
+        candidate = target;
+      }
+      return candidate;
+    } catch (_) {
+      return url;
+    }
+  }
+
   function restoreTabs() {
     try {
       const saved = JSON.parse(localStorage.getItem(TABS_KEY) || 'null');
       if (!saved?.tabs?.length) return false;
-      const uniqueTabs = saved.tabs.filter((savedTab, index, list) =>
+      const restored = saved.tabs.map(savedTab => ({
+        ...savedTab,
+        url: migrateInternalGameUrl(savedTab.url)
+      }));
+      const uniqueTabs = restored.filter((savedTab, index, list) =>
         list.findIndex(candidate => candidate.url === savedTab.url && candidate.title === savedTab.title) === index);
       uniqueTabs.forEach(savedTab => {
         const tab = {
@@ -4042,6 +4161,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (index === -1) return;
 
     const [closedTab] = tabs.splice(index, 1);
+    closedTab.metadataObserver?.disconnect();
+    if (closedTab.metadataTimer) clearInterval(closedTab.metadataTimer);
     closedTab.frame?.remove();
 
     if (tabs.length === 0) {
@@ -4079,7 +4200,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     frameArea.classList.remove('active');
     topUrlBar.classList.remove('active'); // Top URL bar hidden on newtab
     document.querySelector('.viewport').classList.remove('browsing');
-    logToggleBadge.style.display = 'none';
+    browserErrorScreen.hidden = true;
+    document.title = 'SuperUser Proxy';
+    document.getElementById('appFavicon').href = appPath('assets/shortcuts/icons/google.png');
     document.getElementById('cmdTextarea')?.focus();
   }
 
@@ -4089,12 +4212,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     frameArea.classList.add('active');
     topUrlBar.classList.add('active'); // Top URL bar shown when browsing
     document.querySelector('.viewport').classList.add('browsing');
-    logToggleBadge.style.display = 'none';
+    browserErrorScreen.hidden = true;
   }
 
   function normalizeUrl(raw) {
     let u = raw.trim();
     if (!u) return '';
+    if (/^su:\/\/games(?:\/[a-z0-9_-]+)?\/?(?:\?[^#]*)?$/i.test(u)) return u.replace(/\/(?=\?)/, '').replace(/\/$/, '');
     if (u.includes(' ') || !u.includes('.')) {
       const provider = document.getElementById('topSearchProvider')?.value ||
         settings.searchProvider || 'duckduckgo';
@@ -4114,70 +4238,175 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       return;
     }
 
-    if (!isProxyReady) {
+    if (!getInternalGameUrl(url) && (!isProxyReady || !scramjet)) {
       addLog(`Cannot navigate: proxy not ready (url: ${url})`, 'warn');
       showToast('Proxy is initializing... please wait', true);
       return;
     }
 
-    const currentTab = getActiveTab();
+    let currentTab = getActiveTab();
+    if (!currentTab) {
+      createTab('home');
+      currentTab = getActiveTab();
+    }
     if (currentTab) {
       currentTab.url = url;
-      currentTab.title = getHost(url);
-      currentTab.favicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHost(url))}&sz=32`;
+      currentTab.title = url.startsWith('su://games') ? 'Games' : getHost(url);
+      currentTab.favicon = url.startsWith('su://games')
+        ? ''
+        : `https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHost(url))}&sz=32`;
       renderTabs();
       saveTabs();
-    } else {
-      createTab(url);
+      document.title = `${currentTab.title} - SuperUser`;
+      document.getElementById('appFavicon').href =
+        currentTab.favicon || appPath('assets/shortcuts/icons/google.png');
     }
 
     loadUrlInFrame(url);
   }
 
+  function showBrowserError(status, url) {
+    const is404 = status === 404;
+    const isOffline = status === 'offline';
+    document.getElementById('browserErrorCode').textContent =
+      typeof status === 'number' ? String(status) : 'OFFLINE';
+    document.getElementById('browserErrorLabel').textContent = is404
+      ? 'Page not found'
+      : isOffline ? 'Proxy unavailable' : 'Page could not be loaded';
+    document.getElementById('browserErrorTitle').textContent = is404
+      ? 'This page took a wrong turn.'
+      : isOffline ? 'The proxy is not connected.' : 'The site could not complete your request.';
+    document.getElementById('browserErrorMessage').textContent = is404
+      ? 'The website returned a 404 response. Check the address or try again later.'
+      : isOffline ? 'Reconnect to a Wisp server in Settings, then retry this page.'
+      : `The website returned HTTP ${status}. You can retry the request or open a new tab.`;
+    document.getElementById('browserErrorUrl').textContent = url;
+    frameLoader.classList.add('hidden');
+    browserErrorScreen.hidden = false;
+  }
+
   function loadUrlInFrame(url, shouldNavigate = true) {
     const tab = getActiveTab();
     if (!tab) return;
+    const internalUrl = getInternalGameUrl(url);
+    if (!internalUrl && (!isProxyReady || !scramjet)) {
+      showBrowserError('offline', url);
+      return;
+    }
+
     if (!tab.frame) {
       tab.frame = document.createElement('iframe');
       tab.frame.className = 'browser-tab-frame';
       tab.frame.title = 'SuperUser Browser';
       tab.frame.allow = 'fullscreen; camera; microphone; geolocation; clipboard-read; clipboard-write';
       browserFrames.appendChild(tab.frame);
+      tab.frame.addEventListener('load', () => {
+        tab.navigationPending = false;
+        updateTabMetadata(tab);
+      });
+      tab.metadataTimer = setInterval(() => {
+        if (tab.id === activeTabId) updateTabMetadata(tab);
+      }, 750);
+    }
+    if (!internalUrl && !tab.sjFrame) {
       tab.sjFrame = scramjet.createFrame(tab.frame);
-      tab.frame.addEventListener('load', () => updateTabMetadata(tab));
     }
 
     document.querySelectorAll('.browser-tab-frame').forEach(frame => frame.classList.remove('active'));
     tab.frame.classList.add('active');
-    sjFrame = tab.sjFrame;
+    sjFrame = internalUrl ? null : tab.sjFrame;
     showBrowserView();
+    browserErrorScreen.hidden = true;
     topUrlInput.value = tab.url;
-    if (shouldNavigate) {
+    if (shouldNavigate || !tab.frame.dataset.loaded) {
       frameLoader.classList.remove('hidden');
       frameLoaderMsg.textContent = `Connecting to ${getHost(url)}...`;
     } else {
       frameLoader.classList.add('hidden');
     }
 
-    if (!shouldNavigate) return;
+    if (!shouldNavigate && tab.frame.dataset.loaded) {
+      updateTabMetadata(tab);
+      return;
+    }
     addLog(`Navigating to: ${url}`, 'info');
 
     try {
-      tab.sjFrame.go(url);
+      tab.navigationPending = true;
+      if (internalUrl) {
+        tab.frame.dataset.loaded = 'true';
+        tab.frame.src = internalUrl;
+      } else {
+        tab.frame.dataset.loaded = 'true';
+        tab.sjFrame.go(url);
+      }
     } catch (e) {
       addLog(`Navigation error: ${e.message}`, 'err');
+      showBrowserError('offline', url);
       showToast('Nav Error: ' + e.message, true);
     }
   }
 
+  function getInternalGameUrl(url) {
+    const match = /^su:\/\/games(?:\/([a-z0-9_-]+))?\/?(?:\?[^#]*)?(?:#.*)?$/i.exec(url);
+    if (!match) return '';
+    const route = new URL(url);
+    if (match[1]) route.searchParams.set('provider', match[1]);
+    const hubUrl = new URL(appPath('internals/games/index.html'), location.href);
+    hubUrl.search = route.search;
+    hubUrl.hash = route.hash;
+    return hubUrl.href;
+  }
+
+  function isInternalGameDocument(url) {
+    try {
+      const currentUrl = new URL(url, location.href);
+      const gamesPath = new URL(appPath('internals/games/'), location.href).pathname;
+      return currentUrl.origin === location.origin && currentUrl.pathname.startsWith(gamesPath);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function getFrameResponseStatus(tab) {
+    try {
+      const entries = tab.frame.contentWindow.performance.getEntriesByType('navigation');
+      const status = entries[entries.length - 1]?.responseStatus;
+      return Number.isInteger(status) ? status : 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  window.addEventListener('message', event => {
+    const tab = getActiveTab();
+    if (event.origin !== location.origin ||
+        event.source !== tab?.frame?.contentWindow ||
+        event.data?.type !== 'superuser:navigate' ||
+        typeof event.data.url !== 'string') return;
+    const target = event.data.url.trim();
+    if (/^su:\/\/games(?:\/[a-z0-9_-]+)?\/?(?:\?[^#]*)?$/i.test(target) ||
+        /^https?:\/\//i.test(target)) {
+      navigate(target);
+    }
+  });
+
   function updateTabMetadata(tab) {
+    const responseStatus = tab.navigationPending ? 0 : getFrameResponseStatus(tab);
+    if (responseStatus >= 400 && responseStatus < 600) {
+      showBrowserError(responseStatus, tab.url);
+      return;
+    }
+    if (tab.id === activeTabId) browserErrorScreen.hidden = true;
     frameLoader.classList.add('hidden');
     let loc = '';
     try { loc = tab.sjFrame?.location?.href || ''; } catch (_) {}
+    try { loc = loc || tab.frame?.contentWindow?.location?.href || ''; } catch (_) {}
     if (!loc || loc === 'about:blank') {
       loc = tab.url || tab.frame?.contentDocument?.location?.href || tab.frame?.src || '';
     }
     if (!loc || loc === 'about:blank') return;
+    if (isInternalGameDocument(loc) && !tab.url.startsWith('su://games')) return;
 
     let doc = null;
     try { doc = tab.frame.contentDocument; } catch (_) {}
@@ -4189,22 +4418,77 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         tab.frame.contentWindow?.document?.title?.trim() ||
         tab.sjFrame?.document?.title?.trim() || '';
       icon = doc?.querySelector('link[rel~="icon"], link[rel="shortcut icon"]')?.href || '';
+      if (icon) {
+        const iconUrl = new URL(icon, doc.baseURI);
+        icon = ['http:', 'https:'].includes(iconUrl.protocol) ? iconUrl.href : '';
+      }
     } catch (_) {}
 
+    const previousUrl = tab.url;
     let publicUrl = loc;
-    if (loc.startsWith(location.origin + '/~/sj/')) {
-      const encoded = loc.split('/').pop().split('?')[0];
-      try { publicUrl = decodeURIComponent(encoded); } catch (_) {}
+    try {
+      const currentUrl = new URL(loc, location.href);
+      const proxyPrefix = new URL(appPath('~/sj/'), location.href).pathname;
+      if (currentUrl.origin === location.origin && currentUrl.pathname.startsWith(proxyPrefix)) {
+        const segments = currentUrl.pathname.slice(proxyPrefix.length).split('/').reverse();
+        const decodedTarget = segments.map(segment => {
+          try { return decodeURIComponent(segment); } catch (_) { return ''; }
+        }).find(segment => /^https?:\/\//i.test(segment));
+        if (decodedTarget) {
+          publicUrl = decodedTarget;
+        }
+      }
+    } catch (_) {}
+    if (tab.url.startsWith('su://games')) {
+      publicUrl = tab.url;
     }
     if (/^https?:\/\//i.test(publicUrl)) tab.url = publicUrl;
     let host = getHost(publicUrl);
     try { host = new URL(publicUrl).hostname; } catch (_) {}
-    tab.title = title || host;
-    tab.favicon = icon || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
-    if (tab.id === activeTabId) topUrlInput.value = tab.url;
-    renderTabs();
-    installAdBlocker(tab);
-    offerSiteExtension(tab, host);
+    const nextTitle = title || (tab.url.startsWith('su://games') ? 'Games' : host);
+    const nextFavicon = icon || (tab.url.startsWith('su://games')
+      ? ''
+      : `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`);
+    const metadataChanged = tab.url !== previousUrl || tab.title !== nextTitle || tab.favicon !== nextFavicon;
+    tab.title = nextTitle;
+    tab.favicon = nextFavicon;
+    if (doc && tab.metadataDoc !== doc) {
+      tab.metadataObserver?.disconnect();
+      tab.metadataDoc = doc;
+      const metadataRoot = doc.head || doc.documentElement;
+      if (metadataRoot) {
+        let updateQueued = false;
+        tab.metadataObserver = new MutationObserver(() => {
+          if (updateQueued) return;
+          updateQueued = true;
+          setTimeout(() => {
+            updateQueued = false;
+            updateTabMetadata(tab);
+          }, 100);
+        });
+        tab.metadataObserver.observe(metadataRoot, {
+          childList: true, subtree: true, characterData: true,
+          attributes: true, attributeFilter: ['href', 'rel']
+        });
+      }
+      try {
+        const frameWindow = tab.frame.contentWindow;
+        frameWindow.addEventListener('popstate', () => updateTabMetadata(tab));
+        frameWindow.addEventListener('hashchange', () => updateTabMetadata(tab));
+      } catch (_) {}
+      installAdBlocker(tab);
+    }
+    if (tab.id === activeTabId) {
+      if (tab.url !== previousUrl) topUrlInput.value = tab.url;
+      document.title = tab.title ? `${tab.title} - SuperUser` : 'SuperUser Proxy';
+      const appFavicon = document.getElementById('appFavicon');
+      if (appFavicon) appFavicon.href = tab.favicon || appPath('assets/shortcuts/icons/google.png');
+    }
+    if (metadataChanged) {
+      renderTabs();
+      saveTabs();
+      offerSiteExtension(tab, host);
+    }
     if (!title && tab.metadataAttempts < 4) {
       tab.metadataAttempts = (tab.metadataAttempts || 0) + 1;
       setTimeout(() => updateTabMetadata(tab), 700);
@@ -4226,6 +4510,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     try { getActiveTab()?.sjFrame?.reload(); } catch (_) {}
   });
 
+  document.getElementById('retryErrorPageBtn').addEventListener('click', () => {
+    const tab = getActiveTab();
+    if (tab && tab.url !== 'home') navigate(tab.url);
+  });
+
+  document.getElementById('homeErrorPageBtn').addEventListener('click', () => createTab('home'));
+
   document.getElementById('topFullscreenBtn').addEventListener('click', async () => {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
@@ -4241,7 +4532,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (currentTab) {
       currentTab.url = 'home';
       currentTab.title = 'New Tab';
+      currentTab.favicon = '';
       renderTabs();
+      saveTabs();
       showHomeScreen();
     }
   });
@@ -4299,9 +4592,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   const COMMANDS = [
     { cmd: 'sudo',              desc: 'Show all available commands' },
     { cmd: 'sudo search <query>',desc: 'Search with the selected provider' },
+    { cmd: 'sudo yt <query>',   desc: 'Search YouTube' },
     { cmd: 'sudo newtab',       desc: 'Create a new tab' },
     { cmd: 'sudo clear',        desc: 'Close all tabs and return home' },
-    { cmd: 'sudo logs',         desc: 'Toggle error & debug log drawer' },
+    { cmd: 'sudo logs',         desc: 'Open system and proxy diagnostics' },
     { cmd: 'sudo test',         desc: 'Run proxy connection diagnostics' },
     { cmd: 'sudo settings',     desc: 'Open settings modal' },
     { cmd: 'sudo help',         desc: 'Open commands reference modal' },
@@ -4315,6 +4609,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   ];
 
   const PAGE_IDS = ['settings', 'help', 'logs'];
+  let activeSettingsPage = 'proxy';
+
+  function activateSettingsPage(page) {
+    activeSettingsPage = page;
+    document.querySelectorAll('[data-settings-page]').forEach(button => {
+      button.classList.toggle('active', button.dataset.settingsPage === page);
+    });
+    document.querySelectorAll('[data-settings-panel]').forEach(panel => {
+      panel.classList.toggle('active', panel.dataset.settingsPanel === page);
+    });
+  }
 
   function showAppPage(page) {
     PAGE_IDS.forEach(id => document.getElementById(`${id}Page`)?.classList.toggle('active', id === page));
@@ -4343,8 +4648,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     input.addEventListener('input', () => {
       const query = input.value.trim().toLowerCase();
       const page = input.dataset.pageSearch;
+      if (page === 'settings') {
+        const panels = [...document.querySelectorAll('[data-settings-panel]')];
+        panels.forEach(panel => {
+          const cards = [...panel.querySelectorAll('[data-searchable]')];
+          cards.forEach(card => {
+            card.hidden = Boolean(query && !card.dataset.searchable.toLowerCase().includes(query));
+          });
+          const hasMatch = cards.some(card => !card.hidden);
+          panel.classList.toggle('active', query ? hasMatch : panel.dataset.settingsPanel === activeSettingsPage);
+        });
+        document.querySelectorAll('[data-settings-page]').forEach(button => {
+          button.classList.toggle('active', !query && button.dataset.settingsPage === activeSettingsPage);
+        });
+        return;
+      }
       document.querySelectorAll(`#${page}Page [data-searchable]`).forEach(item => {
-        item.hidden = query && !item.dataset.searchable.toLowerCase().includes(query);
+        item.hidden = Boolean(query && !item.dataset.searchable.toLowerCase().includes(query));
       });
     });
   });
@@ -4477,7 +4797,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const command = args.toLowerCase();
       if (!args || command === 'help' || command === 'commands') { showAppPage('help'); return; }
       if (command === 'logs')          { showAppPage('logs'); return; }
-      if (command === 'test')          { document.getElementById('testProxyBtn').click(); return; }
+      if (command === 'test')          { document.getElementById('pageTestProxyBtn').click(); return; }
       if (command === 'settings')      { showAppPage('settings'); return; }
       if (command === 'newtab')        { createTab('home'); return; }
       if (command === 'clear')         { tabs = []; createTab('home'); showToast('All tabs cleared'); return; }
@@ -4486,6 +4806,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (command === 'back')          { try { sjFrame?.back(); } catch (_) { showToast('Back is unavailable', true); } return; }
       if (command === 'forward')       { try { sjFrame?.forward(); } catch (_) { showToast('Forward is unavailable', true); } return; }
       if (command === 'reload')        { try { sjFrame?.reload(); } catch (_) { showToast('Reload is unavailable', true); } return; }
+
+      if (command === 'yt' || command.startsWith('yt ')) {
+        const query = args.slice(2).trim();
+        if (!query) {
+          cmdTextarea.value = 'sudo yt ';
+          cmdTextarea.focus();
+          return;
+        }
+        navigate(searchUrls.youtube(query));
+        return;
+      }
 
       if (command.startsWith('ext install ')) {
         const extensionUrl = args.slice(12).trim();
@@ -4552,8 +4883,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   document.getElementById('helpBtn').addEventListener('click', () => showAppPage('help'));
   document.getElementById('logsBtn').addEventListener('click', () => showAppPage('logs'));
 
-  document.querySelectorAll('.chip-btn').forEach(btn => {
-    btn.addEventListener('click', () => navigate(btn.dataset.url));
+  document.querySelectorAll('[data-settings-page]').forEach(button => {
+    button.addEventListener('click', () => {
+      document.getElementById('settingsSearch').value = '';
+      document.getElementById('settingsSearch').dispatchEvent(new Event('input'));
+      activateSettingsPage(button.dataset.settingsPage);
+    });
   });
 
   document.getElementById('replayIntroBtn').addEventListener('click', () => {
@@ -4628,17 +4963,37 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
   document.getElementById('customWispBtnPage').addEventListener('click', () => useCustomWisp('customWispInputPage'));
   document.getElementById('customWispBtn').addEventListener('click', () => useCustomWisp('customWispInput'));
-  document.getElementById('pageTestProxyBtn').addEventListener('click', () => document.getElementById('testProxyBtn').click());
-  document.getElementById('pageClearLogsBtn').addEventListener('click', () => document.getElementById('clearLogsBtn').click());
   document.getElementById('topSearchProvider').value = settings.searchProvider;
+  if (!searchProviders.some(provider => provider.id === settings.searchProvider)) {
+    settings.searchProvider = 'duckduckgo';
+    document.getElementById('topSearchProvider').value = settings.searchProvider;
+  }
+  renderSearchProviderMenu();
+  document.getElementById('searchProviderButton').addEventListener('click', () => {
+    const menu = document.getElementById('searchProviderMenu');
+    menu.hidden = !menu.hidden;
+    document.getElementById('searchProviderButton').setAttribute('aria-expanded', String(!menu.hidden));
+  });
+  document.addEventListener('click', event => {
+    const control = document.getElementById('searchProviderControl');
+    if (!control.contains(event.target)) {
+      document.getElementById('searchProviderMenu').hidden = true;
+      document.getElementById('searchProviderButton').setAttribute('aria-expanded', 'false');
+    }
+  });
   document.getElementById('topSearchProvider').addEventListener('change', event => {
     settings.searchProvider = event.target.value;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    renderSearchProviderMenu();
   });
   document.getElementById('adBlockToggle').checked = settings.adBlock;
   document.getElementById('adBlockToggle').addEventListener('change', event => {
     settings.adBlock = event.target.checked;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    tabs.forEach(tab => {
+      tab.adObserver?.disconnect();
+      if (settings.adBlock) installAdBlocker(tab);
+    });
   });
   document.getElementById('backgroundUploadBtn').addEventListener('click', () => document.getElementById('backgroundUpload').click());
   document.getElementById('backgroundUpload').addEventListener('change', event => {
@@ -4648,23 +5003,86 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       showToast('Background must be under 8 MB', true);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      settings.background = reader.result;
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      showToast('Choose an image or video file', true);
+      return;
+    }
+    saveBackgroundFile(file).then(() => {
+      settings.background = true;
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      applyBackground();
-    };
-    reader.readAsDataURL(file);
+      return applyBackground();
+    }).catch(error => {
+      addLog(`Could not save background: ${error.message}`, 'err');
+      showToast('Could not save that background', true);
+    });
   });
   document.getElementById('clearBackgroundBtn').addEventListener('click', () => {
-    settings.background = '';
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    applyBackground();
+    deleteBackgroundFile().then(() => {
+      settings.background = false;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      return applyBackground();
+    }).catch(error => {
+      addLog(`Could not clear background: ${error.message}`, 'err');
+      showToast('Could not clear the background', true);
+    });
   });
 
-  function applyBackground() {
+  const BACKGROUND_DB = 'superuser-backgrounds';
+  let backgroundObjectUrl = '';
+
+  function openBackgroundDatabase() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(BACKGROUND_DB, 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('files');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('IndexedDB could not be opened'));
+    });
+  }
+
+  async function saveBackgroundFile(file) {
+    const db = await openBackgroundDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('files', 'readwrite');
+      transaction.objectStore('files').put(file, 'custom');
+      transaction.oncomplete = () => { db.close(); resolve(); };
+      transaction.onerror = () => { db.close(); reject(transaction.error || new Error('Background save failed')); };
+      transaction.onabort = () => { db.close(); reject(transaction.error || new Error('Background save was aborted')); };
+    });
+  }
+
+  async function loadBackgroundFile() {
+    const db = await openBackgroundDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('files', 'readonly');
+      const request = transaction.objectStore('files').get('custom');
+      request.onsuccess = () => { db.close(); resolve(request.result || null); };
+      request.onerror = () => { db.close(); reject(request.error || new Error('Background load failed')); };
+    });
+  }
+
+  async function deleteBackgroundFile() {
+    const db = await openBackgroundDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('files', 'readwrite');
+      transaction.objectStore('files').delete('custom');
+      transaction.oncomplete = () => { db.close(); resolve(); };
+      transaction.onerror = () => { db.close(); reject(transaction.error || new Error('Background removal failed')); };
+      transaction.onabort = () => { db.close(); reject(transaction.error || new Error('Background removal was aborted')); };
+    });
+  }
+
+  async function applyBackground() {
     let video = document.getElementById('customBackgroundVideo');
-    if (settings.background?.startsWith('data:video/')) {
+    if (backgroundObjectUrl) URL.revokeObjectURL(backgroundObjectUrl);
+    backgroundObjectUrl = '';
+    const file = settings.background ? await loadBackgroundFile() : null;
+    if (!file) {
+      video?.remove();
+      document.documentElement.style.setProperty('--home-bg-image', 'none');
+      return;
+    }
+    backgroundObjectUrl = URL.createObjectURL(file);
+    if (file.type.startsWith('video/')) {
       if (!video) {
         video = document.createElement('video');
         video.id = 'customBackgroundVideo';
@@ -4678,15 +5096,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         });
         document.body.prepend(video);
       }
-      video.src = settings.background;
+      video.src = backgroundObjectUrl;
       document.documentElement.style.setProperty('--home-bg-image', 'none');
     } else {
       video?.remove();
-      document.documentElement.style.setProperty('--home-bg-image', settings.background
-        ? `url("${settings.background}")` : 'none');
+      document.documentElement.style.setProperty('--home-bg-image', `url("${backgroundObjectUrl}")`);
     }
   }
-  applyBackground();
+  applyBackground().catch(error => addLog(`Could not load background: ${error.message}`, 'warn'));
 
   window.addEventListener('beforeunload', (event) => {
     if (allowApplicationUnload) return;
@@ -4777,18 +5194,31 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   function escapeHtml(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function updateSystemStatus() {
     const time = new Date();
-    document.getElementById('systemTime').textContent = time.toLocaleTimeString([], { hour12: false });
-    const started = performance.now();
-    fetch(appPath('health'), { cache: 'no-store' }).then(response => {
-      document.getElementById('serverPing').textContent = `${Math.round(performance.now() - started)}ms`;
-    }).catch(() => {
-      document.getElementById('serverPing').textContent = 'offline';
-    });
+    document.getElementById('systemTime').textContent =
+      time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+    if (!activeTransport) {
+      document.getElementById('serverPing').textContent = 'connecting…';
+    } else if (!pingInFlight) {
+      pingInFlight = true;
+      const started = performance.now();
+      probeTransport(activeTransport)
+        .then(() => {
+          document.getElementById('serverPing').textContent =
+            `${Math.round(performance.now() - started)}ms`;
+        })
+        .catch(() => {
+          document.getElementById('serverPing').textContent = 'offline';
+        })
+        .finally(() => {
+          pingInFlight = false;
+        });
+    }
     if (navigator.getBattery) {
       navigator.getBattery().then(battery => {
         const update = () => {
@@ -4802,18 +5232,60 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
   }
 
+  let pingInFlight = false;
+  let initialExperienceActive = false;
+
+  function restoreWindowMetadata() {
+    const tab = getActiveTab();
+    document.title = tab && tab.url !== 'home' ? `${tab.title} - SuperUser` : 'SuperUser Proxy';
+    const appFavicon = document.getElementById('appFavicon');
+    if (appFavicon) appFavicon.href = tab?.favicon || appPath('assets/shortcuts/icons/google.png');
+  }
+
   function setupLearningScreen() {
-    if (localStorage.getItem('scrape_avoider') === 'true') return;
-    localStorage.setItem('scrape_avoider', 'true');
-    learningScreen.classList.remove('hidden');
-    setTimeout(() => learningScreen.classList.add('hidden'), 3000);
-    learningScreen.querySelectorAll('[data-learning-url]').forEach(link => {
-      link.addEventListener('click', event => {
-        event.preventDefault();
-        learningScreen.classList.add('hidden');
-        navigate(link.dataset.learningUrl);
-      });
+    document.getElementById('learningMockupFrame').src = appPath('Mockups/learning.html');
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        document.title = 'Super Learning';
+        learningScreen.style.zIndex = '10000';
+        learningScreen.classList.remove('hidden');
+      } else {
+        learningScreen.style.zIndex = '';
+        restoreWindowMetadata();
+        if (!initialExperienceActive) learningScreen.classList.add('hidden');
+      }
     });
+
+    if (localStorage.getItem('superuser-first-visit-complete') === 'true') {
+      playIntro();
+      return;
+    }
+    localStorage.setItem('superuser-first-visit-complete', 'true');
+    initialExperienceActive = true;
+    learningScreen.classList.remove('hidden');
+    setTimeout(() => {
+      if (document.hidden) {
+        const resumeWelcome = () => {
+          if (document.hidden) return;
+          document.removeEventListener('visibilitychange', resumeWelcome);
+          startEntryNotice();
+        };
+        document.addEventListener('visibilitychange', resumeWelcome);
+        return;
+      }
+      startEntryNotice();
+    }, 5000);
+
+    function startEntryNotice() {
+      initialExperienceActive = false;
+      learningScreen.classList.add('hidden');
+      const notice = document.getElementById('entryNotice');
+      notice.classList.add('show');
+      setTimeout(() => {
+        notice.classList.remove('show');
+        playIntro();
+      }, 1100);
+    }
   }
 
   function installAdBlocker(tab) {
@@ -4828,8 +5300,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           if (source && AD_HOSTS.test(new URL(source, doc.baseURI).hostname)) element.remove();
         } catch (_) {}
       });
-      doc.querySelectorAll('[id*="ad" i], [class*="ad-" i], [class*="advert" i], [class*="sponsor" i]')
-        .forEach(element => { if (element.textContent.length < 2000) element.remove(); });
+      doc.querySelectorAll(
+        '[id^="ad_" i], [id*="-ad-" i], [id="player-ads" i], ' +
+        '[class*="ad-container" i], [class*="advertisement" i], [data-ad-slot]'
+      ).forEach(element => element.remove());
     };
     removeAds();
     tab.adObserver?.disconnect();
@@ -4860,34 +5334,113 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   function renderShortcuts() {
     const home = document.getElementById('quickShortcuts');
-    const settingsList = document.getElementById('shortcutSettingsList');
-    if (home) {
-      home.innerHTML = visibleShortcuts.map(shortcut => `
-        <button class="chip-btn" data-url="${escapeHtml(shortcut.url)}">
-          <img class="shortcut-icon" src="${shortcutIcons[shortcut.title] || ""}" alt="">
-          ${escapeHtml(shortcut.title)}
-        </button>`).join('');
-      home.querySelectorAll('.chip-btn').forEach(button => {
-        button.addEventListener('click', () => navigate(button.dataset.url));
+    if (!home) return;
+    const faviconFor = shortcut => {
+      if (shortcut.icon) return '';
+      let host = shortcut.domain;
+      try { host = new URL(shortcut.url).hostname; } catch (_) {}
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+    };
+    const visibleTiles = visibleShortcuts.map(shortcut => `
+      <div class="shortcut-tile-wrap">
+        <button class="shortcut-tile" type="button" data-shortcut-url="${escapeHtml(shortcut.url)}" title="${escapeHtml(shortcut.title)}">
+          ${shortcut.icon
+            ? `<span class="shortcut-glyph" aria-hidden="true">${escapeHtml(shortcut.icon)}</span>`
+            : `<img class="shortcut-icon" src="${escapeHtml(faviconFor(shortcut))}" alt="" loading="lazy">`}
+          <span>${escapeHtml(shortcut.title)}</span>
+        </button>
+        <button class="shortcut-remove" type="button" data-remove-shortcut="${escapeHtml(shortcut.title)}" aria-label="Remove ${escapeHtml(shortcut.title)}" title="Remove shortcut">×</button>
+      </div>`).join('');
+    const availableDefaults = DEFAULT_SHORTCUTS.filter(shortcut =>
+      !visibleShortcuts.some(item => item.title === shortcut.title));
+    const defaultOptions = availableDefaults.map(shortcut =>
+      `<option value="${escapeHtml(shortcut.title)}">${shortcut.icon ? `${escapeHtml(shortcut.icon)} ` : ''}${escapeHtml(shortcut.title)}</option>`
+    ).join('');
+    home.innerHTML = `${visibleTiles}
+      <div class="shortcut-add-wrap">
+        <button class="shortcut-tile" type="button" id="addShortcutBtn" aria-haspopup="true" aria-expanded="false">
+          <span class="shortcut-glyph" aria-hidden="true">+</span><span>Add shortcut</span>
+        </button>
+        <div class="shortcut-add-menu" id="shortcutAddMenu" role="dialog" aria-modal="true" aria-labelledby="shortcutDialogTitle" hidden>
+          <button class="shortcut-add-close" id="closeShortcutMenu" type="button" aria-label="Close add shortcut dialog">×</button>
+          <h3 id="shortcutDialogTitle">Add a shortcut</h3>
+          <form class="shortcut-default-form" id="defaultShortcutForm">
+            <label for="defaultShortcutSelect">Add a premade shortcut</label>
+            <select id="defaultShortcutSelect" aria-label="Premade shortcut" ${availableDefaults.length ? '' : 'disabled'}>
+              <option value="">${availableDefaults.length ? 'Choose a shortcut…' : 'All premade shortcuts are added'}</option>
+              ${defaultOptions}
+            </select>
+            <button class="modal-btn" type="submit" ${availableDefaults.length ? '' : 'disabled'}>Add</button>
+          </form>
+          <form class="shortcut-custom-form" id="customShortcutForm">
+            <input id="customShortcutTitle" maxlength="40" placeholder="Shortcut name" aria-label="Shortcut name" required>
+            <input id="customShortcutUrl" type="url" placeholder="https://example.com" aria-label="Shortcut URL" required>
+            <button class="modal-btn" type="submit">Add custom shortcut</button>
+          </form>
+        </div>
+      </div>`;
+    home.querySelectorAll('[data-shortcut-url]').forEach(button => {
+      button.addEventListener('click', () => navigate(button.dataset.shortcutUrl));
+    });
+    home.querySelectorAll('[data-remove-shortcut]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        visibleShortcuts = visibleShortcuts.filter(item => item.title !== button.dataset.removeShortcut);
+        localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
+        renderShortcuts();
       });
-    }
-    if (settingsList) {
-      settingsList.innerHTML = DEFAULT_SHORTCUTS.map(shortcut => `
-        <label style="display:block;margin-top:8px;font-size:12px">
-          <input type="checkbox" data-shortcut-toggle="${escapeHtml(shortcut.title)}"
-            ${visibleShortcuts.some(item => item.title === shortcut.title) ? 'checked' : ''}>
-          ${escapeHtml(shortcut.title)}
-        </label>`).join('');
-      settingsList.querySelectorAll('[data-shortcut-toggle]').forEach(input => {
-        input.addEventListener('change', event => {
-          const item = DEFAULT_SHORTCUTS.find(shortcut => shortcut.title === event.target.dataset.shortcutToggle);
-          if (event.target.checked && item) visibleShortcuts.push(item);
-          if (!event.target.checked) visibleShortcuts = visibleShortcuts.filter(shortcut => shortcut.title !== item?.title);
-          localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
-          renderShortcuts();
-        });
-      });
-    }
+    });
+    const addButton = document.getElementById('addShortcutBtn');
+    const menu = document.getElementById('shortcutAddMenu');
+    addButton.addEventListener('click', () => {
+      menu.hidden = !menu.hidden;
+      addButton.setAttribute('aria-expanded', String(!menu.hidden));
+    });
+    document.getElementById('closeShortcutMenu').addEventListener('click', () => {
+      menu.hidden = true;
+      addButton.setAttribute('aria-expanded', 'false');
+    });
+    document.getElementById('defaultShortcutForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const selectedTitle = document.getElementById('defaultShortcutSelect').value;
+      const shortcut = DEFAULT_SHORTCUTS.find(item => item.title === selectedTitle);
+      if (!shortcut || visibleShortcuts.some(item => item.title === shortcut.title)) return;
+      visibleShortcuts.push(shortcut);
+      localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
+      renderShortcuts();
+    });
+    document.getElementById('customShortcutForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const title = document.getElementById('customShortcutTitle').value.trim();
+      let url;
+      try {
+        url = new URL(document.getElementById('customShortcutUrl').value.trim());
+      } catch (_) {
+        showToast('Enter a valid website URL', true);
+        return;
+      }
+      if (!title || !['http:', 'https:'].includes(url.protocol)) {
+        showToast('Shortcuts must use an http(s) URL', true);
+        return;
+      }
+      if (visibleShortcuts.some(item => item.title.toLowerCase() === title.toLowerCase())) {
+        showToast('A shortcut with that name already exists', true);
+        return;
+      }
+      visibleShortcuts.push({ title, url: url.href, domain: url.hostname });
+      localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
+      renderShortcuts();
+    });
+    home.querySelectorAll('.shortcut-icon').forEach(icon => {
+      icon.addEventListener('error', () => {
+        const shortcut = visibleShortcuts.find(item => item.title === icon.closest('.shortcut-tile')?.title);
+        const fallback = document.createElement('span');
+        fallback.className = 'shortcut-glyph';
+        fallback.setAttribute('aria-hidden', 'true');
+        fallback.textContent = shortcut?.title?.slice(0, 1).toUpperCase() || '?';
+        icon.replaceWith(fallback);
+      }, { once: true });
+    });
   }
 
   async function loadExtensionCatalog() {
@@ -4940,8 +5493,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   loadExtensionCatalog();
   renderShortcuts();
   let restoredTabs = false;
-  initScramjetProxy().then(() => {
-    if (!restoredTabs) {
+  initScramjetProxy().then(ready => {
+    if (ready && !restoredTabs) {
       restoredTabs = true;
       if (!restoreTabs()) createTab('home');
     }

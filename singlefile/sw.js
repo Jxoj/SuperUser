@@ -2,7 +2,8 @@
 importScripts(new URL("./controller/controller.sw.js", self.location.href).href);
 
 const APP_BASE = new URL("./", self.location.href);
-const CACHE_NAME = `superuser-shell:${APP_BASE.pathname}`;
+const CACHE_PREFIX = `superuser-shell:${APP_BASE.pathname}`;
+const CACHE_NAME = `${CACHE_PREFIX}:v2`;
 const SHELL_FILES = [
   "index.html",
   "controller/controller.api.js",
@@ -12,6 +13,9 @@ const SHELL_FILES = [
   "scramjet/scramjet.js",
   "scramjet/scramjet.wasm",
   "extensions/scripts/index.json",
+  "internals/games/index.html",
+  "internals/games/providers.json",
+  "Mockups/learning.html",
 ];
 const SHELL_URLS = SHELL_FILES.map((path) => new URL(path, APP_BASE));
 const INDEX_URL = new URL("index.html", APP_BASE);
@@ -32,7 +36,13 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames
+      .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
+      .map((name) => caches.delete(name)));
+    await self.clients.claim();
+  })());
 });
 
 async function serveAppNavigation(request) {

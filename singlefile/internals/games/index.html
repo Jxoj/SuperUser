@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Games | SuperUser</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 18px 18px;
+      background: radial-gradient(ellipse at top, #14221a, #09090b 70%);
+      color: #f4f4f5;
+    }
+    main { width: min(1200px, 100%); display: flex; flex: 1; flex-direction: column; gap: 10px; }
+    form { display: grid; grid-template-columns: minmax(0, 1fr) auto 170px auto; gap: 10px; }
+    input, select, button {
+      min-height: 48px;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      background: #111113;
+      color: #f4f4f5;
+      font: inherit;
+    }
+    .provider-label { align-self: center; color: #a1a1aa; font-size: 13px; }
+    input { min-width: 0; flex: 1; padding: 0 14px; outline: none; }
+    input:focus, select:focus { border-color: #22c55e; }
+    select { width: 100%; padding: 0 10px; }
+    button { padding: 0 18px; border-color: #22c55e; background: #22c55e; color: #06120a; font-weight: 700; cursor: pointer; }
+    button:hover { filter: brightness(1.08); }
+    #status { min-height: 18px; color: #a1a1aa; font-size: 12px; }
+    #providerFrame { flex: 1; min-height: calc(100vh - 105px); width: 100%; border: 1px solid #27272a; border-radius: 12px; background: #09090b; }
+    @media (max-width: 520px) {
+      body { padding: 10px; }
+      form { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+      input { grid-column: 1 / -1; }
+      .provider-label { justify-self: end; }
+      select { width: 100%; }
+      #providerFrame { min-height: calc(100vh - 145px); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <form id="gameSearchForm">
+      <input id="gameSearch" type="search" placeholder="Search games..." autocomplete="off">
+      <label class="provider-label" for="providerSelect">Providers</label>
+      <select id="providerSelect" aria-label="Providers" disabled>
+        <option>Loading providers…</option>
+      </select>
+      <button type="submit">Search</button>
+    </form>
+    <div id="status" role="status" aria-live="polite"></div>
+    <iframe id="providerFrame" title="Game provider"></iframe>
+  </main>
+  <script>
+    const form = document.getElementById('gameSearchForm');
+    const searchInput = document.getElementById('gameSearch');
+    const providerSelect = document.getElementById('providerSelect');
+    const status = document.getElementById('status');
+    const providerFrame = document.getElementById('providerFrame');
+    let providers = [];
+    const route = new URL(location.href);
+    const routeProvider = route.searchParams.get('provider');
+    const routeQuery = route.searchParams.get('q') || '';
+    searchInput.value = routeQuery;
+
+    function providerSlug(provider) {
+      return String(provider.title || provider.name || '')
+        .trim()
+        .replace(/[^a-z0-9_-]/gi, '');
+    }
+
+    async function loadProviders() {
+      const response = await fetch(new URL('providers.json', location.href), { cache: 'no-store' });
+      if (!response.ok) throw new Error(`providers.json returned HTTP ${response.status}`);
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error('providers.json must contain a list');
+      providers = data.filter(provider =>
+        provider && typeof provider.title === 'string' &&
+        typeof provider.url === 'string' && typeof provider.search === 'string');
+      if (!providers.length) throw new Error('No valid game providers were found');
+      providerSelect.replaceChildren(...providers.map(provider => {
+        const option = document.createElement('option');
+        option.value = providerSlug(provider);
+        option.textContent = provider.title;
+        return option;
+      }));
+      const defaultProvider = providers.find(provider => provider.title.toLowerCase() === 'ugs') || providers[0];
+      const selectedProvider = providers.find(provider =>
+        providerSlug(provider).toLowerCase() === routeProvider?.toLowerCase()) || defaultProvider;
+      providerSelect.value = providerSlug(selectedProvider);
+      providerSelect.disabled = false;
+      status.textContent = '';
+      loadProvider(providers.find(provider => providerSlug(provider) === providerSelect.value), routeQuery);
+    }
+
+    function providerDestination(provider, query) {
+      let destination;
+      try {
+        const candidate = provider.url.includes('://') ? provider.url : `https://${provider.url}`;
+        destination = new URL(candidate);
+        if (!['http:', 'https:'].includes(destination.protocol)) throw new Error('Unsupported protocol');
+      } catch (_) {
+        throw new Error('This provider has an invalid URL.');
+      }
+      if (!query) return destination.href;
+      if (provider.search.startsWith('?') || provider.search.startsWith('&')) {
+        const parameter = provider.search.slice(1).split('=')[0];
+        if (!parameter) throw new Error('This provider has an invalid search configuration.');
+        destination.searchParams.set(parameter, query);
+      } else {
+        destination.pathname = `${destination.pathname.replace(/\/$/, '')}${provider.search}${encodeURIComponent(query)}`;
+      }
+      return destination.href;
+    }
+
+    function loadProvider(provider, query = '') {
+      if (!provider) return;
+      providerFrame.title = `${provider.title} games`;
+      if (provider.url === 'internal') {
+        const destination = new URL(`${encodeURIComponent(providerSlug(provider))}/index.html`, location.href);
+        if (query && (provider.search.startsWith('?') || provider.search.startsWith('&'))) {
+          const parameter = provider.search.slice(1).split('=')[0];
+          if (!parameter) {
+            status.textContent = 'This provider has an invalid search configuration.';
+            return;
+          }
+          destination.searchParams.set(parameter, query);
+        } else if (query) {
+          destination.pathname += `${provider.search}${encodeURIComponent(query)}`;
+        }
+        providerFrame.src = destination.href;
+        status.textContent = '';
+        return;
+      }
+      providerFrame.removeAttribute('src');
+      status.textContent = `Search ${provider.title} to open it in SuperUser.`;
+    }
+
+    function navigateRoute(provider, query) {
+      const params = new URLSearchParams();
+      params.set('provider', providerSlug(provider));
+      if (query) params.set('q', query);
+      window.parent.postMessage({
+        type: 'superuser:navigate',
+        url: `su://games?${params.toString()}`
+      }, location.origin);
+    }
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const provider = providers.find(item => providerSlug(item) === providerSelect.value);
+      if (!provider) return;
+      const query = searchInput.value.trim();
+      if (provider.url === 'internal') {
+        navigateRoute(provider, query);
+        return;
+      }
+      try {
+        window.parent.postMessage({
+          type: 'superuser:navigate',
+          url: providerDestination(provider, query)
+        }, location.origin);
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+
+    providerSelect.addEventListener('change', () => {
+      const provider = providers.find(item => providerSlug(item) === providerSelect.value);
+      if (provider) navigateRoute(provider, searchInput.value.trim());
+    });
+
+    loadProviders().catch(error => {
+      providerSelect.replaceChildren(new Option('Providers unavailable', ''));
+      status.textContent = `Could not load providers: ${error.message}`;
+    });
+  </script>
+</body>
+</html>

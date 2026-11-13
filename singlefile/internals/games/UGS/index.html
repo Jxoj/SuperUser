@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UGS 2.0</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            950: '#05070b',
+                            900: '#0a0d14',
+                            850: '#0f1420',
+                            800: '#161d2e',
+                            700: '#212a3e'
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            hover: '#2563eb'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Modern, subtle scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #05070b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #05070b;
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        /* Fixed Left Sidebar Index (#sidebar) */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 4px;
+        }
+
+        .sidebar-btn {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            color: #94a3b8 !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            border-radius: 6px !important;
+            padding: 6px 2px !important;
+            text-align: center !important;
+            transition: all 0.15s ease !important;
+            min-height: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            cursor: pointer !important;
+        }
+
+        .sidebar-btn:hover:not(.empty) {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #3b82f6 !important;
+        }
+
+        .sidebar-btn.empty {
+            opacity: 0.2 !important;
+            cursor: default !important;
+            background: transparent !important;
+            border-color: transparent !important;
+        }
+
+        /* Section Container Styling (#sections-container) */
+        .letter-section {
+            background: #0a0d14;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .letter-section.empty {
+            display: none !important;
+        }
+
+        .letter-header {
+            color: #f8fafc !important;
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            margin-bottom: 16px !important;
+            padding-bottom: 8px !important;
+            border-bottom: 1px solid #1e293b !important;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .buttons-container {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+            gap: 10px !important;
+        }
+
+        /* Injected Game Buttons styling overrides */
+        .buttons-container input[type="button"],
+        .buttons-container button {
+            background: #0f1420 !important;
+            border: 1px solid #1e293b !important;
+            color: #e2e8f0 !important;
+            padding: 12px 14px !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            width: 100% !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            box-shadow: none !important;
+        }
+
+        .buttons-container input[type="button"]:hover,
+        .buttons-container button:hover {
+            background: #161d2e !important;
+            border-color: #3b82f6 !important;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+        }
+
+        /* Search input bar styling (#searchInput) */
+        #searchInput {
+            background: #0a0d14;
+            border: 1px solid #1e293b;
+            color: #ffffff;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Reload button styling (#lolbutton) */
+        #lolbutton {
+            background: #0f1420;
+            border: 1px solid #1e293b;
+            color: #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #lolbutton:hover {
+            background: #161d2e;
+            border-color: #38bdf8;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="flex min-h-screen bg-dark-950">
+
+    <!-- LEFT SIDEBAR INDEX (#sidebar) -->
+    <aside class="w-16 sm:w-20 fixed left-0 top-0 h-screen z-40 bg-dark-900 border-r border-slate-800/80 flex flex-col items-center py-4">
+        <a href="#" onclick="scrollToTop(event)" class="text-xs font-black text-blue-500 mb-3 tracking-tighter hover:text-blue-400">
+            UGS
+        </a>
+        <div class="w-8 h-[1px] bg-slate-800 mb-2"></div>
+        
+        <!-- Required DOM Container for dynamic A-Z letters -->
+        <div id="sidebar" class="sidebar w-full overflow-y-auto flex-1 px-1">
+            <!-- Populated dynamically by script -->
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <div id="main-content" class="ml-16 sm:ml-20 flex-1 flex flex-col min-h-screen px-4 sm:px-8 py-10 max-w-6xl mx-auto">
+        
+        <!-- SEARCH ENGINE HERO CENTERED INTERFACE -->
+        <section class="flex flex-col items-center justify-center my-auto py-12 transition-all duration-300" id="heroSection">
+            
+            <!-- SEARCH ENGINE BRANDING -->
+            <div class="text-center mb-8">
+                <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight text-white mb-2">
+                    UGS <span class="text-blue-500">2.0</span>
+                </h1>
+                <p class="text-sm font-medium text-slate-400 tracking-wide">
+                    By <span class="text-slate-200 font-semibold">Jxo</span>
+                </p>
+            </div>
+
+            <!-- SEARCH ENGINE INPUT CONTAINER -->
+            <div class="w-full max-w-2xl relative mb-6">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                
+                <!-- Preserving exact element ID "#searchInput" -->
+                <input type="text" 
+                       id="searchInput" 
+                       placeholder="Search games..." 
+                       autocomplete="off"
+                       class="w-full pl-11 pr-10 py-3.5 rounded-full text-sm sm:text-base shadow-sm">
+
+                <button id="clearSearchBtn" 
+                        onclick="clearSearch()" 
+                        class="hidden absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- SEARCH ENGINE ACTION BUTTONS -->
+            <div class="flex items-center gap-3">
+                <button id="browseBtn" 
+                        onclick="toggleBrowseCatalog()" 
+                        class="px-5 py-2.5 bg-dark-850 hover:bg-dark-800 border border-slate-800 text-slate-200 text-sm font-medium rounded-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-compass text-blue-400"></i>
+                    <span id="browseBtnText">Browse All</span>
+                </button>
+
+                <!-- Required Preserved Reload Script Button "#lolbutton" -->
+                <button id="lolbutton" onclick="reloadGamesScript()">
+                    <i class="fa-solid fa-rotate-right text-slate-400"></i>
+                    <span>Reload Games</span>
+                </button>
+            </div>
+
+            <div id="statusCounter" class="mt-4 text-xs text-slate-500 font-medium">
+                Searching archive...
+            </div>
+        </section>
+
+        <!-- SECTIONS CONTAINER (A-Z Game List) -->
+        <main id="catalogWrapper" class="hidden w-full pt-6">
+            <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-800">
+                <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-blue-500"></i>
+                    <span>Game Directory</span>
+                </h2>
+                <span id="resultsCount" class="text-xs text-slate-400 font-mono">0 games available</span>
+            </div>
+
+            <!-- Required DOM ID for games loader -->
+            <div id="sections-container">
+                <!-- Dynamically populated by games.js -->
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="mt-auto pt-10 pb-6 text-center text-xs text-slate-600 border-t border-slate-900">
+            UGS 2.0 • Created by Jxo
+        </footer>
+    </div>
+
+    <!-- SCRIPT & WORD SEGMENTATION ENGINE -->
+    <script>
+        /* Custom Word Dictionary for Greedy Lowercase Word Segmentation */
+        const COMMON_GAME_WORDS = [
+            "retro", "bowl", "subway", "surfers", "cookie", "clicker", "drift", "hunters", 
+            "moto", "geometry", "dash", "among", "us", "flappy", "bird", "stickman", "hook", 
+            "bit", "life", "paper", "slither", "smash", "karts", "crossy", "road", "baldi", 
+            "basics", "tunnel", "rush", "super", "mario", "pacman", "tetris", "basket", "bros", 
+            "slope", "ball", "drive", "mad", "vex", "fireboy", "watergirl", "cluster", "truck", 
+            "space", "huggy", "wuggy", "poppy", "playtime", "granny", "roblox", "minecraft",
+            "doodle", "jump", "temple", "run", "cut", "rope", "fruit", "ninja", "angry", "birds",
+            "plants", "zombies", "hill", "climb", "racing", "jetpack", "joyride", "happy", "wheels",
+            "duck", "life", "world", "hardest", "game", "tomb", "mask", "core", "ball", "chess",
+            "monkey", "mart", "tiny", "fishing", "rooftop", "snipers", "getaway", "shootout",
+            "basket", "stars", "soccer", "heads", "boxing", "random", "basket", "random", "volley",
+            "tunnel", "craft", "pixel", "combat", "gun", "spin", "polytrack", "ovh", "time", "shooter"
+        ];
+
+        /* Intelligent Game Name Cleaner & Title Caser */
+        function cleanGameName(raw) {
+            if (!raw || typeof raw !== 'string') return '';
+
+            let str = raw.trim();
+
+            // 1. Remove leading "cl" variations (e.g., cl1v1lol, clslope, cl_game, cl-game, cl game)
+            str = str.replace(/^cl[\s_\-]?/i, '');
+
+            // 2. Separate known camelCase boundaries (e.g. slopeBall -> slope Ball)
+            str = str.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+            // 3. Separate letters and numbers (e.g. run3 -> run 3, 1v1lol -> 1v1 lol)
+            str = str.replace(/([a-zA-Z])(\d)/g, '$1 $2');
+            str = str.replace(/(\d)([a-zA-Z])/g, '$1 $2');
+
+            // 4. Replace underscores/dashes with spaces
+            str = str.replace(/[\-_]/g, ' ');
+
+            // 5. Clean up multiple spaces
+            str = str.replace(/\s+/g, ' ').trim();
+
+            // 6. Word Segmentation heuristic for combined lowercase strings (e.g., "retrobowl")
+            let words = str.split(' ');
+            let processedWords = [];
+
+            for (let word of words) {
+                // If it's a single lowercase combined word (longer than 5 chars), attempt greedy segmentation
+                if (/^[a-z]{6,}$/.test(word)) {
+                    let segmented = segmentWord(word);
+                    processedWords.push(...segmented);
+                } else {
+                    processedWords.push(word);
+                }
+            }
+
+            // 7. Title Case formatting (Capitalize first letter of every word)
+            return processedWords.map(w => {
+                if (!w) return '';
+                // Handle acronyms like FNF, FNAF, GTA, RPG, IO
+                const upper = w.toUpperCase();
+                if (['FNF', 'FNAF', 'GTA', 'RPG', 'IO', '1V1', '3D', '2D', 'FPS'].includes(upper)) {
+                    return upper;
+                }
+                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+            }).join(' ');
+        }
+
+        // Greedy word segmentation for concatenated words
+        function segmentWord(input) {
+            let result = [];
+            let rem = input.toLowerCase();
+            
+            while (rem.length > 0) {
+                let matched = false;
+                // Look for longest matching prefix in dictionary
+                for (let len = Math.min(rem.length, 12); len >= 3; len--) {
+                    let sub = rem.substring(0, len);
+                    if (COMMON_GAME_WORDS.includes(sub)) {
+                        result.push(sub);
+                        rem = rem.substring(len);
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) {
+                    result.push(rem);
+                    break;
+                }
+            }
+            return result.length ? result : [input];
+        }
+
+        /* Process dynamically inserted Game Buttons */
+        function processGameButtons() {
+            const container = document.getElementById('sections-container');
+            if (!container) return;
+
+            const buttons = container.querySelectorAll('input[type="button"], button');
+            let count = 0;
+
+            buttons.forEach(btn => {
+                const rawVal = btn.value || btn.textContent || '';
+                if (rawVal && !btn.dataset.cleaned) {
+                    btn.dataset.rawName = rawVal; // Store raw value for search script
+                    const cleaned = cleanGameName(rawVal);
+                    if (btn.tagName === 'INPUT') {
+                        btn.value = cleaned;
+                    } else {
+                        btn.textContent = cleaned;
+                    }
+                    btn.dataset.cleaned = "true";
+                }
+
+                // Force game buttons to open games cleanly in a new window
+                if (!btn.dataset.newWindowBound) {
+                    btn.dataset.newWindowBound = "true";
+                    const origOnClick = btn.getAttribute('onclick');
+                    if (origOnClick && !origOnClick.includes('window.open')) {
+                        btn.onclick = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                                const newWin = window.open('about:blank', '_blank');
+                                if (newWin) {
+                                    newWin.document.write(`<!DOCTYPE html><html><head><title>${btn.value || 'Game'}</title><style>html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;}</style></head><body><script>${origOnClick}<\/script></body></html>`);
+                                    newWin.document.close();
+                                }
+                            } catch(err) {
+                                new Function(origOnClick).call(btn);
+                            }
+                        };
+                    }
+                }
+                count++;
+            });
+
+            // Update stats counter
+            const counter = document.getElementById('statusCounter');
+            const countLabel = document.getElementById('resultsCount');
+            if (count > 0) {
+                if (counter && !counter.dataset.userSearch) counter.textContent = `${count} games ready to play`;
+                if (countLabel) countLabel.textContent = `${count} games total`;
+            }
+
+            // Re-apply URL query search if query parameter is active
+            applyUrlQuerySearch();
+
+            // Intercept click on A-Z sidebar buttons to reveal catalog automatically
+            const sidebarBtns = document.querySelectorAll('#sidebar .sidebar-btn');
+            sidebarBtns.forEach(sb => {
+                if (!sb.dataset.bound) {
+                    sb.dataset.bound = "true";
+                    sb.addEventListener('click', () => {
+                        showCatalog();
+                    });
+                }
+
+            });
+        }
+
+        function showCatalog() {
+            document.getElementById('heroSection')?.classList.remove('my-auto', 'py-12');
+            document.getElementById('catalogWrapper')?.classList.remove('hidden');
+        }
+
+        function toggleBrowseCatalog() {
+            const wrapper = document.getElementById('catalogWrapper');
+            const buttonText = document.getElementById('browseBtnText');
+            if (!wrapper) return;
+            const shouldShow = wrapper.classList.contains('hidden');
+            wrapper.classList.toggle('hidden', !shouldShow);
+            document.getElementById('heroSection')?.classList.toggle('my-auto', !shouldShow);
+            document.getElementById('heroSection')?.classList.toggle('py-12', !shouldShow);
+            if (buttonText) buttonText.textContent = shouldShow ? 'Hide Games' : 'Browse All';
+        }
+
+        /* Native Instant Filter fallback for #searchInput & URL query state */
+        function setupSearchFiltering() {
+            const search = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (!search) return;
+
+            search.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                
+                // Update URL query parameter seamlessly with history.replaceState
+                const url = new URL(window.location);
+                if (query.length > 0) {
+                    url.searchParams.set('q', query);
+                } else {
+                    url.searchParams.delete('q');
+                }
+                window.history.replaceState({}, '', url);
+
+                filterCatalog(query);
+            });
+        }
+
+        function filterCatalog(queryStr) {
+            const search = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const query = queryStr.toLowerCase().trim();
+
+            if (clearBtn) clearBtn.classList.toggle('hidden', !query.length);
+
+            if (query.length > 0) {
+                showCatalog();
+            }
+
+            const sections = document.querySelectorAll('#sections-container .letter-section');
+            let matches = 0;
+
+            sections.forEach(sec => {
+                const btns = sec.querySelectorAll('input[type="button"], button');
+                let secMatches = 0;
+
+                btns.forEach(btn => {
+                    const txt = (btn.value || btn.textContent || '').toLowerCase();
+                    const raw = (btn.dataset.rawName || '').toLowerCase();
+                    if (txt.includes(query) || raw.includes(query)) {
+                        btn.style.display = '';
+                        secMatches++;
+                        matches++;
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                });
+
+                if (secMatches > 0) {
+                    sec.classList.remove('empty');
+                    sec.style.display = '';
+                } else {
+                    sec.classList.add('empty');
+                    sec.style.display = 'none';
+                }
+            });
+
+            const countLabel = document.getElementById('resultsCount');
+            if (countLabel && query.length > 0) {
+                countLabel.textContent = `${matches} matching games`;
+            }
+        }
+
+        /* Check & apply URL ?q= parameter on page initialization & dynamic updates */
+        function applyUrlQuerySearch() {
+            const params = new URLSearchParams(window.location.search);
+            const q = params.get('q');
+            if (q) {
+                const search = document.getElementById('searchInput');
+                if (search && search.value !== q) {
+                    search.value = q;
+                }
+                filterCatalog(q);
+            }
+        }
+
+        function clearSearch() {
+            const search = document.getElementById('searchInput');
+            if (search) {
+                search.value = '';
+                search.dispatchEvent(new Event('input', { bubbles: true }));
+                search.focus();
+            }
+        }
+
+        /* Dynamic Script Reloader for #lolbutton */
+        function reloadGamesScript() {
+            const container = document.getElementById('sections-container');
+            if (container) container.innerHTML = '';
+
+            const oldScript = document.getElementById('dynamic-games-js');
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement('script');
+            script.id = 'dynamic-games-js';
+            script.src = 'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@latest/games.js?' + Date.now();
+            script.addEventListener('error', () => {
+                const status = document.getElementById('statusCounter');
+                if (status) status.textContent = 'Could not load the games catalog. Try reloading or choose another provider.';
+            }, { once: true });
+            document.body.appendChild(script);
+
+            const counter = document.getElementById('statusCounter');
+            if (counter) counter.textContent = 'Reloading catalog...';
+        }
+
+        /* MutationObserver to automatically format names as soon as games.js loads buttons */
+        const observer = new MutationObserver(() => {
+            processGameButtons();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('sections-container');
+            if (container) {
+                observer.observe(container, { childList: true, subtree: true });
+            }
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                observer.observe(sidebar, { childList: true, subtree: true });
+            }
+
+            setupSearchFiltering();
+            applyUrlQuerySearch();
+
+            // Auto-reload 5 seconds after page load if catalog is empty or as a fallback check
+            setTimeout(() => {
+                const count = container ? container.querySelectorAll('input[type="button"], button').length : 0;
+                if (count === 0) {
+                    const counter = document.getElementById('statusCounter');
+                    if (counter) counter.textContent = 'Auto-reloading games repository...';
+                    reloadGamesScript();
+                }
+            }, 5000);
+
+            // Check button formatting periodically as fallback
+            setInterval(processGameButtons, 500);
+        });
+    </script>
+
+    <!-- Required Original Search button script -->
+    <script src="https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/searchbut.js"></script>
+
+    <!-- Required Original Games loader script -->
+</body>
+</html>

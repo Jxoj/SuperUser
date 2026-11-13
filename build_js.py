@@ -1,33 +1,16 @@
-"""Build a mirror launcher with an embedded, downloadable offline package."""
+"""Build a mirror launcher without embedding encoded assets."""
 
-from __future__ import annotations
-
-import base64
-import io
-import zipfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-SINGLEFILE = ROOT / "singlefile"
-OUTPUT = SINGLEFILE / "launcher.js"
-RECOVERY_FILES = (
-    "index.html",
-    "sw.js",
-    "_headers",
-    "controller/controller.sw.js",
-    "controller/controller.inject.js",
-    "scramjet/scramjet.js",
-    "scramjet/scramjet.wasm",
-    "extensions/scripts/index.json",
-)
+OUTPUT = ROOT / "singlefile" / "launcher.js"
 
 LAUNCHER = r"""(() => {
   const mirrors = {
     mirror1: 'https://jxoj.github.io/SuperUser/singlefile/index.html',
     mirror2: 'https://jsuperuser.netlify.app/singlefile/index.html'
   };
-  const recoveryBundle = '__RECOVERY_BUNDLE__';
   const root = document.createElement('main');
   root.innerHTML = `
     <style>
@@ -48,10 +31,7 @@ LAUNCHER = r"""(() => {
       button { box-sizing: border-box; width: 100%; margin-top: 14px; padding: 12px;
         border-radius: 10px; border: 1px solid #69e6a1; background: #69e6a1; color: #07110b;
         font-weight: 700; cursor: pointer; }
-      button.secondary { color: #e8eef8; border-color: #31425e; background: #17243b; }
       .status { min-height: 22px; margin-top: 10px; color: #69e6a1; overflow-wrap: anywhere; }
-      .recovery { display: none; margin-top: 18px; padding-top: 10px; border-top: 1px solid #263449; }
-      code { color: #a7f3c7; }
     </style>
     <section class="card">
       <h1>SuperUser launcher</h1>
@@ -65,16 +45,9 @@ LAUNCHER = r"""(() => {
       <input id="custom" type="url" placeholder="https://example.com/singlefile/index.html">
       <button id="launch">Launch in new tab</button>
       <div class="status" id="status" role="status" aria-live="polite"></div>
-      <section class="recovery" id="recovery">
-        <p>Neither mirror responded. A recovery copy is embedded in this launcher. Download it, unzip it, then serve the extracted folder on localhost to enable the required service worker:</p>
-        <button id="download">Download offline recovery package</button>
-        <p>From the extracted folder, run <code>python -m http.server 8000</code>, then open <code>http://localhost:8000/</code>.</p>
-        <button class="secondary" id="try-cached">Try the selected mirror anyway</button>
-      </section>
     </section>`;
   document.body.replaceChildren(root);
   const status = root.querySelector('#status');
-  const recovery = root.querySelector('#recovery');
   const timeoutMs = 7000;
 
   function getTargets(choice, customUrl) {
@@ -101,27 +74,7 @@ LAUNCHER = r"""(() => {
     }
   }
 
-  function showRecovery(target, urls, errors) {
-    status.textContent = `Mirror check failed: ${errors.join('; ')}`;
-    recovery.style.display = 'block';
-    const cachedButton = root.querySelector('#try-cached');
-    cachedButton.onclick = () => {
-      target.location.replace(urls[0]);
-      status.textContent = 'Trying the selected mirror directly; a previously cached service worker may still have the app.';
-    };
-    root.querySelector('#download').onclick = () => {
-      const bytes = Uint8Array.from(atob(recoveryBundle), char => char.charCodeAt(0));
-      const downloadUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = 'superuser-offline.zip';
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
-    };
-  }
-
   root.querySelector('#launch').addEventListener('click', async () => {
-    recovery.style.display = 'none';
     const choice = root.querySelector('input[name="mirror"]:checked')?.value || 'mirror2';
     const customUrl = root.querySelector('#custom').value.trim();
     if (choice === 'custom' && !/^https?:\/\/.+/i.test(customUrl)) {
@@ -151,33 +104,19 @@ LAUNCHER = r"""(() => {
       }
     }
 
-    showRecovery(target, urls, errors);
-    target.close();
+    status.textContent = `No mirror responded. Use a reachable hosted server or enter a custom URL. ${errors.join('; ')}`;
+    target.document.title = 'SuperUser unavailable';
+    target.document.body.textContent =
+      'SuperUser could not reach a hosted mirror. Return to the launcher and choose a working custom server.';
   });
 })();
 """
 
 
-def build_recovery_bundle() -> bytes:
-    bundle = io.BytesIO()
-    with zipfile.ZipFile(bundle, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        for relative in RECOVERY_FILES:
-            path = SINGLEFILE / relative
-            if not path.is_file():
-                raise FileNotFoundError(f"Missing offline recovery asset: {path}")
-            archive.write(path, relative)
-    return bundle.getvalue()
-
-
 def main() -> None:
-    encoded_bundle = base64.b64encode(build_recovery_bundle()).decode("ascii")
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(
-        LAUNCHER.replace("__RECOVERY_BUNDLE__", encoded_bundle),
-        encoding="utf-8",
-    )
+    OUTPUT.write_text(LAUNCHER, encoding="utf-8")
     print(f"Built {OUTPUT}")
-    print(f"Embedded recovery package: {len(encoded_bundle)} base64 characters")
 
 
 if __name__ == "__main__":

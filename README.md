@@ -53,12 +53,13 @@ own loaded page when switching tabs and can be closed from the sidebar.
 Closing the actual SuperUser browser tab uses the browser's native confirmation
 dialog.
 
-Additional client features include persisted tabs/settings, selectable search
-providers, lightweight ad/tracker filtering, custom image/video backgrounds,
-site userscript prompts from `extensions/scripts/index.json`, local shortcut
-icons, and a Wisp selector with Official, self-hosted, public, and custom
-endpoint options. The Official Wisp endpoint is the default and recommended
-transport.
+Additional client features include persisted tabs/settings, icon-based search
+provider selection, removable and custom home shortcuts, the `su://games`
+provider hub, lightweight ad/tracker filtering, custom image/video backgrounds,
+site userscript prompts from `extensions/scripts/index.json`, and a Wisp
+selector with Official, self-hosted, public, and custom endpoint options.
+Settings are grouped into Proxy, Extensions, Personalization, and General pages.
+The Official Wisp endpoint is the default and recommended transport.
 
 ## Production (with nginx + SSL)
 
@@ -99,18 +100,17 @@ Settings also exposes an explicit protocol override.
 ## Builds
 
 Run `npm run build` to generate `singlefile/index.html`, the service-worker and
-Scramjet runtime assets, the Netlify CORS headers, and `singlefile/launcher.js`.
-The launcher embeds a compressed recovery package, defaults to Mirror 2,
+Scramjet runtime assets, the game hub and learning mockup assets, the Netlify
+CORS headers, and `singlefile/launcher.js`. The launcher opens an `about:blank` tab immediately,
 checks the selected mirror, and tries the other mirror if the selected one is
-unavailable. When a mirror works, the launcher opens its URL in a new tab so
-the page keeps the real HTTPS origin required by the service worker.
+unavailable. When a mirror works, it navigates that tab to the mirror so the
+page keeps the real HTTPS origin required by the service worker.
 
-The generated HTML inlines the application scripts and shortcut icons, and
-the small runtime assets are deployed beside it. On the first successful visit,
-the service worker caches the app shell and Scramjet runtime for use if the
-mirror later goes offline. Browser security does not allow an `about:blank`,
-`blob:`, or standalone `file:` page to register the same-origin service worker
-this proxy requires, so no browser-only launcher can make a first-ever launch
-work when every mirror is offline. If both mirrors are unreachable, the
-launcher offers its embedded recovery ZIP; extract it and serve that folder
-locally with `python -m http.server 8000`, then open `http://localhost:8000/`.
+The generated HTML inlines the application scripts; runtime files, shortcut
+icons, and game hub assets are deployed beside it. On the first successful
+visit, the service worker caches the app shell and Scramjet runtime for use if
+the mirror later goes offline. Browser security does not allow an
+`about:blank`, `blob:`, or standalone `file:` page to register the same-origin
+service worker this proxy requires, so no browser-only launcher can make a
+first-ever launch work when every mirror is offline. When both mirrors are
+unreachable, use a reachable custom server URL in the launcher.
