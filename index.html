@@ -2928,6 +2928,7 @@
     const [closedTab] = tabs.splice(index, 1);
     closedTab.metadataObserver?.disconnect();
     if (closedTab.metadataTimer) clearInterval(closedTab.metadataTimer);
+    if (closedTab.retry404Timer) clearTimeout(closedTab.retry404Timer);
     closedTab.frame?.remove();
 
     if (tabs.length === 0) {
@@ -3065,19 +3066,39 @@
   }
 
   function showBrowserError(status, url) {
-    const is404 = status === 404;
+    if (status === 404) {
+      addLog(`HTTP 404 on ${url}. Retrying...`, 'warn');
+      const tab = getActiveTab();
+      if (tab) {
+        if (tab.id === activeTabId) {
+          browserErrorScreen.hidden = true;
+          frameLoader.classList.remove('hidden');
+          frameLoaderMsg.textContent = 'Page returned 404. Retrying...';
+        }
+        if (!tab.retry404Timer) {
+          tab.retry404Count = (tab.retry404Count || 0) + 1;
+          tab.retry404Timer = setTimeout(() => {
+            tab.retry404Timer = null;
+            addLog(`Retrying ${url} (404 recovery attempt ${tab.retry404Count})...`, 'info');
+            try {
+              tab.navigationPending = true;
+              if (tab.sjFrame) tab.sjFrame.go(getEffectiveLoadUrl(url));
+              else if (tab.frame) tab.frame.src = url;
+            } catch (_) {}
+          }, 2500);
+        }
+      }
+      return;
+    }
     const isOffline = status === 'offline';
     document.getElementById('browserErrorCode').textContent =
       typeof status === 'number' ? String(status) : 'OFFLINE';
-    document.getElementById('browserErrorLabel').textContent = is404
-      ? 'Page not found'
-      : isOffline ? 'Proxy unavailable' : 'Page could not be loaded';
-    document.getElementById('browserErrorTitle').textContent = is404
-      ? 'This page took a wrong turn.'
-      : isOffline ? 'The proxy is not connected.' : 'The site could not complete your request.';
-    document.getElementById('browserErrorMessage').textContent = is404
-      ? 'The website returned a 404 response. Check the address or try again later.'
-      : isOffline ? 'Reconnect to a Wisp server in Settings, then retry this page.'
+    document.getElementById('browserErrorLabel').textContent =
+      isOffline ? 'Proxy unavailable' : 'Page could not be loaded';
+    document.getElementById('browserErrorTitle').textContent =
+      isOffline ? 'The proxy is not connected.' : 'The site could not complete your request.';
+    document.getElementById('browserErrorMessage').textContent =
+      isOffline ? 'Reconnect to a Wisp server in Settings, then retry this page.'
       : `The website returned HTTP ${status}. You can retry the request or open a new tab.`;
     document.getElementById('browserErrorUrl').textContent = url;
     frameLoader.classList.add('hidden');
@@ -3131,6 +3152,11 @@
     document.querySelectorAll('.browser-tab-frame').forEach(frame => frame.classList.remove('active'));
     tab.frame.classList.add('active');
     sjFrame = internalUrl ? null : tab.sjFrame;
+    if (tab.retry404Timer) {
+      clearTimeout(tab.retry404Timer);
+      tab.retry404Timer = null;
+    }
+    tab.retry404Count = 0;
     showBrowserView();
     browserErrorScreen.hidden = true;
     topUrlInput.value = getDisplayUrl(tab.url);
@@ -3293,6 +3319,30 @@
   function updateTabMetadata(tab) {
     const responseStatus = tab.navigationPending ? 0 : getFrameResponseStatus(tab);
     if (responseStatus >= 400 && responseStatus < 600) {
+      if (responseStatus === 404) {
+        addLog(`HTTP 404 on ${tab.url}. Retrying...`, 'warn');
+        if (tab.id === activeTabId) {
+          browserErrorScreen.hidden = true;
+          frameLoader.classList.remove('hidden');
+          frameLoaderMsg.textContent = 'Page returned 404. Retrying...';
+        }
+        if (!tab.retry404Timer) {
+          tab.retry404Count = (tab.retry404Count || 0) + 1;
+          tab.retry404Timer = setTimeout(() => {
+            tab.retry404Timer = null;
+            addLog(`Retrying ${tab.url} (404 recovery attempt ${tab.retry404Count})...`, 'info');
+            try {
+              tab.navigationPending = true;
+              if (tab.sjFrame) {
+                tab.sjFrame.go(getEffectiveLoadUrl(tab.url));
+              } else if (tab.frame) {
+                tab.frame.src = tab.url;
+              }
+            } catch (_) {}
+          }, 2500);
+        }
+        return;
+      }
       if ((responseStatus === 500 || responseStatus === 502 || responseStatus === 503) && (tab.wispRetryCount || 0) < 3) {
         rotateWispAndRetry(tab);
         return;
@@ -3300,6 +3350,11 @@
       showBrowserError(responseStatus, tab.url);
       return;
     }
+    if (tab.retry404Timer) {
+      clearTimeout(tab.retry404Timer);
+      tab.retry404Timer = null;
+    }
+    tab.retry404Count = 0;
     if (tab.id === activeTabId) browserErrorScreen.hidden = true;
     frameLoader.classList.add('hidden');
     let loc = '';
