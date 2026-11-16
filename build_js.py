@@ -96,8 +96,25 @@ LAUNCHER = r"""(() => {
       status.textContent = `Checking ${url}...`;
       try {
         const workingUrl = await checkMirror(url);
-        status.textContent = `Opening ${workingUrl}`;
-        target.location.replace(workingUrl);
+        status.textContent = `Opening in about:blank...`;
+        target.document.open();
+        target.document.write(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <title>Super Learning</title>
+            <style>
+              html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #09090b; }
+              iframe { width: 100%; height: 100%; border: none; display: block; }
+            </style>
+          </head>
+          <body>
+            <iframe src="${workingUrl}" allow="fullscreen; clipboard-read; clipboard-write; microphone; camera; geolocation"></iframe>
+          </body>
+          </html>
+        `);
+        target.document.close();
         return;
       } catch (error) {
         errors.push(`${url}: ${error.message}`);

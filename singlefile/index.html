@@ -838,6 +838,106 @@
       font-weight: 700;
     }
 
+    .wisp-finding-screen {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 99998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      text-align: center;
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+
+    .wisp-finding-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .wisp-finding-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      max-width: 520px;
+      padding: 32px;
+    }
+
+    .wisp-pulse-ring {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(34, 197, 94, 0.2);
+      border-top-color: #22c55e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    }
+
+    .wisp-finding-title {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .wisp-finding-sub {
+      font-size: 15px;
+      color: #22c55e;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .wisp-finding-server {
+      font-size: 12px;
+      color: #71717a;
+      max-width: 440px;
+      word-break: break-all;
+    }
+
+    .wisp-finding-bar-wrap {
+      width: 280px;
+      height: 4px;
+      background: #18181b;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .wisp-finding-bar {
+      height: 100%;
+      width: 0%;
+      background: #22c55e;
+      transition: width 0.2s ease;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    .wisp-retry-btn {
+      margin-top: 10px;
+      background: #22c55e;
+      color: #000000;
+      border: none;
+      border-radius: 999px;
+      padding: 9px 22px;
+      font-weight: 700;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .wisp-retry-btn:hover {
+      transform: scale(1.04);
+    }
+
+    .wisp-retry-btn.hidden {
+      display: none;
+    }
+
     .learning-screen {
       position: fixed;
       inset: 0;
@@ -1484,6 +1584,22 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
+       WISP AUTO-DISCOVERY FULLSCREEN SCREEN
+  ═══════════════════════════════════════════════════════ -->
+  <div id="wispFindingScreen" class="wisp-finding-screen hidden">
+    <div class="wisp-finding-content">
+      <div class="wisp-pulse-ring"></div>
+      <h1 class="wisp-finding-title">Finding Wisp Server</h1>
+      <div class="wisp-finding-sub" id="wispFindingCounter">Checking 1/13...</div>
+      <div class="wisp-finding-server" id="wispFindingServer">Loading server list from assets/backend/wisps.json...</div>
+      <div class="wisp-finding-bar-wrap">
+        <div class="wisp-finding-bar" id="wispFindingBar"></div>
+      </div>
+      <button class="wisp-retry-btn hidden" id="wispRetryBtn">Retry Discovery</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
        APP SHELL
   ═══════════════════════════════════════════════════════ -->
   <div class="app-shell">
@@ -1506,6 +1622,7 @@
         <button class="new-tab-btn" id="newTabBtn"><span>+ New Tab</span><b aria-hidden="true">+</b></button>
         <div class="sidebar-actions">
           <button class="sidebar-icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+          <button class="sidebar-icon-btn" id="cloakAboutBlankBtn" title="Launch in about:blank" aria-label="Launch in about:blank">🕶</button>
           <button class="sidebar-icon-btn" id="helpBtn" title="Help" aria-label="Help">?</button>
           <button class="sidebar-icon-btn" id="logsBtn" title="Logs" aria-label="Logs">≡</button>
         </div>
@@ -1604,7 +1721,7 @@
         <section class="settings-panel active" data-settings-panel="proxy">
           <div class="page-card" data-searchable="wisp websocket server">
             <h3>Wisp WebSocket Server</h3><p>Choose the transport endpoint used by Scramjet.</p>
-            <select class="modal-select" id="wispSelectPage"><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp (Recommended)</option><option value="local">Self-Hosted</option><option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option></select>
+            <select class="modal-select" id="wispSelectPage"><option value="auto">Auto-Selected from Backend (Recommended)</option><option value="wss://superuser-wisp.wasmer.app/">Official Wisp 1</option><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp 2</option><option value="wss://cdn.northstreetumc.org/">Opium Mirror</option></select>
             <select class="modal-select" id="wispVersionSelectPage" aria-label="Wisp protocol"><option value="auto">Protocol: Auto</option><option value="v1">Protocol: Wisp v1</option><option value="v2">Protocol: Wisp v2</option></select>
             <input class="modal-input" id="customWispInputPage" placeholder="Custom wss:// endpoint" autocomplete="off">
             <button class="modal-btn" id="customWispBtnPage">Use custom</button>
@@ -1696,9 +1813,10 @@
           <div class="modal-row-desc">Proxy transport connection endpoint</div>
         </div>
         <select class="modal-select" id="wispSelect">
-          <option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp (Recommended)</option>
-          <option value="local">Self-Hosted</option>
-          <option value="wss://wisp.mercurywork.shop/">MercuryWorkshop Public</option>
+          <option value="auto">Auto-Selected from Backend (Recommended)</option>
+          <option value="wss://superuser-wisp.wasmer.app/">Official Wisp 1</option>
+          <option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp 2</option>
+          <option value="wss://cdn.northstreetumc.org/">Opium Mirror</option>
         </select>
         <select class="modal-select" id="wispVersionSelect" aria-label="Wisp protocol">
           <option value="auto">Protocol: Auto</option>
@@ -3754,6 +3872,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let enabledExtensions = {};
   let visibleShortcuts = DEFAULT_SHORTCUTS;
   try { enabledExtensions = JSON.parse(localStorage.getItem(EXTENSIONS_KEY) || '{}'); } catch (_) {}
+  // YouTube ad-blocker enabled by default
+  if (!('youtube.com' in enabledExtensions)) enabledExtensions['youtube.com'] = true;
   try {
     const savedShortcuts = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || 'null');
     if (Array.isArray(savedShortcuts)) {
@@ -3821,31 +3941,21 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let isProxyReady = false;
   let allowApplicationUnload = false;
 
+  const WISP_STORAGE_KEY = 'superuser_wisp_working';
+
   function getWispUrl() {
-    const sel = document.getElementById('wispSelectPage')?.value ||
-      document.getElementById('wispSelect')?.value;
-    const selected = sel || settings.wisp;
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    if (selected && selected !== 'local') return selected;
-    return `${proto}//${location.host}${appPath('wisp/')}`;
+    return localStorage.getItem(WISP_STORAGE_KEY) || settings.wisp || OFFICIAL_WISP_URL;
   }
 
-  function getLocalWispUrl() {
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${location.host}${appPath('wisp/')}`;
-  }
-
-  function getWispVersion() {
+  function getWispVersion(wispUrl) {
     if (settings.wispVersion === 'v1') return 1;
     if (settings.wispVersion === 'v2') return 2;
-    const selected = document.getElementById('wispSelectPage')?.value ||
-      document.getElementById('wispSelect')?.value || settings.wisp;
-    return selected === 'local' ? 2 : 1;
+    return 1;
   }
 
   async function probeTransport(transport) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 6000);
     try {
       const response = await transport.request(
         new URL('https://example.com/'),
@@ -3863,6 +3973,145 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       return response.status;
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  async function attemptConnectWisp(wispUrl, timeoutMs = 4500) {
+    if (!EpoxyTransport) return null;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const v = getWispVersion(wispUrl);
+      const transport = new EpoxyTransport({
+        wisp: wispUrl,
+        wisp_v2: v === 2,
+        wisp_ws_protocols: v === 2 ? ['wisp-v2'] : []
+      });
+      await transport.init();
+      const status = await probeTransport(transport);
+      if (status >= 200 && status < 400) {
+        return transport;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function discoverAndConnectWisp() {
+    // 1. Try saved server from localStorage
+    const saved = localStorage.getItem(WISP_STORAGE_KEY) || (settings.wisp !== 'local' && settings.wisp !== 'auto' ? settings.wisp : null);
+    if (saved && saved.startsWith('ws')) {
+      addLog(`Testing saved working Wisp: ${saved}`, 'info');
+      const workingTransport = await attemptConnectWisp(saved, 4000);
+      if (workingTransport) {
+        addLog(`Verified saved Wisp: ${saved}`, 'ok');
+        return { transport: workingTransport, url: saved };
+      }
+      addLog(`Saved Wisp (${saved}) failed. Starting auto-discovery...`, 'warn');
+      localStorage.removeItem(WISP_STORAGE_KEY);
+    }
+
+    // 2. Show full screen "Finding Wisp Server"
+    const screen = document.getElementById('wispFindingScreen');
+    const counterEl = document.getElementById('wispFindingCounter');
+    const serverEl = document.getElementById('wispFindingServer');
+    const barEl = document.getElementById('wispFindingBar');
+    const retryBtn = document.getElementById('wispRetryBtn');
+
+    if (screen) {
+      screen.classList.remove('hidden');
+      if (retryBtn) retryBtn.classList.add('hidden');
+      if (counterEl) counterEl.textContent = 'Loading server catalog...';
+      if (serverEl) serverEl.textContent = 'Reading assets/backend/wisps.json...';
+      if (barEl) barEl.style.width = '5%';
+    }
+
+    try {
+      // 3. Read assets/backend/wisps.json
+      let catalog = [];
+      try {
+        const res = await fetch(appPath('assets/backend/wisps.json'), { cache: 'no-store' });
+        catalog = await res.json();
+      } catch (err) {
+        addLog(`Failed to fetch wisps.json: ${err.message}`, 'warn');
+      }
+
+      // Collect servers in order from the paths in wisps.json
+      const allServers = [];
+      if (Array.isArray(catalog) && catalog.length > 0) {
+        for (const entry of catalog) {
+          const cleanPath = (entry.path || '').replace(/^\/+/, '');
+          const targetUrl = appPath('assets/backend/' + cleanPath);
+          try {
+            const r = await fetch(targetUrl, { cache: 'no-store' });
+            const urls = await r.json();
+            if (Array.isArray(urls)) {
+              for (const u of urls) {
+                if (typeof u === 'string' && u.startsWith('ws')) {
+                  allServers.push({ group: entry.name || 'Wisp', url: u });
+                }
+              }
+            }
+          } catch (e) {
+            addLog(`Could not load ${entry.name} (${cleanPath}): ${e.message}`, 'warn');
+          }
+        }
+      }
+
+      // Fallbacks if files not reachable
+      if (allServers.length === 0) {
+        allServers.push(
+          { group: 'Official', url: 'wss://superuser-wisp.wasmer.app/' },
+          { group: 'Official', url: 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/' },
+          { group: 'Opium', url: 'wss://cdn.northstreetumc.org/' }
+        );
+      }
+
+      const total = allServers.length;
+      addLog(`Auto-discovering from ${total} Wisp servers...`, 'info');
+
+      for (let i = 0; i < total; i++) {
+        const item = allServers[i];
+        if (counterEl) counterEl.textContent = `Checking ${i + 1}/${total}`;
+        if (serverEl) serverEl.textContent = `Testing ${item.group}: ${item.url}`;
+        if (barEl) barEl.style.width = `${Math.round(((i + 1) / total) * 100)}%`;
+
+        addLog(`[${i + 1}/${total}] Probing ${item.url}...`, 'info');
+
+        const transport = await attemptConnectWisp(item.url, 4000);
+        if (transport) {
+          localStorage.setItem(WISP_STORAGE_KEY, item.url);
+          settings.wisp = item.url;
+          try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
+
+          if (counterEl) counterEl.textContent = `Connected! (${i + 1}/${total})`;
+          if (serverEl) serverEl.textContent = `Selected ${item.group}: ${item.url}`;
+          addLog(`Found working Wisp server: ${item.url}`, 'ok');
+
+          await sleep(400);
+          if (screen) screen.classList.add('hidden');
+          return { transport, url: item.url };
+        }
+      }
+
+      if (counterEl) counterEl.textContent = 'All servers checked';
+      if (serverEl) serverEl.textContent = 'No working Wisp server could be reached.';
+      if (retryBtn) {
+        retryBtn.classList.remove('hidden');
+        retryBtn.onclick = () => discoverAndConnectWisp();
+      }
+      return null;
+    } catch (e) {
+      if (serverEl) serverEl.textContent = `Discovery error: ${e.message}`;
+      if (retryBtn) {
+        retryBtn.classList.remove('hidden');
+        retryBtn.onclick = () => discoverAndConnectWisp();
+      }
+      return null;
     }
   }
 
@@ -3912,24 +4161,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const sw = navigator.serviceWorker.controller;
       addLog('Service worker controller active and verified', 'ok');
 
-      // Epoxy transport init
-      const wispUrl = getWispUrl();
-      addLog(`Connecting Epoxy transport to: ${wispUrl}`, 'info');
-
-      if (!EpoxyTransport) {
-        throw new Error('EpoxyTransport bundle failed to load. Check /controller/epoxy.js');
+      // Auto-discover and connect working Wisp transport
+      const wispResult = await discoverAndConnectWisp();
+      if (!wispResult || !wispResult.transport) {
+        throw new Error('Could not connect to any Wisp server.');
       }
 
-      const wispVersion = getWispVersion();
-      const transport = new EpoxyTransport({
-        wisp: wispUrl,
-        wisp_v2: wispVersion === 2,
-        wisp_ws_protocols: wispVersion === 2 ? ['wisp-v2'] : []
-      });
-      await transport.init();
-      const status = await probeTransport(transport);
+      const transport = wispResult.transport;
       activeTransport = transport;
-      addLog(`Wisp v${wispVersion} tunnel verified with proxied HTTPS request (HTTP ${status})`, 'ok');
+      const wispUrl = wispResult.url;
 
       if (scramjet) {
         scramjet.setTransport(transport);
@@ -3945,15 +4185,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             injectPath: appPath('controller/controller.inject.js'),
             wasmPath: appPath('scramjet/scramjet.wasm')
           },
-          scramjetConfig: defaultConfig
+          scramjetConfig: {
+            ...defaultConfig,
+            flags: {
+              ...defaultConfig.flags,
+              allowFailedIntercepts: true,
+              encapsulateWorkers: true,
+              destructureRewrites: true
+            },
+            siteFlags: {
+              'youtube.com': { allowFailedIntercepts: true, encapsulateWorkers: true },
+              'googlevideo.com': { allowFailedIntercepts: true }
+            }
+          }
         });
         await scramjet.wait();
         addLog('Scramjet controller ready and synchronized', 'ok');
       }
 
       isProxyReady = true;
-      settings.wisp = document.getElementById('wispSelectPage').value ||
-        document.getElementById('wispSelect').value || settings.wisp;
+      const wispPageEl = document.getElementById('wispSelectPage');
+      const wispEl = document.getElementById('wispSelect');
+      if (wispPageEl) wispPageEl.value = wispUrl;
+      if (wispEl) wispEl.value = wispUrl;
+      settings.wisp = wispUrl;
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       updateSystemStatus();
 
@@ -4194,6 +4449,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   /* ═══════════════════════════════════════════════════════
      4. VIEW SWITCHING & URL NAVIGATION
   ═══════════════════════════════════════════════════════ */
+  /* ══ TITLE CLOAK LOCK ══ */
+  let isCloakedOrHidden = false;
+
+  function setWindowTitle(title) {
+    if (isCloakedOrHidden) {
+      document.title = 'Super Learning';
+      return;
+    }
+    document.title = title || 'SuperUser Proxy';
+  }
+
   function showHomeScreen() {
     PAGE_IDS?.forEach(id => document.getElementById(`${id}Page`)?.classList.remove('active'));
     homeScreen.classList.remove('hidden');
@@ -4201,7 +4467,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     topUrlBar.classList.remove('active'); // Top URL bar hidden on newtab
     document.querySelector('.viewport').classList.remove('browsing');
     browserErrorScreen.hidden = true;
-    document.title = 'SuperUser Proxy';
+    setWindowTitle('SuperUser Proxy');
     document.getElementById('appFavicon').href = appPath('assets/shortcuts/icons/google.png');
     document.getElementById('cmdTextarea')?.focus();
   }
@@ -4480,7 +4746,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     if (tab.id === activeTabId) {
       if (tab.url !== previousUrl) topUrlInput.value = tab.url;
-      document.title = tab.title ? `${tab.title} - SuperUser` : 'SuperUser Proxy';
+      setWindowTitle(tab.title ? `${tab.title} - SuperUser` : 'SuperUser Proxy');
       const appFavicon = document.getElementById('appFavicon');
       if (appFavicon) appFavicon.href = tab.favicon || appPath('assets/shortcuts/icons/google.png');
     }
@@ -4606,6 +4872,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     { cmd: 'sudo home',         desc: 'Return to home screen' },
     { cmd: 'sudo wisp <url>',   desc: 'Switch Wisp server' }
     ,{ cmd: 'sudo ext install <url>', desc: 'Install a userscript from a URL' }
+    ,{ cmd: 'sudo blank',       desc: 'Launch proxy in about:blank (tab cloaking)' }
+    ,{ cmd: 'sudo cloak',       desc: 'Launch proxy in about:blank (tab cloaking)' }
   ];
 
   const PAGE_IDS = ['settings', 'help', 'logs'];
@@ -4803,6 +5071,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (command === 'clear')         { tabs = []; createTab('home'); showToast('All tabs cleared'); return; }
       if (command === 'home')          { showHomeScreen(); return; }
       if (command === 'intro')         { playIntro(); return; }
+      if (command === 'blank' || command === 'cloak') { launchInAboutBlank(); return; }
       if (command === 'back')          { try { sjFrame?.back(); } catch (_) { showToast('Back is unavailable', true); } return; }
       if (command === 'forward')       { try { sjFrame?.forward(); } catch (_) { showToast('Forward is unavailable', true); } return; }
       if (command === 'reload')        { try { sjFrame?.reload(); } catch (_) { showToast('Reload is unavailable', true); } return; }
@@ -4869,6 +5138,40 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   /* ═══════════════════════════════════════════════════════
      7. BUTTONS & SHORTCUTS
   ═══════════════════════════════════════════════════════ */
+  /* ═══ ABOUT:BLANK CLOAKING ═══ */
+  function launchInAboutBlank() {
+    const target = window.open('about:blank', '_blank');
+    if (!target) {
+      showToast('Pop-up blocked — allow pop-ups for this site', true);
+      return;
+    }
+    const proxyUrl = location.href;
+    target.document.open();
+    target.document.write(`<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<title>Super Learning</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body,iframe{width:100%;height:100%;border:none;overflow:hidden;background:#000}</style>
+</head><body>
+<iframe id="suFrame" src="${proxyUrl}" allow="autoplay; camera; microphone; fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
+<script>
+// Keep title locked to "Super Learning" at all times
+Object.defineProperty(document, 'title', {
+  get: () => 'Super Learning',
+  set: () => {}
+});
+document.title = 'Super Learning';
+// Keep about:blank in address bar always
+const frame = document.getElementById('suFrame');
+frame.addEventListener('load', () => {
+  document.title = 'Super Learning';
+});
+</\script>
+</body></html>`);
+    target.document.close();
+  }
+
+  document.getElementById('cloakAboutBlankBtn').addEventListener('click', launchInAboutBlank);
+
   document.getElementById('newTabBtn').addEventListener('click', () => createTab('home'));
   document.getElementById('collapseSidebarBtn').addEventListener('click', () => {
     const sidebar = document.querySelector('.sidebar');
@@ -5237,23 +5540,36 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   function restoreWindowMetadata() {
     const tab = getActiveTab();
-    document.title = tab && tab.url !== 'home' ? `${tab.title} - SuperUser` : 'SuperUser Proxy';
+    setWindowTitle(tab && tab.url !== 'home' ? `${tab.title} - SuperUser` : 'SuperUser Proxy');
     const appFavicon = document.getElementById('appFavicon');
     if (appFavicon) appFavicon.href = tab?.favicon || appPath('assets/shortcuts/icons/google.png');
   }
 
   function setupLearningScreen() {
     document.getElementById('learningMockupFrame').src = appPath('Mockups/learning.html');
+
+    function goHidden() {
+      isCloakedOrHidden = true;
+      document.title = 'Super Learning';
+      learningScreen.style.zIndex = '10000';
+      learningScreen.classList.remove('hidden');
+    }
+    function goVisible() {
+      isCloakedOrHidden = false;
+      learningScreen.style.zIndex = '';
+      restoreWindowMetadata();
+      if (!initialExperienceActive) learningScreen.classList.add('hidden');
+    }
+
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        document.title = 'Super Learning';
-        learningScreen.style.zIndex = '10000';
-        learningScreen.classList.remove('hidden');
-      } else {
-        learningScreen.style.zIndex = '';
-        restoreWindowMetadata();
-        if (!initialExperienceActive) learningScreen.classList.add('hidden');
-      }
+      if (document.hidden) goHidden(); else goVisible();
+    });
+    window.addEventListener('blur', () => {
+      if (document.hidden) return; // already handled
+      goHidden();
+    });
+    window.addEventListener('focus', () => {
+      if (!document.hidden) goVisible();
     });
 
     if (localStorage.getItem('superuser-first-visit-complete') === 'true') {
@@ -5453,9 +5769,82 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
   }
 
+  /* ═══ USERSCRIPT ENGINE ═══ */
+  const _userscriptCache = {};
+
+  async function getUserScriptSource(id) {
+    if (_userscriptCache[id]) return _userscriptCache[id];
+    try {
+      const res = await fetch(appPath(`extensions/scripts/${encodeURIComponent(id)}.js`), { cache: 'force-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const src = await res.text();
+      _userscriptCache[id] = src;
+      return src;
+    } catch (e) {
+      addLog(`Failed to fetch userscript for ${id}: ${e.message}`, 'err');
+      return null;
+    }
+  }
+
+  async function injectUserScript(tab, extension) {
+    const doc = tab.frame?.contentDocument;
+    if (!doc || !doc.documentElement) return;
+    // Avoid double-injection
+    if (doc.querySelector(`[data-su-script="${CSS.escape(extension.id)}"]`)) return;
+    const src = await getUserScriptSource(extension.id);
+    if (!src) return;
+    const scriptEl = doc.createElement('script');
+    scriptEl.setAttribute('data-su-script', extension.id);
+    scriptEl.textContent = `
+(function() {
+  'use strict';
+  // === Tampermonkey / GM API Polyfills ===
+  const unsafeWindow = window;
+  const _gmStore = JSON.parse(localStorage.getItem('__gm_${CSS.escape(extension.id).replace(/[^a-z0-9]/gi,'_')}') || '{}');
+  const _saveGm = () => { try { localStorage.setItem('__gm_${CSS.escape(extension.id).replace(/[^a-z0-9]/gi,'_')}', JSON.stringify(_gmStore)); } catch(_){} };
+  function GM_setValue(k, v) { _gmStore[k] = v; _saveGm(); }
+  function GM_getValue(k, def) { return k in _gmStore ? _gmStore[k] : def; }
+  function GM_deleteValue(k) { delete _gmStore[k]; _saveGm(); }
+  function GM_listValues() { return Object.keys(_gmStore); }
+  function GM_addStyle(css) {
+    const st = document.createElement('style');
+    st.textContent = css;
+    (document.head || document.documentElement).appendChild(st);
+  }
+  function GM_log(...args) { console.log('[GM:${extension.id}]', ...args); }
+  function GM_notification(opts) { console.log('[GM notification]', opts); }
+  function GM_openInTab(url) { window.open(url, '_blank'); }
+  function GM_setClipboard(text) { navigator.clipboard?.writeText(text).catch(()=>{}); }
+  const GM_info = {
+    script: { name: ${JSON.stringify(extension.title)}, version: '1.0', namespace: ${JSON.stringify(extension.id)}, description: '', matches: [${JSON.stringify('*://' + extension.id + '/*')}] },
+    scriptMetaStr: '',
+    scriptHandler: 'SuperUser',
+    version: '1.0.0'
+  };
+  // === Userscript Body ===
+  ${src}
+})();
+`;
+    try {
+      (doc.head || doc.documentElement).appendChild(scriptEl);
+      addLog(`Injected userscript: ${extension.title} (${extension.id})`, 'ok');
+    } catch (e) {
+      addLog(`Script injection error (${extension.id}): ${e.message}`, 'err');
+    }
+  }
+
   function offerSiteExtension(tab, host) {
     const extension = extensionCatalog.find(item => host === item.id || host.endsWith(`.${item.id}`));
-    if (!extension || enabledExtensions[extension.id] || tab.extensionPrompted === extension.id) return;
+    if (!extension) return;
+
+    // Auto-inject if the extension is enabled
+    if (enabledExtensions[extension.id]) {
+      injectUserScript(tab, extension);
+      return;
+    }
+
+    // Prompt once to enable
+    if (tab.extensionPrompted === extension.id) return;
     tab.extensionPrompted = extension.id;
     document.getElementById('extensionPromptText').textContent =
       `${extension.title} is available for ${extension.id}:`;
@@ -5467,9 +5856,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     run.onclick = () => {
       enabledExtensions[extension.id] = true;
       localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
-      const script = tab.frame.contentDocument.createElement('script');
-      script.src = appPath(`extensions/scripts/${encodeURIComponent(extension.id)}.js`);
-      tab.frame.contentDocument.documentElement.appendChild(script);
+      injectUserScript(tab, extension);
       close();
       renderExtensionSettings();
     };
