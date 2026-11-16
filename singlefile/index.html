@@ -3758,6 +3758,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (introSkipped) return;
     introSkipped = true;
     introOverlay.classList.add('hidden');
+    // Auto-launch in about:blank the first time the intro plays
+    if (!sessionStorage.getItem('su_blanked')) {
+      sessionStorage.setItem('su_blanked', '1');
+      setTimeout(() => launchInAboutBlank(), 150);
+    }
     setTimeout(() => {
       document.getElementById('cmdTextarea')?.focus();
     }, 400);
@@ -4743,6 +4748,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         frameWindow.addEventListener('hashchange', () => updateTabMetadata(tab));
       } catch (_) {}
       installAdBlocker(tab);
+      injectEnglishLanguage(tab);
     }
     if (tab.id === activeTabId) {
       if (tab.url !== previousUrl) topUrlInput.value = tab.url;
@@ -5548,6 +5554,14 @@ frame.addEventListener('load', () => {
   function setupLearningScreen() {
     document.getElementById('learningMockupFrame').src = appPath('Mockups/learning.html');
 
+    // If we're running inside an about:blank iframe (the cloaked tab),
+    // the parent handles all cloaking — skip all blur/visibility listeners
+    // so the mockup never flashes inside the iframe.
+    const isEmbedded = (() => {
+      try { return window.self !== window.top; } catch (_) { return true; }
+    })();
+    if (isEmbedded) return;
+
     function goHidden() {
       isCloakedOrHidden = true;
       document.title = 'Super Learning';
@@ -5602,6 +5616,40 @@ frame.addEventListener('load', () => {
         playIntro();
       }, 1100);
     }
+  }
+
+  /* ═══ FORCE ENGLISH LANGUAGE ON EVERY PAGE ═══ */
+  function injectEnglishLanguage(tab) {
+    const doc = tab.frame?.contentDocument;
+    if (!doc || !doc.documentElement) return;
+    // Avoid re-injection on the same document
+    if (doc.querySelector('script[data-su-lang]')) return;
+    const el = doc.createElement('script');
+    el.setAttribute('data-su-lang', '1');
+    el.textContent = `(function(){
+  // Force document language to English
+  document.documentElement.lang = 'en';
+  document.documentElement.setAttribute('lang', 'en');
+
+  // Spoof navigator language so sites pick en-US automatically
+  try {
+    Object.defineProperty(navigator, 'language',   { get: () => 'en-US', configurable: true });
+    Object.defineProperty(navigator, 'languages',  { get: () => ['en-US', 'en'], configurable: true });
+    Object.defineProperty(navigator, 'userLanguage', { get: () => 'en-US', configurable: true });
+  } catch(_) {}
+
+  // Set <html lang> whenever the DOM settles (some SPAs reset it)
+  const fixLang = () => {
+    if (document.documentElement.lang !== 'en')
+      document.documentElement.lang = 'en';
+  };
+  const obs = new MutationObserver(fixLang);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  fixLang();
+})();`;
+    try {
+      (doc.head || doc.documentElement).prepend(el);
+    } catch (_) {}
   }
 
   function installAdBlocker(tab) {
