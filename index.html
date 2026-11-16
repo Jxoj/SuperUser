@@ -1733,13 +1733,13 @@
         <div class="top-url-input-wrap">
           <span class="top-url-lock">🔒</span>
           <div class="search-provider" id="searchProviderControl">
-            <button class="search-provider-trigger" id="searchProviderButton" type="button" aria-label="Search provider" aria-haspopup="listbox" aria-expanded="false">D</button>
+            <button class="search-provider-trigger" id="searchProviderButton" type="button" aria-label="Search provider" aria-haspopup="listbox" aria-expanded="false">S</button>
             <div class="search-provider-menu" id="searchProviderMenu" role="listbox" aria-label="Search provider" hidden></div>
             <select id="topSearchProvider" aria-hidden="true" tabindex="-1" hidden>
+              <option value="startpage">Startpage</option>
               <option value="duckduckgo">DuckDuckGo</option>
               <option value="google">Google</option>
               <option value="bing">Bing</option>
-              <option value="startpage">Startpage</option>
               <option value="youtube">YouTube</option>
             </select>
           </div>
@@ -2224,7 +2224,7 @@
   const defaultSettings  = {
     wisp: OFFICIAL_WISP_URL,
     wispVersion: 'auto',
-    searchProvider: 'duckduckgo',
+    searchProvider: 'startpage',
     adBlock: true,
     background: false
   };
@@ -2243,6 +2243,13 @@
       settings.wisp = OFFICIAL_WISP_URL;
     }
     localStorage.setItem('superuser-wisp-official-default-v1', 'true');
+  }
+  if (!localStorage.getItem('superuser-default-search-startpage-v1')) {
+    if (!localStorage.getItem(SETTINGS_KEY) || settings.searchProvider === 'duckduckgo') {
+      settings.searchProvider = 'startpage';
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+    localStorage.setItem('superuser-default-search-startpage-v1', 'true');
   }
   let extensionCatalog = [];
   let enabledExtensions = {};
@@ -2275,10 +2282,10 @@
     youtube: query => `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
   };
   const searchProviders = [
+    { id: 'startpage', name: 'Startpage', icon: 'S' },
     { id: 'duckduckgo', name: 'DuckDuckGo', icon: 'D' },
     { id: 'google', name: 'Google', icon: 'G' },
     { id: 'bing', name: 'Bing', icon: 'b' },
-    { id: 'startpage', name: 'Startpage', icon: 'S' },
     { id: 'youtube', name: 'YouTube', icon: '▶' }
   ];
 
@@ -2288,7 +2295,7 @@
     const menu = document.getElementById('searchProviderMenu');
     if (!select || !button || !menu) return;
     if (!searchProviders.some(provider => provider.id === select.value)) {
-      select.value = 'duckduckgo';
+      select.value = 'startpage';
     }
     const selected = searchProviders.find(provider => provider.id === select.value);
     button.textContent = selected.icon;
@@ -2990,8 +2997,8 @@
     if (/^su:\/\/(?:games(?:\/[a-z0-9_-]+)?|extensions|bookmarks|2fa)\/?(?:\?[^#]*)?$/i.test(u)) return u.replace(/\/(?=\?)/, '').replace(/\/$/, '');
     if (u.includes(' ') || !u.includes('.')) {
       const provider = document.getElementById('topSearchProvider')?.value ||
-        settings.searchProvider || 'duckduckgo';
-      return (searchUrls[provider] || searchUrls.duckduckgo)(u);
+        settings.searchProvider || 'startpage';
+      return (searchUrls[provider] || searchUrls.startpage)(u);
     }
     const url = u.startsWith('http://') || u.startsWith('https://') ? u : 'https://' + u;
     try {
@@ -3995,7 +4002,7 @@ frame.addEventListener('load', () => {
   document.getElementById('customWispBtn').addEventListener('click', () => useCustomWisp('customWispInput'));
   document.getElementById('topSearchProvider').value = settings.searchProvider;
   if (!searchProviders.some(provider => provider.id === settings.searchProvider)) {
-    settings.searchProvider = 'duckduckgo';
+    settings.searchProvider = 'startpage';
     document.getElementById('topSearchProvider').value = settings.searchProvider;
   }
   renderSearchProviderMenu();

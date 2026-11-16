@@ -52,7 +52,9 @@ def build_launcher_svg(target_url: str, output_path: str):
           &lt;!DOCTYPE html&gt;
           &lt;html&gt;
           &lt;head&gt;
-            &lt;title&gt;about:blank&lt;/title&gt;
+            &lt;title&gt;Super Learning&lt;/title&gt;
+            &lt;link rel="icon" href="data:," /&gt;
+            &lt;link rel="shortcut icon" href="data:," /&gt;
             &lt;style&gt;
               html, body {{
                 margin: 0;
@@ -76,6 +78,7 @@ def build_launcher_svg(target_url: str, output_path: str):
           &lt;/html&gt;
         `);
         doc.close();
+        try {{ win.document.title = "Super Learning"; }} catch (_) {{}}
 
         // Redirect the original jsDelivr tab away once launched
         window.location.replace("https://www.google.com");
