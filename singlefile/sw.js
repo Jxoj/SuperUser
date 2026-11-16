@@ -3,7 +3,9 @@ importScripts(new URL("./controller/controller.sw.js", self.location.href).href)
 
 const APP_BASE = new URL("./", self.location.href);
 const CACHE_PREFIX = `superuser-shell:${APP_BASE.pathname}`;
-const CACHE_NAME = `${CACHE_PREFIX}:v2`;
+const CACHE_NAME   = `${CACHE_PREFIX}:v5`;
+const PROXY_CACHE  = `${CACHE_PREFIX}:proxy-assets:v1`;
+
 const SHELL_FILES = [
   "index.html",
   "controller/controller.api.js",
@@ -15,11 +17,58 @@ const SHELL_FILES = [
   "extensions/scripts/index.json",
   "internals/games/index.html",
   "internals/games/providers.json",
+  "internals/extensions/index.html",
+  "internals/bookmarks/index.html",
+  "internals/2fa/index.html",
   "Mockups/learning.html",
 ];
 const SHELL_URLS = SHELL_FILES.map((path) => new URL(path, APP_BASE));
-const INDEX_URL = new URL("index.html", APP_BASE);
+const INDEX_URL  = new URL("index.html", APP_BASE);
 
+/* ── Chrome-mimic header normalization (mirrors Opium QC()) ── */
+const STRIP_HEADERS = new Set([
+  "sec-ch-ua-arch","sec-ch-ua-bitness","sec-ch-ua-full-version",
+  "sec-ch-ua-full-version-list","sec-ch-ua-model",
+  "sec-ch-ua-platform-version","sec-ch-ua-wow64","sec-ch-ua-form-factors"
+]);
+const HEADER_ORDER = [
+  "sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-platform",
+  "upgrade-insecure-requests","user-agent","accept","origin",
+  "sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest",
+  "referer","accept-encoding","accept-language","priority",
+  "content-type","content-length","cookie"
+];
+
+function normalizeProxiedHeaders(request) {
+  const h = {};
+  for (const [k, v] of request.headers.entries()) {
+    const lk = k.toLowerCase();
+    if (!STRIP_HEADERS.has(lk)) h[lk] = v;
+  }
+  h["accept-encoding"] ||= "gzip, deflate, br, zstd";
+  h["accept-language"] ||= "en-US,en;q=0.9";
+  h["priority"]        ||= "u=0, i";
+  const mode = h["sec-fetch-mode"] || "navigate";
+  if (mode === "navigate") {
+    h["sec-fetch-site"] ||= "none";
+    h["sec-fetch-dest"] ||= "document";
+    h["sec-fetch-user"] ||= "?1";
+    if (request.method === "GET") delete h["origin"];
+  } else {
+    h["sec-fetch-site"] ||= "same-origin";
+    h["sec-fetch-dest"] ||= "empty";
+  }
+  const ordered = new Headers();
+  for (const k of HEADER_ORDER) { if (k in h) ordered.set(k, h[k]); }
+  for (const [k, v] of Object.entries(h)) { if (!ordered.has(k)) ordered.set(k, v); }
+  return ordered;
+}
+
+/* ── Tracking & telemetry filter ──
+   Drop metrics/telemetry pings so they never touch the Wisp WebSocket tunnel */
+const TRACKING_URL_REGEX = /(?:google-analytics\.com|analytics\.google\.com|googlesyndication\.com|doubleclick\.net|googleadservices\.com|adnxs\.com|adsrvr\.org|criteo\.com|taboola\.com|outbrain\.com|scorecardresearch\.com|hotjar\.com|clarity\.ms|connect\.facebook\.net|bat\.bing\.com|stats\.wp\.com|pixel\.wp\.com|\/pagead\/|\/pcs\/view)/i;
+
+/* ── Lifecycle ── */
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
@@ -39,10 +88,19 @@ self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const cacheNames = await caches.keys();
     await Promise.all(cacheNames
-      .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
+      .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME && name !== PROXY_CACHE)
       .map((name) => caches.delete(name)));
     await self.clients.claim();
   })());
+});
+
+/* ── Message: manual cache clear from main page ── */
+self.addEventListener("message", (event) => {
+  if (event.data === "clear-proxy-cache") {
+    caches.delete(PROXY_CACHE).then(() =>
+      event.source?.postMessage("proxy-cache-cleared")
+    );
+  }
 });
 
 async function serveAppNavigation(request) {
@@ -67,7 +125,6 @@ async function serveShellAsset(request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   if (cached) return cached;
-
   const response = await fetch(request);
   if (response.ok) await cache.put(request, response.clone());
   return response;
@@ -75,6 +132,12 @@ async function serveShellAsset(request) {
 
 self.addEventListener("fetch", (event) => {
   if ($scramjetController.shouldRoute(event)) {
+    // Drop ad networks/tracking beacons to protect WebSocket bandwidth
+    if (TRACKING_URL_REGEX.test(event.request.url)) {
+      event.respondWith(new Response(null, { status: 204, statusText: "No Content" }));
+      return;
+    }
+    // Always pass genuine native FetchEvent to Scramjet so clientId and channel ports remain valid
     event.respondWith($scramjetController.route(event));
     return;
   }

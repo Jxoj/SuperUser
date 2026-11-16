@@ -13,50 +13,65 @@
 // ==/UserScript==
 
 (function() {
-    // Patches the ads for cold loading
-    var ytInitialPlayerResponse = null;
+    'use strict';
 
-    function getter() {
-        return ytInitialPlayerResponse;
-    }
-
-    function setter(data) {
-        ytInitialPlayerResponse = { ...data, adPlacements: [] };
-    }
-
-    if (window.ytInitialPlayerResponse) {
-        Object.defineProperty(window.ytInitialPlayerResponse, 'adPlacements', {
-            get: () => [],
-            set: (a) => undefined,
-            configurable: true
-        });
-    } else {
-        Object.defineProperty(window, 'ytInitialPlayerResponse', {
-            get: getter,
-            set: setter,
-            configurable: true
-        });
-    }
-
-    // FETCH POLYFILL
-    (function() {
-        const { fetch: origFetch } = window;
-        window.fetch = async (...args) => {
-            const response = await origFetch(...args);
-
-            if (response.url.includes('/youtubei/v1/player')) {
-                const text = () =>
-                    response
-                        .clone()
-                        .text()
-                        .then((data) => data.replace(/adPlacements/, 'odPlacement'));
-
-                response.text = text;
-                return response;
+    // Safe ytInitialPlayerResponse patch
+    try {
+        var ytInitialPlayerResponse = null;
+        function getter() {
+            return ytInitialPlayerResponse;
+        }
+        function setter(data) {
+            if (!data || typeof data !== 'object') {
+                ytInitialPlayerResponse = data;
+                return;
             }
-            return response;
-        };
-    })();
+            try {
+                ytInitialPlayerResponse = { ...data, adPlacements: [], playerAds: [] };
+            } catch (_) {
+                ytInitialPlayerResponse = data;
+            }
+        }
+
+        if (window.ytInitialPlayerResponse) {
+            try {
+                window.ytInitialPlayerResponse.adPlacements = [];
+                window.ytInitialPlayerResponse.playerAds = [];
+            } catch (_) {}
+        } else {
+            Object.defineProperty(window, 'ytInitialPlayerResponse', {
+                get: getter,
+                set: setter,
+                configurable: true
+            });
+        }
+    } catch (_) {}
+
+    // Non-destructive FETCH interceptor for YouTube InnerTube player response
+    try {
+        const origFetch = window.fetch;
+        if (typeof origFetch === 'function') {
+            window.fetch = async function(...args) {
+                const response = await origFetch.apply(this, args);
+                try {
+                    const reqUrl = (args[0] && typeof args[0] === 'string') ? args[0] : (args[0]?.url || response?.url || '');
+                    if (reqUrl.includes('/youtubei/v1/player')) {
+                        const origJson = response.json.bind(response);
+                        response.json = async function() {
+                            const data = await origJson();
+                            if (data && typeof data === 'object') {
+                                data.adPlacements = [];
+                                data.playerAds = [];
+                                delete data.adSlots;
+                            }
+                            return data;
+                        };
+                    }
+                } catch (_) {}
+                return response;
+            };
+        }
+    } catch (_) {}
 
     // OTHER STUFF - just in case an ad gets through
     (function() {

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bookmarks | SuperUser</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at top, #131720, #09090b 70%);
+      color: #f4f4f5;
+      padding: 20px 18px 32px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    main { width: min(960px, 100%); display: flex; flex-direction: column; gap: 18px; }
+    h1 { font-size: 22px; font-weight: 700; color: #22c55e; }
+    .subtitle { font-size: 13px; color: #a1a1aa; margin-top: 2px; }
+    .card { background: #111113; border: 1px solid #27272a; border-radius: 12px; padding: 18px; }
+    .card h2 { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+    .top-row { display: flex; gap: 10px; align-items: center; }
+    input {
+      background: #09090b; border: 1px solid #27272a; border-radius: 8px;
+      color: #f4f4f5; font: inherit; font-size: 13px;
+      padding: 0 12px; height: 38px; outline: none;
+      transition: border-color 0.15s; width: 100%;
+    }
+    input:focus { border-color: #22c55e; }
+    button {
+      background: #22c55e; border: none; border-radius: 8px;
+      color: #06120a; font: inherit; font-size: 13px; font-weight: 600;
+      padding: 0 16px; height: 38px; cursor: pointer;
+      transition: filter 0.15s; white-space: nowrap;
+    }
+    button:hover { filter: brightness(1.08); }
+    button.danger {
+      background: transparent; border: 1px solid #3f3f46;
+      color: #ef4444; font-weight: 500;
+    }
+    button.danger:hover { background: rgba(239,68,68,0.1); border-color: #ef4444; }
+    button.open-btn {
+      background: transparent; border: 1px solid #27272a;
+      color: #a1a1aa; font-weight: 500;
+    }
+    button.open-btn:hover { background: #18181b; color: #22c55e; border-color: #22c55e; }
+    .add-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; }
+    .bookmarks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .bm-card {
+      background: #0d0d0f; border: 1px solid #27272a; border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; gap: 8px;
+      transition: border-color 0.15s;
+    }
+    .bm-card:hover { border-color: #3f3f46; }
+    .bm-header { display: flex; align-items: center; gap: 8px; }
+    .bm-favicon { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+    .bm-title { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bm-url { font-size: 11px; color: #71717a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bm-actions { display: flex; gap: 6px; margin-top: 2px; }
+    .bm-actions button { flex: 1; height: 30px; font-size: 12px; padding: 0 8px; }
+    .empty-msg { text-align: center; color: #52525b; font-size: 13px; padding: 32px 0; }
+    .search-bar { display: flex; gap: 10px; }
+    .search-bar input { flex: 1; }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #18181b; border: 1px solid #27272a; border-radius: 10px;
+      padding: 10px 18px; font-size: 13px; color: #f4f4f5;
+      opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.ok { border-color: rgba(34,197,94,0.4); color: #22c55e; }
+    .toast.err { border-color: rgba(239,68,68,0.4); color: #ef4444; }
+    .count-badge { font-size: 11px; color: #52525b; }
+    @media (max-width: 520px) {
+      .add-form { grid-template-columns: 1fr; }
+      .bookmarks-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:4px;">
+      <h1>Bookmarks</h1>
+      <div class="subtitle">Save and organize your favorite pages.</div>
+    </div>
+
+    <div class="card">
+      <h2>Add Bookmark</h2>
+      <div class="add-form">
+        <div>
+          <input id="bmUrl" type="url" placeholder="https://example.com" autocomplete="off">
+        </div>
+        <div>
+          <input id="bmTitle" type="text" placeholder="Title (optional)" autocomplete="off">
+        </div>
+        <button id="addBmBtn">Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <h2 style="margin:0;flex:1">Saved Bookmarks</h2>
+        <span class="count-badge" id="bmCount"></span>
+      </div>
+      <div class="search-bar" style="margin-bottom:12px;">
+        <input id="searchInput" type="search" placeholder="Search bookmarks…" autocomplete="off">
+      </div>
+      <div class="bookmarks-grid" id="bmGrid">
+        <div class="empty-msg">No bookmarks yet.</div>
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const BM_KEY = 'superuser-bookmarks';
+    let bookmarks = [];
+    let searchQuery = '';
+
+    function loadBm() {
+      try { bookmarks = JSON.parse(localStorage.getItem(BM_KEY) || '[]'); } catch (_) { bookmarks = []; }
+    }
+    function saveBm() {
+      localStorage.setItem(BM_KEY, JSON.stringify(bookmarks));
+    }
+    function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+    function toast(msg, type = 'ok') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast show ' + type;
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function getHostname(url) {
+      try { return new URL(url).hostname; } catch (_) { return url; }
+    }
+
+    function faviconFor(url) {
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHostname(url))}&sz=32`;
+    }
+
+    function renderBookmarks() {
+      const grid = document.getElementById('bmGrid');
+      const q = searchQuery.toLowerCase();
+      const filtered = bookmarks.filter(bm =>
+        !q || bm.title.toLowerCase().includes(q) || bm.url.toLowerCase().includes(q)
+      );
+      document.getElementById('bmCount').textContent = filtered.length !== bookmarks.length
+        ? `${filtered.length} of ${bookmarks.length}`
+        : `${bookmarks.length} bookmark${bookmarks.length !== 1 ? 's' : ''}`;
+
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="empty-msg">${q ? 'No bookmarks match your search.' : 'No bookmarks yet. Add one above.'}</div>`;
+        return;
+      }
+      grid.innerHTML = filtered.map(bm => `
+        <div class="bm-card" data-id="${escHtml(bm.id)}">
+          <div class="bm-header">
+            <img class="bm-favicon" src="${escHtml(faviconFor(bm.url))}" alt="" onerror="this.style.display='none'">
+            <span class="bm-title" title="${escHtml(bm.title)}">${escHtml(bm.title)}</span>
+          </div>
+          <div class="bm-url" title="${escHtml(bm.url)}">${escHtml(bm.url)}</div>
+          <div class="bm-actions">
+            <button class="open-btn" data-open="${escHtml(bm.id)}">Open</button>
+            <button class="danger" data-delete="${escHtml(bm.id)}">Remove</button>
+          </div>
+        </div>
+      `).join('');
+
+      grid.querySelectorAll('[data-open]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const bm = bookmarks.find(b => b.id === e.target.dataset.open);
+          if (!bm) return;
+          try { window.parent.postMessage({ type: 'superuser:navigate', url: bm.url }, '*'); } catch (_) {}
+        });
+      });
+
+      grid.querySelectorAll('[data-delete]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.target.dataset.delete;
+          const bm = bookmarks.find(b => b.id === id);
+          if (!bm) return;
+          if (!confirm(`Remove "${bm.title}"?`)) return;
+          bookmarks = bookmarks.filter(b => b.id !== id);
+          saveBm();
+          try { window.parent.postMessage({ type: 'superuser:bookmark-delete', id }, '*'); } catch (_) {}
+          renderBookmarks();
+          toast('Bookmark removed');
+        });
+      });
+    }
+
+    document.getElementById('addBmBtn').addEventListener('click', async () => {
+      const urlVal = document.getElementById('bmUrl').value.trim();
+      let titleVal = document.getElementById('bmTitle').value.trim();
+      if (!urlVal) { toast('Enter a URL', 'err'); return; }
+      let url = urlVal;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+      try { new URL(url); } catch (_) { toast('Invalid URL', 'err'); return; }
+      if (!titleVal) titleVal = getHostname(url);
+      const bm = { id: uid(), title: titleVal, url, favicon: faviconFor(url), addedAt: Date.now() };
+      bookmarks.unshift(bm);
+      saveBm();
+      try { window.parent.postMessage({ type: 'superuser:bookmark-add', bookmark: bm }, '*'); } catch (_) {}
+      document.getElementById('bmUrl').value = '';
+      document.getElementById('bmTitle').value = '';
+      renderBookmarks();
+      toast('Bookmark saved!');
+    });
+
+    document.getElementById('bmUrl').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('addBmBtn').click();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', e => {
+      searchQuery = e.target.value;
+      renderBookmarks();
+    });
+
+    // Listen for parent telling us to add current page
+    window.addEventListener('message', e => {
+      if (e.data?.type === 'superuser:bookmark-add-current') {
+        const { title, url } = e.data;
+        document.getElementById('bmUrl').value = url || '';
+        document.getElementById('bmTitle').value = title || '';
+      }
+    });
+
+    loadBm();
+    renderBookmarks();
+  </script>
+</body>
+</html>

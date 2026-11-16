@@ -57,11 +57,11 @@ def copy_runtime_assets() -> None:
         )
     shutil.copy2(ROOT / "sw.js", output_dir / "sw.js")
     shutil.copy2(ROOT / "_headers", output_dir / "_headers")
-    games_source = ROOT / "internals" / "games"
-    if games_source.is_dir():
+    internals_source = ROOT / "internals"
+    if internals_source.is_dir():
         shutil.copytree(
-            games_source,
-            output_dir / "internals" / "games",
+            internals_source,
+            output_dir / "internals",
             dirs_exist_ok=True,
         )
     learning_source = ROOT / "Mockups" / "learning.html"

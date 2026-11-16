@@ -18,7 +18,7 @@
       color: #f4f4f5;
     }
     main { width: min(1200px, 100%); display: flex; flex: 1; flex-direction: column; gap: 10px; }
-    form { display: grid; grid-template-columns: minmax(0, 1fr) auto 170px auto; gap: 10px; }
+    form { display: grid; grid-template-columns: minmax(0, 1fr) auto 170px auto auto; gap: 10px; align-items: center; }
     input, select, button {
       min-height: 48px;
       border: 1px solid #27272a;
@@ -30,11 +30,35 @@
     .provider-label { align-self: center; color: #a1a1aa; font-size: 13px; }
     input { min-width: 0; flex: 1; padding: 0 14px; outline: none; }
     input:focus, select:focus { border-color: #22c55e; }
-    select { width: 100%; padding: 0 10px; }
-    button { padding: 0 18px; border-color: #22c55e; background: #22c55e; color: #06120a; font-weight: 700; cursor: pointer; }
-    button:hover { filter: brightness(1.08); }
+    select { width: 100%; padding: 0 10px; cursor: pointer; }
+    button.primary { padding: 0 18px; border-color: #22c55e; background: #22c55e; color: #06120a; font-weight: 700; cursor: pointer; }
+    button.primary:hover { filter: brightness(1.08); }
+    button.icon-btn {
+      padding: 0;
+      width: 48px;
+      border-color: #27272a;
+      background: #111113;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    button.icon-btn:hover { border-color: #22c55e; background: rgba(34,197,94,0.08); }
+    button.icon-btn svg { pointer-events: none; }
     #status { min-height: 18px; color: #a1a1aa; font-size: 12px; }
-    #providerFrame { flex: 1; min-height: calc(100vh - 105px); width: 100%; border: 1px solid #27272a; border-radius: 12px; background: #09090b; }
+    #providerFrame {
+      flex: 1; min-height: calc(100vh - 105px); width: 100%;
+      border: 1px solid #27272a; border-radius: 12px; background: #09090b;
+    }
+    /* Fullscreen mode */
+    body.fs-mode form,
+    body.fs-mode #status { display: none; }
+    body.fs-mode #providerFrame {
+      position: fixed; inset: 0; z-index: 9999;
+      border-radius: 0; border: none; min-height: unset;
+    }
+    body.fs-mode main { gap: 0; }
     @media (max-width: 520px) {
       body { padding: 10px; }
       form { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
@@ -53,10 +77,16 @@
       <select id="providerSelect" aria-label="Providers" disabled>
         <option>Loading providers…</option>
       </select>
-      <button type="submit">Search</button>
+      <button class="primary" type="submit">Search</button>
+      <button class="icon-btn" type="button" id="fsBtn" title="Fullscreen game (F11)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+          <path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+        </svg>
+      </button>
     </form>
     <div id="status" role="status" aria-live="polite"></div>
-    <iframe id="providerFrame" title="Game provider"></iframe>
+    <iframe id="providerFrame" title="Game provider" allow="fullscreen; autoplay"></iframe>
   </main>
   <script>
     const form = document.getElementById('gameSearchForm');
@@ -64,11 +94,38 @@
     const providerSelect = document.getElementById('providerSelect');
     const status = document.getElementById('status');
     const providerFrame = document.getElementById('providerFrame');
+    const fsBtn = document.getElementById('fsBtn');
     let providers = [];
     const route = new URL(location.href);
     const routeProvider = route.searchParams.get('provider');
     const routeQuery = route.searchParams.get('q') || '';
     searchInput.value = routeQuery;
+
+    // ── Fullscreen ──
+    fsBtn.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+      } else {
+        (providerFrame.requestFullscreen?.() || document.documentElement.requestFullscreen?.())?.catch(() => {});
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      const isFs = !!document.fullscreenElement;
+      document.body.classList.toggle('fs-mode', isFs);
+      fsBtn.title = isFs ? 'Exit fullscreen' : 'Fullscreen game (F11)';
+      fsBtn.innerHTML = isFs
+        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>`
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>`;
+    });
+
+    // Listen for proxied src from parent
+    window.addEventListener('message', e => {
+      if (e.data?.type === 'superuser:proxy-src' && typeof e.data.url === 'string') {
+        providerFrame.src = e.data.url;
+        status.textContent = '';
+      }
+    });
 
     function providerSlug(provider) {
       return String(provider.title || provider.name || '')
@@ -127,10 +184,7 @@
         const destination = new URL(`${encodeURIComponent(providerSlug(provider))}/index.html`, location.href);
         if (query && (provider.search.startsWith('?') || provider.search.startsWith('&'))) {
           const parameter = provider.search.slice(1).split('=')[0];
-          if (!parameter) {
-            status.textContent = 'This provider has an invalid search configuration.';
-            return;
-          }
+          if (!parameter) { status.textContent = 'This provider has an invalid search configuration.'; return; }
           destination.searchParams.set(parameter, query);
         } else if (query) {
           destination.pathname += `${provider.search}${encodeURIComponent(query)}`;
@@ -139,8 +193,24 @@
         status.textContent = '';
         return;
       }
-      providerFrame.removeAttribute('src');
-      status.textContent = `Search ${provider.title} to open it in SuperUser.`;
+      // External provider: ask parent to proxy it inside the iframe
+      try {
+        const destUrl = providerDestination(provider, query);
+        status.textContent = `Loading ${provider.title} through proxy…`;
+        // Ask parent to send us the proxied src URL
+        window.parent.postMessage({ type: 'superuser:get-proxy-src', url: destUrl }, location.origin);
+        // Fallback: also post navigate so the parent can load it in the main tab if needed
+        // We wait for 'superuser:proxy-src' message back; if none after 3s, navigate parent
+        clearTimeout(loadProvider._fallback);
+        loadProvider._fallback = setTimeout(() => {
+          if (status.textContent && status.textContent.startsWith('Loading')) {
+            window.parent.postMessage({ type: 'superuser:navigate', url: destUrl }, location.origin);
+            status.textContent = '';
+          }
+        }, 3000);
+      } catch (error) {
+        status.textContent = error.message;
+      }
     }
 
     function navigateRoute(provider, query) {
@@ -163,10 +233,16 @@
         return;
       }
       try {
-        window.parent.postMessage({
-          type: 'superuser:navigate',
-          url: providerDestination(provider, query)
-        }, location.origin);
+        const destUrl = providerDestination(provider, query);
+        status.textContent = `Loading ${provider.title} through proxy…`;
+        window.parent.postMessage({ type: 'superuser:get-proxy-src', url: destUrl }, location.origin);
+        clearTimeout(form._fallback);
+        form._fallback = setTimeout(() => {
+          if (status.textContent && status.textContent.startsWith('Loading')) {
+            window.parent.postMessage({ type: 'superuser:navigate', url: destUrl }, location.origin);
+            status.textContent = '';
+          }
+        }, 3000);
       } catch (error) {
         status.textContent = error.message;
       }
@@ -174,7 +250,13 @@
 
     providerSelect.addEventListener('change', () => {
       const provider = providers.find(item => providerSlug(item) === providerSelect.value);
-      if (provider) navigateRoute(provider, searchInput.value.trim());
+      if (provider) {
+        if (provider.url === 'internal') {
+          navigateRoute(provider, searchInput.value.trim());
+        } else {
+          loadProvider(provider, searchInput.value.trim());
+        }
+      }
     });
 
     loadProviders().catch(error => {

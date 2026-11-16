@@ -473,6 +473,95 @@
       display: flex;
     }
 
+    /* Bookmarks bar */
+    .bookmarks-bar {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 14px;
+      background: #0d0d0f;
+      border-bottom: 1px solid var(--border);
+      height: 30px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+      z-index: 9;
+    }
+    .bookmarks-bar::-webkit-scrollbar { display: none; }
+    .top-url-bar.active ~ .bookmarks-bar,
+    .viewport.browsing .bookmarks-bar {
+      display: flex;
+    }
+    body.games-fullscreen .bookmarks-bar {
+      display: none !important;
+    }
+    .bm-bar-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid transparent;
+      max-width: 170px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.15s;
+    }
+    .bm-bar-item:hover {
+      background: var(--bg-elevated);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .bm-bar-item img {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .bm-bar-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ctx-item:hover {
+      background: rgba(255,255,255,0.07);
+    }
+
+    /* Games fullscreen: removes top search bar, search button & sidebar */
+    body.games-fullscreen .top-url-bar,
+    body.games-fullscreen #topUrlBar,
+    body.games-fullscreen .sidebar {
+      display: none !important;
+    }
+    body.games-fullscreen .viewport {
+      width: 100vw !important;
+      height: 100vh !important;
+      padding: 0 !important;
+    }
+    body.games-fullscreen #frameArea,
+    body.games-fullscreen .browser-tab-frame.active {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 999999 !important;
+    }
+
+    .shortcut-svg {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    .shortcut-svg svg {
+      width: 24px;
+      height: 24px;
+    }
+
     .top-command-autocomplete {
       position: absolute;
       top: 52px;
@@ -1620,6 +1709,7 @@
       <div class="sidebar-footer">
         <button class="new-tab-btn" id="newTabBtn"><span>+ New Tab</span><b aria-hidden="true">+</b></button>
         <div class="sidebar-actions">
+          <button class="sidebar-icon-btn" id="gamesSidebarBtn" title="Games" aria-label="Games"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4m-2-2v4"/><line x1="15" y1="11" x2="15.01" y2="11"/><line x1="18" y1="13" x2="18.01" y2="13"/></svg></button>
           <button class="sidebar-icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
           <button class="sidebar-icon-btn" id="cloakAboutBlankBtn" title="Launch in about:blank" aria-label="Launch in about:blank">🕶</button>
           <button class="sidebar-icon-btn" id="helpBtn" title="Help" aria-label="Help">?</button>
@@ -1659,9 +1749,15 @@
         <div class="cmd-autocomplete top-command-autocomplete" id="topCommandAutocomplete"></div>
 
         <div class="top-nav-group">
+          <button class="top-nav-btn" id="topBookmarkBtn" title="Bookmark this page">⭐</button>
           <button class="top-nav-btn" id="topFullscreenBtn" title="Fullscreen">⛶</button>
         </div>
       </header>
+
+      <!-- BOOKMARKS BAR -->
+      <div class="bookmarks-bar" id="bookmarksBar">
+        <div id="bookmarksBarItems" style="display:flex;align-items:center;gap:6px;"></div>
+      </div>
 
       <!-- HOME SCREEN (NEW TAB) -->
       <section id="homeScreen">
@@ -1713,7 +1809,6 @@
         </div>
         <nav class="settings-nav" aria-label="Settings pages">
           <button type="button" class="settings-nav-btn active" data-settings-page="proxy">Proxy</button>
-          <button type="button" class="settings-nav-btn" data-settings-page="extensions">Extensions</button>
           <button type="button" class="settings-nav-btn" data-settings-page="personalization">Personalization</button>
           <button type="button" class="settings-nav-btn" data-settings-page="general">General</button>
         </nav>
@@ -1728,12 +1823,6 @@
           <div class="page-card" data-searchable="ad blocker ads performance youtube">
             <h3>Ad blocking</h3><p>Block common ad and tracking hosts before they load.</p>
             <label><input type="checkbox" id="adBlockToggle" checked> Enable fast ad blocking</label>
-          </div>
-        </section>
-        <section class="settings-panel" data-settings-panel="extensions">
-          <div class="page-card" data-searchable="extensions userscripts youtube blooket wayground">
-            <h3>Site extensions</h3><p>Enable built-in userscripts per supported site. Scripts are loaded only after you confirm.</p>
-            <div id="extensionSettingsList"></div>
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="personalization">
@@ -1881,6 +1970,28 @@
     <div class="extension-actions">
       <button class="modal-btn" id="runExtensionBtn">Run</button>
       <button class="modal-btn" id="cancelExtensionBtn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- CONTEXT MENU -->
+  <div id="suContextMenu" style="
+    position:fixed;display:none;z-index:99999;
+    background:#111113;border:1px solid #27272a;border-radius:10px;
+    padding:4px;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);
+    font-family:Inter,system-ui,sans-serif;font-size:13px;
+  ">
+    <div class="ctx-item" id="ctx-bookmark" style="padding:8px 12px;cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:8px;color:#f4f4f5;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Bookmark Page
+    </div>
+    <div class="ctx-item" id="ctx-open2fa" style="padding:8px 12px;cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:8px;color:#f4f4f5;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M12 7v4"/><circle cx="12" cy="6" r="3"/></svg>Open 2FA
+    </div>
+    <div class="ctx-item ctx-2fa-paste" id="ctx-paste2fa" style="padding:8px 12px;cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:8px;color:#22c55e;display:none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Paste 2FA Code
+    </div>
+    <hr style="border:none;border-top:1px solid #27272a;margin:4px 0;">
+    <div class="ctx-item" id="ctx-extensions" style="padding:8px 12px;cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:8px;color:#f4f4f5;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>Extensions
     </div>
   </div>
 
@@ -2101,13 +2212,14 @@
   const OFFICIAL_WISP_URL = 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/';
   const TABS_KEY         = 'superuser-tabs';
   const EXTENSIONS_KEY   = 'superuser-extensions';
+  const GAMEPAD_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4m-2-2v4"/><line x1="15" y1="11" x2="15.01" y2="11"/><line x1="18" y1="13" x2="18.01" y2="13"/></svg>';
   const SHORTCUTS_KEY    = 'superuser-shortcuts';
   const DEFAULT_SHORTCUTS = [
     { title: 'Google', url: 'https://www.google.com', domain: 'google.com' },
     { title: 'YouTube', url: 'https://www.youtube.com', domain: 'youtube.com' },
     { title: 'Discord', url: 'https://discord.com/app', domain: 'discord.com' },
     { title: 'ChatGPT', url: 'https://chatgpt.com', domain: 'chatgpt.com' },
-    { title: 'Games', url: 'su://games', icon: '🎮' }
+    { title: 'Games', url: 'su://games', svg: GAMEPAD_SVG }
   ];
   const defaultSettings  = {
     wisp: OFFICIAL_WISP_URL,
@@ -2157,7 +2269,7 @@
   const AD_HOSTS = /(^|\.)((doubleclick|googlesyndication|googleadservices|adnxs|adsrvr|advertising|imasdk|adform|criteo|taboola|outbrain|scorecardresearch)\.)/i;
   const searchUrls = {
     duckduckgo: query => `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
-    google: query => `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+    google: query => `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=en`,
     bing: query => `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
     startpage: query => `https://www.startpage.com/sp/search?query=${encodeURIComponent(query)}`,
     youtube: query => `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
@@ -2207,6 +2319,52 @@
 
   const WISP_STORAGE_KEY = 'superuser_wisp_working';
 
+  /* ═══════════════════════════════════════════════════════
+     WISP TRANSPORT — optimized, Chrome-mimic, 429-resilient
+  ═══════════════════════════════════════════════════════ */
+
+  // Opium IC header order (Chrome navigation fingerprint)
+  const CHROME_HEADER_ORDER = [
+    'sec-ch-ua','sec-ch-ua-mobile','sec-ch-ua-platform',
+    'upgrade-insecure-requests','user-agent','accept','origin',
+    'sec-fetch-site','sec-fetch-mode','sec-fetch-user','sec-fetch-dest',
+    'referer','accept-encoding','accept-language','priority',
+    'content-type','content-length','cookie'
+  ];
+  // Opium BC — strip expensive client-hint headers to reduce fingerprint surface
+  const STRIP_HEADERS = new Set([
+    'sec-ch-ua-arch','sec-ch-ua-bitness','sec-ch-ua-full-version',
+    'sec-ch-ua-full-version-list','sec-ch-ua-model',
+    'sec-ch-ua-platform-version','sec-ch-ua-wow64','sec-ch-ua-form-factors'
+  ]);
+
+  // Normalize + reorder headers the same way Opium's QC() does
+  function mimicChromeHeaders(headers = {}, method = 'GET', referrer = '', mode = 'navigate') {
+    const h = {};
+    for (const [k, v] of Object.entries(headers)) {
+      if (!STRIP_HEADERS.has(k.toLowerCase())) h[k.toLowerCase()] = v;
+    }
+    h['user-agent'] ||= navigator.userAgent;
+    h['accept-encoding'] ||= 'gzip, deflate, br';
+    h['accept-language'] ||= 'en-US,en;q=0.9';
+    h['priority'] ||= 'u=0, i';
+    if (referrer) h['referer'] = referrer;
+    if (mode === 'navigate') {
+      h['sec-fetch-site'] ||= 'none';
+      h['sec-fetch-dest'] ||= 'document';
+      h['sec-fetch-user'] ||= '?1';
+      if (method === 'GET') delete h['origin'];
+    } else {
+      h['sec-fetch-site'] ||= 'same-origin';
+      h['sec-fetch-dest'] ||= 'empty';
+    }
+    // Re-emit in IC order, then any extras not in the list
+    const ordered = {};
+    for (const k of CHROME_HEADER_ORDER) { if (k in h) ordered[k] = h[k]; }
+    for (const k of Object.keys(h)) { if (!(k in ordered)) ordered[k] = h[k]; }
+    return ordered;
+  }
+
   function getWispUrl() {
     return localStorage.getItem(WISP_STORAGE_KEY) || settings.wisp || OFFICIAL_WISP_URL;
   }
@@ -2217,22 +2375,24 @@
     return 1;
   }
 
+  // Probe transport — returns status code, throws on error/429
   async function probeTransport(transport) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
+      const probeHeaders = mimicChromeHeaders({
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'sec-fetch-mode': 'navigate'
+      }, 'GET', '', 'navigate');
       const response = await transport.request(
         new URL('https://example.com/'),
         'GET',
         null,
-        [],
+        Object.entries(probeHeaders),
         controller.signal
       );
       if (response.body && typeof response.body.cancel === 'function') {
         await response.body.cancel();
-      }
-      if (response.status < 200 || response.status >= 400) {
-        throw new Error(`Wisp proxy test returned HTTP ${response.status}`);
       }
       return response.status;
     } finally {
@@ -2240,62 +2400,76 @@
     }
   }
 
-  async function attemptConnectWisp(wispUrl, timeoutMs = 4500) {
+  // Connect to a single Wisp URL — fast path, no probe overhead
+  async function attemptConnectWisp(wispUrl, timeoutMs = 3500) {
     if (!EpoxyTransport) return null;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
+    const timer = { id: null };
+    const timeoutPromise = new Promise((_, reject) => {
+      timer.id = setTimeout(() => reject(new Error('timeout')), timeoutMs);
+    });
     try {
       const v = getWispVersion(wispUrl);
       const transport = new EpoxyTransport({
         wisp: wispUrl,
         wisp_v2: v === 2,
-        wisp_ws_protocols: v === 2 ? ['wisp-v2'] : []
+        wisp_ws_protocols: v === 2 ? ['wisp-v2'] : [],
+        // Minimal WS — arraybuffer reduces GC pressure vs Blob
+        ws_binaryType: 'arraybuffer'
       });
-      await transport.init();
-      const status = await probeTransport(transport);
-      if (status >= 200 && status < 400) {
-        return transport;
-      }
+      await Promise.race([transport.init(), timeoutPromise]);
+      const status = await Promise.race([probeTransport(transport), timeoutPromise]);
+      clearTimeout(timer.id);
+      // 429 = rate-limited but server is alive — treat as reachable with penalty flag
+      if (status === 429) return { transport, url: wispUrl, rateLimited: true };
+      if (status >= 200 && status < 400) return { transport, url: wispUrl, rateLimited: false };
       return null;
     } catch (_) {
+      clearTimeout(timer.id);
       return null;
-    } finally {
-      clearTimeout(timer);
     }
   }
 
   async function discoverAndConnectWisp() {
-    // 1. Try saved server from localStorage
-    const saved = localStorage.getItem(WISP_STORAGE_KEY) || (settings.wisp !== 'local' && settings.wisp !== 'auto' ? settings.wisp : null);
-    if (saved && saved.startsWith('ws')) {
-      addLog(`Testing saved working Wisp: ${saved}`, 'info');
-      const workingTransport = await attemptConnectWisp(saved, 4000);
-      if (workingTransport) {
-        addLog(`Verified saved Wisp: ${saved}`, 'ok');
-        return { transport: workingTransport, url: saved };
+    // 1. Try last-good saved server (like Opium's WID cache)
+    const savedUrl = localStorage.getItem(WISP_STORAGE_KEY) ||
+      (settings.wisp && !['local','auto'].includes(settings.wisp) ? settings.wisp : null);
+
+    if (savedUrl?.startsWith('ws')) {
+      addLog(`Testing saved Wisp: ${savedUrl}`, 'info');
+      const result = await attemptConnectWisp(savedUrl, 4000);
+      if (result && !result.rateLimited) {
+        addLog(`Verified saved Wisp: ${savedUrl}`, 'ok');
+        return result;
       }
-      addLog(`Saved Wisp (${saved}) failed. Starting auto-discovery...`, 'warn');
+      if (result?.rateLimited) {
+        addLog(`Saved Wisp rate-limited (429), retrying pool...`, 'warn');
+      } else {
+        addLog(`Saved Wisp failed, running discovery...`, 'warn');
+      }
       localStorage.removeItem(WISP_STORAGE_KEY);
     }
 
-    // 2. Show full screen "Finding Wisp Server"
-    const screen = document.getElementById('wispFindingScreen');
+    // 2. Show "Finding Wisp Server" screen
+    const screen    = document.getElementById('wispFindingScreen');
     const counterEl = document.getElementById('wispFindingCounter');
-    const serverEl = document.getElementById('wispFindingServer');
-    const barEl = document.getElementById('wispFindingBar');
-    const retryBtn = document.getElementById('wispRetryBtn');
+    const serverEl  = document.getElementById('wispFindingServer');
+    const barEl     = document.getElementById('wispFindingBar');
+    const retryBtn  = document.getElementById('wispRetryBtn');
+
+    const ui = (counter, server, barPct) => {
+      if (counterEl) counterEl.textContent = counter;
+      if (serverEl)  serverEl.textContent  = server;
+      if (barEl)     barEl.style.width     = `${barPct}%`;
+    };
 
     if (screen) {
       screen.classList.remove('hidden');
-      if (retryBtn) retryBtn.classList.add('hidden');
-      if (counterEl) counterEl.textContent = 'Loading server catalog...';
-      if (serverEl) serverEl.textContent = 'Reading assets/backend/wisps.json...';
-      if (barEl) barEl.style.width = '5%';
+      retryBtn?.classList.add('hidden');
+      ui('Loading server catalog...', 'Reading assets/backend/wisps.json...', 3);
     }
 
     try {
-      // 3. Read assets/backend/wisps.json
+      // 3. Read wisps.json catalog
       let catalog = [];
       try {
         const res = await fetch(appPath('assets/backend/wisps.json'), { cache: 'no-store' });
@@ -2304,14 +2478,15 @@
         addLog(`Failed to fetch wisps.json: ${err.message}`, 'warn');
       }
 
-      // Collect servers in order from the paths in wisps.json
+      // 4. Build ordered server list (last-good index first, like Opium's WID)
       const allServers = [];
+      const savedIdx = parseInt(localStorage.getItem('su_wid') || '-1', 10);
+
       if (Array.isArray(catalog) && catalog.length > 0) {
         for (const entry of catalog) {
           const cleanPath = (entry.path || '').replace(/^\/+/, '');
-          const targetUrl = appPath('assets/backend/' + cleanPath);
           try {
-            const r = await fetch(targetUrl, { cache: 'no-store' });
+            const r = await fetch(appPath('assets/backend/' + cleanPath), { cache: 'no-store' });
             const urls = await r.json();
             if (Array.isArray(urls)) {
               for (const u of urls) {
@@ -2321,54 +2496,99 @@
               }
             }
           } catch (e) {
-            addLog(`Could not load ${entry.name} (${cleanPath}): ${e.message}`, 'warn');
+            addLog(`Could not load ${entry.name}: ${e.message}`, 'warn');
           }
         }
       }
 
-      // Fallbacks if files not reachable
       if (allServers.length === 0) {
         allServers.push(
           { group: 'Official', url: 'wss://superuser-wisp.wasmer.app/' },
           { group: 'Official', url: 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/' },
-          { group: 'Opium', url: 'wss://cdn.northstreetumc.org/' }
+          { group: 'Opium',    url: 'wss://cdn.northstreetumc.org/' }
         );
       }
 
+      // Bubble last-good index to front (Opium WID strategy)
+      if (savedIdx >= 0 && savedIdx < allServers.length) {
+        allServers.unshift(allServers.splice(savedIdx, 1)[0]);
+      }
+
       const total = allServers.length;
-      addLog(`Auto-discovering from ${total} Wisp servers...`, 'info');
+      addLog(`Probing ${total} Wisp servers...`, 'info');
+
+      let rateLimitedResult = null; // best fallback if everything is 429
 
       for (let i = 0; i < total; i++) {
         const item = allServers[i];
-        if (counterEl) counterEl.textContent = `Checking ${i + 1}/${total}`;
-        if (serverEl) serverEl.textContent = `Testing ${item.group}: ${item.url}`;
-        if (barEl) barEl.style.width = `${Math.round(((i + 1) / total) * 100)}%`;
+        ui(`Checking ${i + 1}/${total}`, `${item.group}: ${item.url}`, Math.round(((i + 1) / total) * 95));
+        addLog(`[${i + 1}/${total}] ${item.url}`, 'info');
 
-        addLog(`[${i + 1}/${total}] Probing ${item.url}...`, 'info');
+        const result = await attemptConnectWisp(item.url, 3500);
+        if (!result) continue;
 
-        const transport = await attemptConnectWisp(item.url, 4000);
-        if (transport) {
-          localStorage.setItem(WISP_STORAGE_KEY, item.url);
-          settings.wisp = item.url;
-          try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
+        if (result.rateLimited) {
+          addLog(`${item.url} → 429 rate-limited, continuing...`, 'warn');
+          rateLimitedResult = rateLimitedResult || { result, item, idx: i };
+          continue; // try next server
+        }
 
-          if (counterEl) counterEl.textContent = `Connected! (${i + 1}/${total})`;
-          if (serverEl) serverEl.textContent = `Selected ${item.group}: ${item.url}`;
-          addLog(`Found working Wisp server: ${item.url}`, 'ok');
+        // ✅ Clean connection
+        const realIdx = allServers.indexOf(item);
+        localStorage.setItem(WISP_STORAGE_KEY, item.url);
+        localStorage.setItem('su_wid', String(realIdx));
+        settings.wisp = item.url;
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
 
-          await sleep(400);
-          if (screen) screen.classList.add('hidden');
-          return { transport, url: item.url };
+        ui(`Connected! (${i + 1}/${total})`, `Selected ${item.group}: ${item.url}`, 100);
+        addLog(`Connected to ${item.url}`, 'ok');
+        await sleep(300);
+        screen?.classList.add('hidden');
+        return result;
+      }
+
+      // All servers returned 429 — keep retrying with backoff, don't give up
+      if (rateLimitedResult) {
+        const { result, item } = rateLimitedResult;
+        let attempt = 0;
+        while (true) {
+          attempt++;
+          const delay = Math.min(1000 * attempt, 8000);
+          ui(
+            `All servers rate-limited (429) — retrying in ${Math.round(delay / 1000)}s...`,
+            `Waiting to retry ${item.url}`,
+            95
+          );
+          addLog(`429 backoff attempt ${attempt} — waiting ${delay}ms`, 'warn');
+          await sleep(delay);
+
+          // Re-probe all servers on each backoff pass
+          for (let i = 0; i < allServers.length; i++) {
+            const s = allServers[i];
+            ui(`Retry ${attempt} — checking ${i + 1}/${total}`, `${s.group}: ${s.url}`, 95);
+            const r = await attemptConnectWisp(s.url, 3500);
+            if (r && !r.rateLimited) {
+              localStorage.setItem(WISP_STORAGE_KEY, s.url);
+              localStorage.setItem('su_wid', String(i));
+              settings.wisp = s.url;
+              try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
+              ui('Connected!', `Selected ${s.group}: ${s.url}`, 100);
+              addLog(`Connected after ${attempt} retry attempt(s): ${s.url}`, 'ok');
+              await sleep(300);
+              screen?.classList.add('hidden');
+              return r;
+            }
+          }
         }
       }
 
-      if (counterEl) counterEl.textContent = 'All servers checked';
-      if (serverEl) serverEl.textContent = 'No working Wisp server could be reached.';
+      ui('All servers unreachable', 'No working Wisp server found.', 100);
       if (retryBtn) {
         retryBtn.classList.remove('hidden');
         retryBtn.onclick = () => discoverAndConnectWisp();
       }
       return null;
+
     } catch (e) {
       if (serverEl) serverEl.textContent = `Discovery error: ${e.message}`;
       if (retryBtn) {
@@ -2454,12 +2674,15 @@
             flags: {
               ...defaultConfig.flags,
               allowFailedIntercepts: true,
-              encapsulateWorkers: true,
-              destructureRewrites: true
+              encapsulateWorkers: false,
+              destructureRewrites: true,
+              allowInvalidJs: true
             },
             siteFlags: {
-              'youtube.com': { allowFailedIntercepts: true, encapsulateWorkers: true },
-              'googlevideo.com': { allowFailedIntercepts: true }
+              'youtube.com': { allowFailedIntercepts: true, encapsulateWorkers: false },
+              'www.youtube.com': { allowFailedIntercepts: true, encapsulateWorkers: false },
+              'm.youtube.com': { allowFailedIntercepts: true, encapsulateWorkers: false },
+              'googlevideo.com': { allowFailedIntercepts: true, encapsulateWorkers: false }
             }
           }
         });
@@ -2468,6 +2691,7 @@
       }
 
       isProxyReady = true;
+      applyEnglishPreferences();
       const wispPageEl = document.getElementById('wispSelectPage');
       const wispEl = document.getElementById('wispSelect');
       if (wispPageEl) wispPageEl.value = wispUrl;
@@ -2475,6 +2699,21 @@
       settings.wisp = wispUrl;
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       updateSystemStatus();
+
+      // Drain queued navigations requested before proxy finished initializing
+      if (pendingProxyNavigations.length > 0) {
+        const queued = [...pendingProxyNavigations];
+        pendingProxyNavigations = [];
+        for (const item of queued) {
+          const t = tabs.find(tab => tab.id === item.tabId);
+          if (t) {
+            t.url = item.url;
+            if (t.id === activeTabId) {
+              loadUrlInFrame(item.url, item.shouldNavigate);
+            }
+          }
+        }
+      }
 
       showToast('Proxy ready — type sudo for commands');
       addLog('SuperUser Proxy is online and ready for traffic', 'ok');
@@ -2748,7 +2987,7 @@
   function normalizeUrl(raw) {
     let u = raw.trim();
     if (!u) return '';
-    if (/^su:\/\/games(?:\/[a-z0-9_-]+)?\/?(?:\?[^#]*)?$/i.test(u)) return u.replace(/\/(?=\?)/, '').replace(/\/$/, '');
+    if (/^su:\/\/(?:games(?:\/[a-z0-9_-]+)?|extensions|bookmarks|2fa)\/?(?:\?[^#]*)?$/i.test(u)) return u.replace(/\/(?=\?)/, '').replace(/\/$/, '');
     if (u.includes(' ') || !u.includes('.')) {
       const provider = document.getElementById('topSearchProvider')?.value ||
         settings.searchProvider || 'duckduckgo';
@@ -2761,16 +3000,36 @@
     return url;
   }
 
+  // Google language switch: route through /en internally for English UI
+  function getEffectiveLoadUrl(url) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'google.com' || parsed.hostname === 'www.google.com') {
+        if (parsed.pathname === '/' || parsed.pathname === '') {
+          return `${parsed.protocol}//${parsed.hostname}/en${parsed.search}${parsed.hash}`;
+        }
+      }
+    } catch (_) {}
+    return url;
+  }
+
+  // Google display: keep clean google.com in the URL bar
+  function getDisplayUrl(url) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'google.com' || parsed.hostname === 'www.google.com') {
+        if (parsed.pathname === '/en' || parsed.pathname === '/en/') {
+          return `${parsed.protocol}//${parsed.hostname}${parsed.search}${parsed.hash}`.replace(/\/$/, '');
+        }
+      }
+    } catch (_) {}
+    return url;
+  }
+
   function navigate(rawUrl) {
     const url = normalizeUrl(rawUrl);
     if (!url) {
       showToast('Blocked ad/tracker URL', true);
-      return;
-    }
-
-    if (!getInternalGameUrl(url) && (!isProxyReady || !scramjet)) {
-      addLog(`Cannot navigate: proxy not ready (url: ${url})`, 'warn');
-      showToast('Proxy is initializing... please wait', true);
       return;
     }
 
@@ -2781,8 +3040,11 @@
     }
     if (currentTab) {
       currentTab.url = url;
-      currentTab.title = url.startsWith('su://games') ? 'Games' : getHost(url);
-      currentTab.favicon = url.startsWith('su://games')
+      currentTab.title = url.startsWith('su://games') ? 'Games' :
+        url.startsWith('su://extensions') ? 'Extensions' :
+        url.startsWith('su://bookmarks') ? 'Bookmarks' :
+        url.startsWith('su://2fa') ? '2FA' : getHost(url);
+      currentTab.favicon = url.startsWith('su://')
         ? ''
         : `https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHost(url))}&sz=32`;
       renderTabs();
@@ -2815,12 +3077,29 @@
     browserErrorScreen.hidden = false;
   }
 
+  let pendingProxyNavigations = [];
+
+  function applyEnglishPreferences() {
+    if (!scramjet || !scramjet.cookieJar) return;
+    try {
+      scramjet.cookieJar.setCookies('PREF=hl=en; domain=.youtube.com; path=/', new URL('https://www.youtube.com/'));
+      scramjet.cookieJar.setCookies('PREF=hl=en; domain=.google.com; path=/', new URL('https://www.google.com/'));
+    } catch (_) {}
+  }
+
   function loadUrlInFrame(url, shouldNavigate = true) {
     const tab = getActiveTab();
     if (!tab) return;
     const internalUrl = getInternalGameUrl(url);
     if (!internalUrl && (!isProxyReady || !scramjet)) {
-      showBrowserError('offline', url);
+      tab.url = url;
+      showBrowserView();
+      browserErrorScreen.hidden = true;
+      topUrlInput.value = url;
+      frameLoader.classList.remove('hidden');
+      frameLoaderMsg.textContent = 'Proxy Initializing...';
+      pendingProxyNavigations = pendingProxyNavigations.filter(p => p.tabId !== tab.id);
+      pendingProxyNavigations.push({ tabId: tab.id, url, shouldNavigate });
       return;
     }
 
@@ -2835,8 +3114,8 @@
         updateTabMetadata(tab);
       });
       tab.metadataTimer = setInterval(() => {
-        if (tab.id === activeTabId) updateTabMetadata(tab);
-      }, 750);
+        if (tab.id === activeTabId && !document.hidden) updateTabMetadata(tab);
+      }, 3000);
     }
     if (!internalUrl && !tab.sjFrame) {
       tab.sjFrame = scramjet.createFrame(tab.frame);
@@ -2847,7 +3126,7 @@
     sjFrame = internalUrl ? null : tab.sjFrame;
     showBrowserView();
     browserErrorScreen.hidden = true;
-    topUrlInput.value = tab.url;
+    topUrlInput.value = getDisplayUrl(tab.url);
     if (shouldNavigate || !tab.frame.dataset.loaded) {
       frameLoader.classList.remove('hidden');
       frameLoaderMsg.textContent = `Connecting to ${getHost(url)}...`;
@@ -2868,7 +3147,7 @@
         tab.frame.src = internalUrl;
       } else {
         tab.frame.dataset.loaded = 'true';
-        tab.sjFrame.go(url);
+        tab.sjFrame.go(getEffectiveLoadUrl(url));
       }
     } catch (e) {
       addLog(`Navigation error: ${e.message}`, 'err');
@@ -2878,21 +3157,33 @@
   }
 
   function getInternalGameUrl(url) {
+    if (!url || typeof url !== 'string') return '';
     const match = /^su:\/\/games(?:\/([a-z0-9_-]+))?\/?(?:\?[^#]*)?(?:#.*)?$/i.exec(url);
-    if (!match) return '';
-    const route = new URL(url);
-    if (match[1]) route.searchParams.set('provider', match[1]);
-    const hubUrl = new URL(appPath('internals/games/index.html'), location.href);
-    hubUrl.search = route.search;
-    hubUrl.hash = route.hash;
-    return hubUrl.href;
+    if (match) {
+      const route = new URL(url);
+      if (match[1]) route.searchParams.set('provider', match[1]);
+      const hubUrl = new URL(appPath('internals/games/index.html'), location.href);
+      hubUrl.search = route.search;
+      hubUrl.hash = route.hash;
+      return hubUrl.href;
+    }
+    if (/^su:\/\/extensions\/?(?:\?[^#]*)?(?:#.*)?$/i.test(url)) {
+      return new URL(appPath('internals/extensions/index.html'), location.href).href;
+    }
+    if (/^su:\/\/bookmarks\/?(?:\?[^#]*)?(?:#.*)?$/i.test(url)) {
+      return new URL(appPath('internals/bookmarks/index.html'), location.href).href;
+    }
+    if (/^su:\/\/2fa\/?(?:\?[^#]*)?(?:#.*)?$/i.test(url)) {
+      return new URL(appPath('internals/2fa/index.html'), location.href).href;
+    }
+    return '';
   }
 
   function isInternalGameDocument(url) {
     try {
       const currentUrl = new URL(url, location.href);
-      const gamesPath = new URL(appPath('internals/games/'), location.href).pathname;
-      return currentUrl.origin === location.origin && currentUrl.pathname.startsWith(gamesPath);
+      const internalsPath = new URL(appPath('internals/'), location.href).pathname;
+      return currentUrl.origin === location.origin && currentUrl.pathname.startsWith(internalsPath);
     } catch (_) {
       return false;
     }
@@ -2910,20 +3201,95 @@
 
   window.addEventListener('message', event => {
     const tab = getActiveTab();
-    if (event.origin !== location.origin ||
-        event.source !== tab?.frame?.contentWindow ||
-        event.data?.type !== 'superuser:navigate' ||
-        typeof event.data.url !== 'string') return;
-    const target = event.data.url.trim();
-    if (/^su:\/\/games(?:\/[a-z0-9_-]+)?\/?(?:\?[^#]*)?$/i.test(target) ||
-        /^https?:\/\//i.test(target)) {
-      navigate(target);
+    if (event.origin !== location.origin) return;
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+
+    if (data.type === 'superuser:navigate' && typeof data.url === 'string') {
+      navigate(data.url.trim());
+      return;
+    }
+
+    if (data.type === 'superuser:create-tab' && typeof data.url === 'string') {
+      const target = data.url.trim();
+      createTab(target === 'home' ? 'home' : target);
+      return;
+    }
+
+    if (data.type === 'superuser:install-userscript-url' && typeof data.url === 'string') {
+      installUserscriptFromUrl(data.url.trim());
+      return;
+    }
+
+    if (data.type === 'superuser:get-proxy-src' && typeof data.url === 'string') {
+      try {
+        const gameFrame = tab?.frame?.contentDocument?.getElementById('providerFrame');
+        if (gameFrame && scramjet) {
+          const gameSjFrame = scramjet.createFrame(gameFrame);
+          gameSjFrame.go(data.url.trim());
+        } else {
+          navigate(data.url.trim());
+        }
+      } catch (_) {
+        navigate(data.url.trim());
+      }
+      return;
+    }
+
+    if (data.type === 'superuser:ext-toggle' && typeof data.id === 'string') {
+      enabledExtensions[data.id] = !!data.enabled;
+      localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
+      return;
+    }
+
+    if (data.type === 'superuser:ext-install' || data.type === 'superuser:ext-delete') {
+      loadExtensionCatalog();
+      return;
+    }
+
+    if (data.type === 'superuser:bookmark-add' || data.type === 'superuser:bookmark-delete') {
+      renderBookmarksBar();
+      return;
     }
   });
+
+  let isRotatingWisp = false;
+
+  async function rotateWispAndRetry(tab) {
+    if ((tab.wispRetryCount || 0) >= 3 || isRotatingWisp) {
+      showBrowserError(500, tab.url);
+      return;
+    }
+    isRotatingWisp = true;
+    tab.wispRetryCount = (tab.wispRetryCount || 0) + 1;
+    frameLoader.classList.remove('hidden');
+    frameLoaderMsg.textContent = `Server error 500. Retrying on alternate Wisp server (attempt ${tab.wispRetryCount}/3)...`;
+    addLog(`HTTP 500 on ${tab.url}. Auto-rotating to alternate Wisp server...`, 'warn');
+    localStorage.removeItem(WISP_STORAGE_KEY);
+    try {
+      const nextWisp = await discoverAndConnectWisp();
+      if (nextWisp && nextWisp.transport) {
+        activeTransport = nextWisp.transport;
+        scramjet.setTransport(activeTransport);
+        addLog(`Switched Wisp transport to ${nextWisp.url}, retrying page...`, 'ok');
+        setTimeout(() => {
+          isRotatingWisp = false;
+          loadUrlInFrame(tab.url, true);
+        }, 400);
+        return;
+      }
+    } catch (_) {}
+    isRotatingWisp = false;
+    showBrowserError(500, tab.url);
+  }
 
   function updateTabMetadata(tab) {
     const responseStatus = tab.navigationPending ? 0 : getFrameResponseStatus(tab);
     if (responseStatus >= 400 && responseStatus < 600) {
+      if ((responseStatus === 500 || responseStatus === 502 || responseStatus === 503) && (tab.wispRetryCount || 0) < 3) {
+        rotateWispAndRetry(tab);
+        return;
+      }
       showBrowserError(responseStatus, tab.url);
       return;
     }
@@ -2969,14 +3335,19 @@
         }
       }
     } catch (_) {}
-    if (tab.url.startsWith('su://games')) {
+    if (tab.url.startsWith('su://')) {
       publicUrl = tab.url;
     }
     if (/^https?:\/\//i.test(publicUrl)) tab.url = publicUrl;
     let host = getHost(publicUrl);
     try { host = new URL(publicUrl).hostname; } catch (_) {}
-    const nextTitle = title || (tab.url.startsWith('su://games') ? 'Games' : host);
-    const nextFavicon = icon || (tab.url.startsWith('su://games')
+    let suTitle = 'SuperUser';
+    if (tab.url.startsWith('su://games')) suTitle = 'Games';
+    else if (tab.url.startsWith('su://extensions')) suTitle = 'Extensions';
+    else if (tab.url.startsWith('su://bookmarks')) suTitle = 'Bookmarks';
+    else if (tab.url.startsWith('su://2fa')) suTitle = '2FA';
+    const nextTitle = title || (tab.url.startsWith('su://') ? suTitle : host);
+    const nextFavicon = icon || (tab.url.startsWith('su://')
       ? ''
       : `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`);
     const metadataChanged = tab.url !== previousUrl || tab.title !== nextTitle || tab.favicon !== nextFavicon;
@@ -3005,12 +3376,39 @@
         const frameWindow = tab.frame.contentWindow;
         frameWindow.addEventListener('popstate', () => updateTabMetadata(tab));
         frameWindow.addEventListener('hashchange', () => updateTabMetadata(tab));
+        frameWindow.open = function(u) {
+          if (u) createTab(u);
+          else createTab('home');
+          return null;
+        };
+      } catch (_) {}
+      try {
+        doc.addEventListener('click', function(e) {
+          const a = e.target?.closest?.('a[href]');
+          if (!a) return;
+          const h = a.href;
+          if (/\.user\.js(?:\?.*)?$/i.test(h) || /greasyfork\.org\/.*\/scripts\/\d+\/code\//i.test(h)) {
+            e.preventDefault();
+            e.stopPropagation();
+            installUserscriptFromUrl(h);
+            return;
+          }
+          if (a.target === '_blank' || a.target === '_new') {
+            e.preventDefault();
+            e.stopPropagation();
+            createTab(h);
+          }
+        }, true);
+        doc.addEventListener('contextmenu', function(e) {
+          handleContextMenu(e, tab);
+        });
       } catch (_) {}
       installAdBlocker(tab);
       injectEnglishLanguage(tab);
+      offerSiteExtension(tab, host);
     }
     if (tab.id === activeTabId) {
-      if (tab.url !== previousUrl) topUrlInput.value = tab.url;
+      if (tab.url !== previousUrl) topUrlInput.value = getDisplayUrl(tab.url);
       setWindowTitle(tab.title ? `${tab.title} - SuperUser` : 'SuperUser Proxy');
       const appFavicon = document.getElementById('appFavicon');
       if (appFavicon) appFavicon.href = tab.favicon || appPath('assets/shortcuts/icons/google.png');
@@ -3050,12 +3448,29 @@
 
   document.getElementById('topFullscreenBtn').addEventListener('click', async () => {
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await frameArea.requestFullscreen();
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      const tab = getActiveTab();
+      if (tab?.url?.startsWith('su://games')) {
+        const gameFrame = tab.frame?.contentDocument?.getElementById('providerFrame');
+        if (gameFrame) {
+          await (gameFrame.requestFullscreen?.() || frameArea.requestFullscreen());
+          return;
+        }
+      }
+      await frameArea.requestFullscreen();
     } catch (error) {
       showToast('Fullscreen is unavailable', true);
       addLog(`Fullscreen error: ${error.message}`, 'warn');
     }
+  });
+
+  document.getElementById('topBookmarkBtn')?.addEventListener('click', () => {
+    const tab = getActiveTab();
+    if (!tab || tab.url === 'home') return;
+    bookmarkCurrentTab(tab);
   });
 
   document.getElementById('topHomeBtn').addEventListener('click', () => {
@@ -3121,24 +3536,28 @@
   let autocompleteIndex = -1;
 
   const COMMANDS = [
-    { cmd: 'sudo',              desc: 'Show all available commands' },
-    { cmd: 'sudo search <query>',desc: 'Search with the selected provider' },
-    { cmd: 'sudo yt <query>',   desc: 'Search YouTube' },
-    { cmd: 'sudo newtab',       desc: 'Create a new tab' },
-    { cmd: 'sudo clear',        desc: 'Close all tabs and return home' },
-    { cmd: 'sudo logs',         desc: 'Open system and proxy diagnostics' },
-    { cmd: 'sudo test',         desc: 'Run proxy connection diagnostics' },
-    { cmd: 'sudo settings',     desc: 'Open settings modal' },
-    { cmd: 'sudo help',         desc: 'Open commands reference modal' },
-    { cmd: 'sudo intro',        desc: 'Replay typewriter bump & ripple intro' },
-    { cmd: 'sudo reload',       desc: 'Reload current page' },
-    { cmd: 'sudo back',         desc: 'Go back' },
-    { cmd: 'sudo forward',      desc: 'Go forward' },
-    { cmd: 'sudo home',         desc: 'Return to home screen' },
-    { cmd: 'sudo wisp <url>',   desc: 'Switch Wisp server' }
-    ,{ cmd: 'sudo ext install <url>', desc: 'Install a userscript from a URL' }
-    ,{ cmd: 'sudo blank',       desc: 'Launch proxy in about:blank (tab cloaking)' }
-    ,{ cmd: 'sudo cloak',       desc: 'Launch proxy in about:blank (tab cloaking)' }
+    { cmd: 'sudo',                   desc: 'Show all available commands' },
+    { cmd: 'sudo search <query>',    desc: 'Search with the selected provider' },
+    { cmd: 'sudo yt <query>',        desc: 'Search YouTube' },
+    { cmd: 'sudo newtab',            desc: 'Create a new tab' },
+    { cmd: 'sudo clear',             desc: 'Close all tabs and return home' },
+    { cmd: 'sudo logs',              desc: 'Open system and proxy diagnostics' },
+    { cmd: 'sudo test',              desc: 'Run proxy connection diagnostics' },
+    { cmd: 'sudo settings',          desc: 'Open settings modal' },
+    { cmd: 'sudo help',              desc: 'Open commands reference modal' },
+    { cmd: 'sudo ext',               desc: 'Open extensions manager (su://extensions)' },
+    { cmd: 'sudo ext install <url>', desc: 'Install a userscript from a URL or GreasyFork' },
+    { cmd: 'sudo ext uninstall <id>',desc: 'Uninstall or disable an extension' },
+    { cmd: 'sudo bookmarks',         desc: 'Open bookmarks manager (su://bookmarks)' },
+    { cmd: 'sudo 2fa',               desc: 'Open 2FA authenticator (su://2fa)' },
+    { cmd: 'sudo games',             desc: 'Open games library (su://games)' },
+    { cmd: 'sudo blank',             desc: 'Launch proxy in about:blank (tab cloaking)' },
+    { cmd: 'sudo intro',             desc: 'Replay typewriter bump & ripple intro' },
+    { cmd: 'sudo reload',            desc: 'Reload current page' },
+    { cmd: 'sudo back',              desc: 'Go back' },
+    { cmd: 'sudo forward',           desc: 'Go forward' },
+    { cmd: 'sudo home',              desc: 'Return to home screen' },
+    { cmd: 'sudo wisp <url>',        desc: 'Switch Wisp server' }
   ];
 
   const PAGE_IDS = ['settings', 'help', 'logs'];
@@ -3352,17 +3771,31 @@
         return;
       }
 
+      if (command === 'ext' || command === 'extensions') {
+        navigate('su://extensions');
+        return;
+      }
       if (command.startsWith('ext install ')) {
-        const extensionUrl = args.slice(12).trim();
-        if (!/^https?:\/\/.+\.js(?:[?#].*)?$/i.test(extensionUrl)) {
-          showToast('Use sudo ext install https://site/extension.js', true);
-          return;
-        }
-        const installed = JSON.parse(localStorage.getItem('superuser-installed-extensions') || '[]');
-        if (!installed.includes(extensionUrl)) installed.push(extensionUrl);
-        localStorage.setItem('superuser-installed-extensions', JSON.stringify(installed));
-        showToast('Extension installed');
-        addLog(`Installed extension: ${extensionUrl}`, 'ok');
+        const extUrl = args.slice(12).trim();
+        if (!extUrl) { showToast('Usage: sudo ext install <url>', true); return; }
+        installUserscriptFromUrl(extUrl);
+        return;
+      }
+      if (command.startsWith('ext uninstall ')) {
+        const extId = args.slice(14).trim();
+        uninstallExtension(extId);
+        return;
+      }
+      if (command === 'bookmarks') {
+        navigate('su://bookmarks');
+        return;
+      }
+      if (command === '2fa') {
+        navigate('su://2fa');
+        return;
+      }
+      if (command === 'games') {
+        navigate('su://games');
         return;
       }
 
@@ -3433,9 +3866,38 @@ frame.addEventListener('load', () => {
 </\script>
 </body></html>`);
     target.document.close();
+
+    // Immediately close the opener page that launched about:blank
+    allowApplicationUnload = true;
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch (_) {}
+    setTimeout(() => {
+      try { window.close(); } catch (_) {}
+    }, 50);
   }
 
   document.getElementById('cloakAboutBlankBtn').addEventListener('click', launchInAboutBlank);
+  document.getElementById('gamesSidebarBtn')?.addEventListener('click', () => navigate('su://games'));
+
+  // Games fullscreen listener: hides search bar and buttons while in fullscreen
+  document.addEventListener('fullscreenchange', () => {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    const tab = getActiveTab();
+    const isGames = tab?.url?.startsWith('su://games') || (document.fullscreenElement && document.fullscreenElement.closest && document.fullscreenElement.closest('#frameArea'));
+    if (isFs && isGames) {
+      document.body.classList.add('games-fullscreen');
+      try {
+        const gameFrame = tab?.frame?.contentDocument?.getElementById('providerFrame');
+        if (gameFrame && document.fullscreenElement !== gameFrame) {
+          gameFrame.requestFullscreen?.().catch(() => {});
+        }
+      } catch (_) {}
+    } else {
+      document.body.classList.remove('games-fullscreen');
+    }
+  });
 
   document.getElementById('newTabBtn').addEventListener('click', () => createTab('home'));
   document.getElementById('collapseSidebarBtn').addEventListener('click', () => {
@@ -3766,26 +4228,37 @@ frame.addEventListener('load', () => {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  let lastPingTime = 0;
+  let cachedPingStr = '';
+
   function updateSystemStatus() {
     const time = new Date();
     document.getElementById('systemTime').textContent =
       time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
     if (!activeTransport) {
       document.getElementById('serverPing').textContent = 'connecting…';
-    } else if (!pingInFlight) {
-      pingInFlight = true;
-      const started = performance.now();
-      probeTransport(activeTransport)
-        .then(() => {
-          document.getElementById('serverPing').textContent =
-            `${Math.round(performance.now() - started)}ms`;
-        })
-        .catch(() => {
-          document.getElementById('serverPing').textContent = 'offline';
-        })
-        .finally(() => {
-          pingInFlight = false;
-        });
+    } else {
+      // Avoid spamming Wisp WebSocket: only re-measure ping if visible and >5 mins elapsed
+      const now = Date.now();
+      if (cachedPingStr && (now - lastPingTime < 300000 || document.hidden)) {
+        document.getElementById('serverPing').textContent = cachedPingStr;
+      } else if (!pingInFlight && !document.hidden) {
+        pingInFlight = true;
+        const started = performance.now();
+        probeTransport(activeTransport)
+          .then(() => {
+            const ms = Math.round(performance.now() - started);
+            cachedPingStr = `${ms}ms`;
+            lastPingTime = Date.now();
+            document.getElementById('serverPing').textContent = cachedPingStr;
+          })
+          .catch(() => {
+            document.getElementById('serverPing').textContent = cachedPingStr || 'offline';
+          })
+          .finally(() => {
+            pingInFlight = false;
+          });
+      }
     }
     if (navigator.getBattery) {
       navigator.getBattery().then(battery => {
@@ -3879,41 +4352,55 @@ frame.addEventListener('load', () => {
 
   /* ═══ FORCE ENGLISH LANGUAGE ON EVERY PAGE ═══ */
   function injectEnglishLanguage(tab) {
-    const doc = tab.frame?.contentDocument;
-    if (!doc || !doc.documentElement) return;
-    // Avoid re-injection on the same document
-    if (doc.querySelector('script[data-su-lang]')) return;
-    const el = doc.createElement('script');
-    el.setAttribute('data-su-lang', '1');
-    el.textContent = `(function(){
-  // Force document language to English
-  document.documentElement.lang = 'en';
-  document.documentElement.setAttribute('lang', 'en');
-
-  // Spoof navigator language so sites pick en-US automatically
+    applyEnglishPreferences();
+    try {
+      const win = tab?.frame?.contentWindow;
+      if (win) {
+        try {
+          Object.defineProperty(win.navigator, 'language', { get: () => 'en-US', configurable: true });
+          Object.defineProperty(win.navigator, 'languages', { get: () => ['en-US', 'en'], configurable: true });
+          Object.defineProperty(win.navigator, 'userLanguage', { get: () => 'en-US', configurable: true });
+        } catch (_) {}
+      }
+      const doc = tab?.frame?.contentDocument;
+      if (!doc || !doc.documentElement) return;
+      if (doc.documentElement.lang !== 'en') {
+        doc.documentElement.lang = 'en';
+        doc.documentElement.setAttribute('lang', 'en');
+      }
+      if (doc.querySelector('script[data-su-lang]')) return;
+      const el = doc.createElement('script');
+      el.setAttribute('data-su-lang', '1');
+      el.textContent = `(function(){
   try {
-    Object.defineProperty(navigator, 'language',   { get: () => 'en-US', configurable: true });
-    Object.defineProperty(navigator, 'languages',  { get: () => ['en-US', 'en'], configurable: true });
+    document.documentElement.lang = 'en';
+    document.documentElement.setAttribute('lang', 'en');
+    Object.defineProperty(navigator, 'language', { get: () => 'en-US', configurable: true });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'], configurable: true });
     Object.defineProperty(navigator, 'userLanguage', { get: () => 'en-US', configurable: true });
   } catch(_) {}
-
-  // Set <html lang> whenever the DOM settles (some SPAs reset it)
   const fixLang = () => {
-    if (document.documentElement.lang !== 'en')
+    if (document.documentElement && document.documentElement.lang !== 'en') {
       document.documentElement.lang = 'en';
+      document.documentElement.setAttribute('lang', 'en');
+    }
   };
-  const obs = new MutationObserver(fixLang);
-  obs.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-  fixLang();
+  try {
+    const obs = new MutationObserver(fixLang);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  } catch(_) {}
 })();`;
-    try {
-      (doc.head || doc.documentElement).prepend(el);
+      try {
+        (doc.head || doc.documentElement).prepend(el);
+      } catch (_) {}
     } catch (_) {}
   }
 
   function installAdBlocker(tab) {
     if (!settings.adBlock || !tab.frame?.contentDocument) return;
     const doc = tab.frame.contentDocument;
+    const host = getHost(tab.url || '');
+    if (host.includes('youtube.com')) return;
     let scheduled = false;
     const removeAds = () => {
       scheduled = false;
@@ -3959,21 +4446,27 @@ frame.addEventListener('load', () => {
     const home = document.getElementById('quickShortcuts');
     if (!home) return;
     const faviconFor = shortcut => {
-      if (shortcut.icon) return '';
+      if (shortcut.icon || shortcut.svg || shortcut.url === 'su://games') return '';
       let host = shortcut.domain;
       try { host = new URL(shortcut.url).hostname; } catch (_) {}
       return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
     };
-    const visibleTiles = visibleShortcuts.map(shortcut => `
+    const visibleTiles = visibleShortcuts.map(shortcut => {
+      const isGames = shortcut.url === 'su://games';
+      const svgIcon = shortcut.svg || (isGames ? GAMEPAD_SVG : null);
+      return `
       <div class="shortcut-tile-wrap">
         <button class="shortcut-tile" type="button" data-shortcut-url="${escapeHtml(shortcut.url)}" title="${escapeHtml(shortcut.title)}">
-          ${shortcut.icon
-            ? `<span class="shortcut-glyph" aria-hidden="true">${escapeHtml(shortcut.icon)}</span>`
-            : `<img class="shortcut-icon" src="${escapeHtml(faviconFor(shortcut))}" alt="" loading="lazy">`}
+          ${svgIcon
+            ? `<span class="shortcut-svg" aria-hidden="true">${svgIcon}</span>`
+            : (shortcut.icon && shortcut.icon !== '🎮')
+              ? `<span class="shortcut-glyph" aria-hidden="true">${escapeHtml(shortcut.icon)}</span>`
+              : `<img class="shortcut-icon" src="${escapeHtml(faviconFor(shortcut))}" alt="" loading="lazy">`}
           <span>${escapeHtml(shortcut.title)}</span>
         </button>
         <button class="shortcut-remove" type="button" data-remove-shortcut="${escapeHtml(shortcut.title)}" aria-label="Remove ${escapeHtml(shortcut.title)}" title="Remove shortcut">×</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     const availableDefaults = DEFAULT_SHORTCUTS.filter(shortcut =>
       !visibleShortcuts.some(item => item.title === shortcut.title));
     const defaultOptions = availableDefaults.map(shortcut =>
@@ -4066,21 +4559,34 @@ frame.addEventListener('load', () => {
     });
   }
 
+  /* ═══ EXTENSIONS & USERSCRIPT ENGINE ═══ */
   async function loadExtensionCatalog() {
     try {
       const response = await fetch(appPath('extensions/scripts/index.json'), { cache: 'no-store' });
-      extensionCatalog = await response.json();
-      renderExtensionSettings();
+      const builtin = await response.json();
+      let custom = [];
+      try { custom = JSON.parse(localStorage.getItem('superuser-custom-extensions') || '[]'); } catch (_) {}
+      extensionCatalog = [
+        ...builtin.map(e => ({ ...e, custom: false })),
+        ...custom.map(e => ({ ...e, custom: true }))
+      ];
     } catch (error) {
       addLog(`Extension catalog unavailable: ${error.message}`, 'warn');
     }
   }
 
-  /* ═══ USERSCRIPT ENGINE ═══ */
   const _userscriptCache = {};
+  const _requireCache = {};
 
   async function getUserScriptSource(id) {
     if (_userscriptCache[id]) return _userscriptCache[id];
+    let custom = [];
+    try { custom = JSON.parse(localStorage.getItem('superuser-custom-extensions') || '[]'); } catch (_) {}
+    const customMatch = custom.find(x => x.id === id);
+    if (customMatch && customMatch.src) {
+      _userscriptCache[id] = customMatch.src;
+      return customMatch.src;
+    }
     try {
       const res = await fetch(appPath(`extensions/scripts/${encodeURIComponent(id)}.js`), { cache: 'force-cache' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -4093,41 +4599,289 @@ frame.addEventListener('load', () => {
     }
   }
 
+  function parseUserScriptMeta(src) {
+    const meta = { matches: [], requires: [] };
+    const block = src.match(/\/\/\s*==UserScript==([\s\S]*?)\/\/\s*==\/UserScript==/);
+    if (!block) return meta;
+    for (const line of block[1].split('\n')) {
+      const m = line.match(/\/\/\s*@([a-zA-Z_-]+)\s+(.+)/);
+      if (m) {
+        const k = m[1].trim();
+        const v = m[2].trim();
+        if (k === 'match' || k === 'include') meta.matches.push(v);
+        else if (k === 'require') meta.requires.push(v);
+        else if (!meta[k]) meta[k] = v;
+      }
+    }
+    return meta;
+  }
+
+  function matchesUrl(pattern, urlStr) {
+    if (!pattern || !urlStr) return false;
+    try {
+      if (pattern === '*' || pattern === '<all_urls>') return true;
+      const regexStr = '^' + pattern
+        .replace(/[-[\]{}()+?.,\\^$|#\s]/g, '\\$&')
+        .replace(/\\\*/g, '.*') + '$';
+      return new RegExp(regexStr).test(urlStr);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function installUserscriptFromUrl(url) {
+    let rawUrl = url;
+    const gfMatch = url.match(/greasyfork\.org\/.*?\/scripts\/(\d+)/);
+    if (gfMatch) {
+      rawUrl = `https://update.greasyfork.org/scripts/${gfMatch[1]}/${gfMatch[1]}.user.js`;
+    }
+    showToast('Fetching script from URL…');
+    try {
+      const res = await fetch(rawUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const src = await res.text();
+      const meta = parseUserScriptMeta(src);
+      const name = meta.name || rawUrl.split('/').pop().replace(/\.user\.js$/, '') || 'Custom Script';
+      let id = meta.id;
+      if (!id && meta.matches.length) {
+        for (const m of meta.matches) {
+          const parts = m.replace(/^\*:\/\//, '').replace(/\/.*$/, '').replace(/^\*\./, '');
+          if (parts && parts !== '*') { id = parts; break; }
+        }
+      }
+      if (!id) id = name.toLowerCase().replace(/[^a-z0-9]/gi, '_');
+      let custom = [];
+      try { custom = JSON.parse(localStorage.getItem('superuser-custom-extensions') || '[]'); } catch (_) {}
+      const existingIdx = custom.findIndex(e => e.id === id);
+      const entry = { id, title: name, url: rawUrl, src, matches: meta.matches };
+      if (existingIdx >= 0) custom[existingIdx] = entry;
+      else custom.push(entry);
+      localStorage.setItem('superuser-custom-extensions', JSON.stringify(custom));
+      enabledExtensions[id] = true;
+      localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
+      delete _userscriptCache[id];
+      await loadExtensionCatalog();
+      showToast(`Installed: ${name}`);
+      addLog(`Installed userscript: ${name} (${id})`, 'ok');
+    } catch (e) {
+      showToast('Install error: ' + e.message, true);
+      addLog(`Failed to install userscript from ${url}: ${e.message}`, 'err');
+    }
+  }
+
+  function uninstallExtension(id) {
+    if (!id) {
+      showToast('Usage: sudo ext uninstall <id>', true);
+      return;
+    }
+    let custom = [];
+    try { custom = JSON.parse(localStorage.getItem('superuser-custom-extensions') || '[]'); } catch (_) {}
+    const initialLen = custom.length;
+    custom = custom.filter(e => e.id.toLowerCase() !== id.toLowerCase() && e.title.toLowerCase() !== id.toLowerCase());
+    if (custom.length < initialLen) {
+      localStorage.setItem('superuser-custom-extensions', JSON.stringify(custom));
+      delete enabledExtensions[id];
+      delete _userscriptCache[id];
+      localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
+      loadExtensionCatalog();
+      showToast(`Uninstalled: ${id}`);
+      addLog(`Uninstalled extension: ${id}`, 'ok');
+    } else {
+      if (extensionCatalog.some(e => e.id.toLowerCase() === id.toLowerCase())) {
+        enabledExtensions[id] = false;
+        localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
+        showToast(`Disabled built-in extension: ${id}`);
+      } else {
+        showToast(`Extension "${id}" not found`, true);
+      }
+    }
+  }
+
   async function injectUserScript(tab, extension) {
     const doc = tab.frame?.contentDocument;
     if (!doc || !doc.documentElement) return;
-    // Avoid double-injection
     if (doc.querySelector(`[data-su-script="${CSS.escape(extension.id)}"]`)) return;
     const src = await getUserScriptSource(extension.id);
     if (!src) return;
+
+    // Parse and fetch @require dependencies
+    const reqMatches = [...src.matchAll(/\/\/\s*@require\s+(https?:\/\/\S+)/g)].map(m => m[1]);
+    let reqCode = '';
+    if (reqMatches.length) {
+      const parts = await Promise.all(reqMatches.map(async reqUrl => {
+        if (_requireCache[reqUrl]) return _requireCache[reqUrl];
+        try {
+          const r = await fetch(reqUrl);
+          const t = await r.text();
+          _requireCache[reqUrl] = t;
+          return t;
+        } catch (e) {
+          console.warn('Failed to load @require', reqUrl, e);
+          return '';
+        }
+      }));
+      reqCode = parts.join('\n;\n');
+    }
+
     const scriptEl = doc.createElement('script');
     scriptEl.setAttribute('data-su-script', extension.id);
+    const storePrefix = `__gm_${extension.id.replace(/[^a-z0-9]/gi, '_')}_`;
+
     scriptEl.textContent = `
 (function() {
   'use strict';
-  // === Tampermonkey / GM API Polyfills ===
-  const unsafeWindow = window;
-  const _gmStore = JSON.parse(localStorage.getItem('__gm_${CSS.escape(extension.id).replace(/[^a-z0-9]/gi,'_')}') || '{}');
-  const _saveGm = () => { try { localStorage.setItem('__gm_${CSS.escape(extension.id).replace(/[^a-z0-9]/gi,'_')}', JSON.stringify(_gmStore)); } catch(_){} };
-  function GM_setValue(k, v) { _gmStore[k] = v; _saveGm(); }
-  function GM_getValue(k, def) { return k in _gmStore ? _gmStore[k] : def; }
-  function GM_deleteValue(k) { delete _gmStore[k]; _saveGm(); }
-  function GM_listValues() { return Object.keys(_gmStore); }
-  function GM_addStyle(css) {
-    const st = document.createElement('style');
-    st.textContent = css;
-    (document.head || document.documentElement).appendChild(st);
+  // === Full Tampermonkey & Greasemonkey Compatibility Layer ===
+  var __targetWindow = (function() { return (typeof window !== 'undefined' ? window : this) || (0, eval)('this') || globalThis; })();
+  __targetWindow.unsafeWindow = __targetWindow;
+  var unsafeWindow = __targetWindow;
+
+  var _storagePrefix = ${JSON.stringify(storePrefix)};
+  function GM_setValue(name, value) {
+    try { localStorage.setItem(_storagePrefix + name, JSON.stringify(value)); } catch(e){}
   }
-  function GM_log(...args) { console.log('[GM:${extension.id}]', ...args); }
-  function GM_notification(opts) { console.log('[GM notification]', opts); }
-  function GM_openInTab(url) { window.open(url, '_blank'); }
-  function GM_setClipboard(text) { navigator.clipboard?.writeText(text).catch(()=>{}); }
-  const GM_info = {
-    script: { name: ${JSON.stringify(extension.title)}, version: '1.0', namespace: ${JSON.stringify(extension.id)}, description: '', matches: [${JSON.stringify('*://' + extension.id + '/*')}] },
+  function GM_getValue(name, defaultValue) {
+    try {
+      var item = localStorage.getItem(_storagePrefix + name);
+      return item !== null ? JSON.parse(item) : defaultValue;
+    } catch(e) { return defaultValue; }
+  }
+  function GM_deleteValue(name) {
+    try { localStorage.removeItem(_storagePrefix + name); } catch(e){}
+  }
+  function GM_listValues() {
+    var keys = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(_storagePrefix) === 0) keys.push(k.substring(_storagePrefix.length));
+      }
+    } catch(e){}
+    return keys;
+  }
+  function GM_addStyle(css) {
+    try {
+      var style = document.createElement('style');
+      style.textContent = css;
+      (document.head || document.documentElement).appendChild(style);
+      return style;
+    } catch(e) { return null; }
+  }
+  function GM_setClipboard(data, info) {
+    try { navigator.clipboard?.writeText(String(data)).catch(function(){}); } catch(e){}
+  }
+  function GM_log() {
+    try { console.log.apply(console, ['[TM:' + ${JSON.stringify(extension.id)} + ']'].concat(Array.prototype.slice.call(arguments))); } catch(e){}
+  }
+  function GM_notification(details, ondone) {
+    var title = typeof details === 'object' ? details.title : 'SuperUser';
+    var text = typeof details === 'object' ? details.text : String(details);
+    try { console.log('[Notification: ' + title + ']', text); } catch(e){}
+    if (typeof ondone === 'function') setTimeout(ondone, 100);
+  }
+  function GM_openInTab(url, options) {
+    try { window.top.postMessage({ type: 'superuser:create-tab', url: url }, '*'); } catch(_) {}
+    return null;
+  }
+  function GM_registerMenuCommand(caption, commandFunc, accessKey) { return Math.floor(Math.random() * 100000); }
+  function GM_unregisterMenuCommand(cmdId) {}
+  function GM_getResourceText(name) { return ''; }
+  function GM_getResourceURL(name) { return ''; }
+
+  function GM_xmlhttpRequest(details) {
+    if (!details || !details.url) return;
+    var method = (details.method || 'GET').toUpperCase();
+    var headers = details.headers || {};
+    var body = details.data || details.body || null;
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = null;
+    if (details.timeout && controller) {
+      timer = setTimeout(function() {
+        controller.abort();
+        if (typeof details.ontimeout === 'function') details.ontimeout();
+      }, details.timeout);
+    }
+    fetch(details.url, {
+      method: method,
+      headers: headers,
+      body: body,
+      signal: controller ? controller.signal : undefined
+    }).then(function(res) {
+      if (timer) clearTimeout(timer);
+      return res.text().then(function(text) {
+        var rawHeaders = '';
+        try { res.headers.forEach(function(v, k) { rawHeaders += k + ': ' + v + '\\r\\n'; }); } catch(e){}
+        var respObj = {
+          status: res.status,
+          statusText: res.statusText,
+          readyState: 4,
+          responseText: text,
+          response: text,
+          responseHeaders: rawHeaders,
+          finalUrl: res.url
+        };
+        if (typeof details.onreadystatechange === 'function') details.onreadystatechange(respObj);
+        if (typeof details.onload === 'function') details.onload(respObj);
+      });
+    }).catch(function(err) {
+      if (timer) clearTimeout(timer);
+      var errObj = { error: err.message, readyState: 4, status: 0 };
+      if (typeof details.onerror === 'function') details.onerror(errObj);
+    });
+  }
+
+  var GM_info = {
+    script: {
+      name: ${JSON.stringify(extension.title)},
+      version: '1.0',
+      namespace: 'http://tampermonkey.net/',
+      description: '',
+      matches: [${JSON.stringify('*://' + extension.id + '/*')}]
+    },
     scriptMetaStr: '',
-    scriptHandler: 'SuperUser',
-    version: '1.0.0'
+    scriptHandler: 'Tampermonkey',
+    version: '5.1.0'
   };
+
+  var GM = {
+    setValue: function(k, v) { return Promise.resolve(GM_setValue(k, v)); },
+    getValue: function(k, d) { return Promise.resolve(GM_getValue(k, d)); },
+    deleteValue: function(k) { return Promise.resolve(GM_deleteValue(k)); },
+    listValues: function() { return Promise.resolve(GM_listValues()); },
+    addStyle: function(css) { return Promise.resolve(GM_addStyle(css)); },
+    setClipboard: function(d, i) { return Promise.resolve(GM_setClipboard(d, i)); },
+    xmlHttpRequest: GM_xmlhttpRequest,
+    info: GM_info
+  };
+
+  try {
+    __targetWindow.unsafeWindow = __targetWindow;
+    __targetWindow.GM_setValue = GM_setValue;
+    __targetWindow.GM_getValue = GM_getValue;
+    __targetWindow.GM_deleteValue = GM_deleteValue;
+    __targetWindow.GM_listValues = GM_listValues;
+    __targetWindow.GM_addStyle = GM_addStyle;
+    __targetWindow.GM_setClipboard = GM_setClipboard;
+    __targetWindow.GM_log = GM_log;
+    __targetWindow.GM_notification = GM_notification;
+    __targetWindow.GM_openInTab = GM_openInTab;
+    __targetWindow.GM_registerMenuCommand = GM_registerMenuCommand;
+    __targetWindow.GM_unregisterMenuCommand = GM_unregisterMenuCommand;
+    __targetWindow.GM_getResourceText = GM_getResourceText;
+    __targetWindow.GM_getResourceURL = GM_getResourceURL;
+    __targetWindow.GM_xmlhttpRequest = GM_xmlhttpRequest;
+    __targetWindow.GM_info = GM_info;
+    __targetWindow.GM = GM;
+  } catch(e){}
+
+  // === @require dependencies ===
+  ${reqCode}
+
+  // Ensure Swal is exposed
+  if (typeof Sweetalert2 !== 'undefined') {
+    __targetWindow.Swal = __targetWindow.SweetAlert = __targetWindow.sweetAlert = __targetWindow.swal = Sweetalert2;
+  }
+  var Swal = __targetWindow.Swal;
+
   // === Userscript Body ===
   ${src}
 })();
@@ -4141,7 +4895,14 @@ frame.addEventListener('load', () => {
   }
 
   function offerSiteExtension(tab, host) {
-    const extension = extensionCatalog.find(item => host === item.id || host.endsWith(`.${item.id}`));
+    const tabUrl = tab.url || '';
+    const extension = extensionCatalog.find(item => {
+      if (host === item.id || host.endsWith(`.${item.id}`)) return true;
+      if (Array.isArray(item.matches)) {
+        return item.matches.some(p => matchesUrl(p, tabUrl));
+      }
+      return false;
+    });
     if (!extension) return;
 
     // Auto-inject if the extension is enabled
@@ -4154,7 +4915,7 @@ frame.addEventListener('load', () => {
     if (tab.extensionPrompted === extension.id) return;
     tab.extensionPrompted = extension.id;
     document.getElementById('extensionPromptText').textContent =
-      `${extension.title} is available for ${extension.id}:`;
+      `${extension.title} is available for this site:`;
     const prompt = document.getElementById('extensionPrompt');
     prompt.classList.add('open');
     const run = document.getElementById('runExtensionBtn');
@@ -4165,10 +4926,175 @@ frame.addEventListener('load', () => {
       localStorage.setItem(EXTENSIONS_KEY, JSON.stringify(enabledExtensions));
       injectUserScript(tab, extension);
       close();
-      renderExtensionSettings();
     };
     cancel.onclick = close;
   }
+
+  /* ═══ BOOKMARKS ENGINE ═══ */
+  function getSavedBookmarks() {
+    try { return JSON.parse(localStorage.getItem('superuser-bookmarks') || '[]'); } catch (_) { return []; }
+  }
+
+  function bookmarkCurrentTab(tab) {
+    if (!tab || !tab.url || tab.url === 'home' || tab.url.startsWith('su://bookmarks')) return;
+    let bms = getSavedBookmarks();
+    const existing = bms.find(b => b.url === tab.url);
+    if (existing) {
+      showToast('Page already bookmarked');
+      return;
+    }
+    const host = getHost(tab.url);
+    const bm = {
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+      title: tab.title || host || 'Bookmark',
+      url: tab.url,
+      favicon: tab.favicon || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`,
+      addedAt: Date.now()
+    };
+    bms.unshift(bm);
+    localStorage.setItem('superuser-bookmarks', JSON.stringify(bms));
+    renderBookmarksBar();
+    showToast(`Bookmarked: ${bm.title}`);
+  }
+
+  function renderBookmarksBar() {
+    const container = document.getElementById('bookmarksBarItems');
+    if (!container) return;
+    const bms = getSavedBookmarks();
+    if (!bms.length) {
+      container.innerHTML = '<span style="color:#52525b;font-size:11px;">No bookmarks yet. Right-click or press ⭐ to add.</span>';
+      return;
+    }
+    container.innerHTML = bms.slice(0, 15).map(bm => {
+      let host = 'example.com';
+      try { host = new URL(bm.url).hostname; } catch(_) {}
+      const icon = bm.favicon || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
+      return `
+        <button class="bm-bar-item" data-bm-url="${escapeHtml(bm.url)}" title="${escapeHtml(bm.title)} (${escapeHtml(bm.url)})">
+          <img src="${escapeHtml(icon)}" alt="" onerror="this.style.display='none'">
+          <span>${escapeHtml(bm.title)}</span>
+        </button>
+      `;
+    }).join('');
+    container.querySelectorAll('[data-bm-url]').forEach(btn => {
+      btn.addEventListener('click', () => navigate(btn.dataset.bmUrl));
+      btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (confirm(`Remove bookmark "${btn.title.split(' (')[0]}"?`)) {
+          let updated = getSavedBookmarks().filter(b => b.url !== btn.dataset.bmUrl);
+          localStorage.setItem('superuser-bookmarks', JSON.stringify(updated));
+          renderBookmarksBar();
+          showToast('Bookmark removed');
+        }
+      });
+    });
+  }
+
+  /* ═══ 2FA TOTP ENGINE ═══ */
+  async function getTotpCode(secret, period = 30, digits = 6) {
+    const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = '';
+    for (const c of secret.toUpperCase().replace(/[\s=]/g, '')) {
+      const i = alpha.indexOf(c);
+      if (i < 0) continue;
+      bits += i.toString(2).padStart(5, '0');
+    }
+    const keyBytes = new Uint8Array(Math.floor(bits.length / 8));
+    for (let i = 0; i < keyBytes.length; i++) keyBytes[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2);
+    const counter = BigInt(Math.floor(Date.now() / 1000 / period));
+    const cb = new Uint8Array(8);
+    let tmp = counter;
+    for (let i = 7; i >= 0; i--) { cb[i] = Number(tmp & 0xffn); tmp >>= 8n; }
+    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, cb));
+    const off = sig[sig.length - 1] & 0x0f;
+    const code = ((sig[off] & 0x7f) << 24 | (sig[off + 1] & 0xff) << 16 | (sig[off + 2] & 0xff) << 8 | (sig[off + 3] & 0xff)) % (10 ** digits);
+    return String(code).padStart(digits, '0');
+  }
+
+  /* ═══ CONTEXT MENU ENGINE ═══ */
+  const suContextMenu = document.getElementById('suContextMenu');
+  let ctxCurrentTab = null;
+  let ctxMatched2FaAccount = null;
+
+  function closeContextMenu() {
+    if (suContextMenu) suContextMenu.style.display = 'none';
+  }
+  document.addEventListener('click', closeContextMenu);
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('#suContextMenu')) return;
+    const tab = getActiveTab();
+    if (tab && tab.url && tab.url !== 'home') {
+      handleContextMenu(e, tab, true);
+    }
+  });
+
+  function handleContextMenu(e, tab, fromTop = false) {
+    e.preventDefault();
+    e.stopPropagation();
+    ctxCurrentTab = tab;
+    let x = e.clientX;
+    let y = e.clientY;
+    if (!fromTop && tab.frame) {
+      const rect = tab.frame.getBoundingClientRect();
+      x += rect.left;
+      y += rect.top;
+    }
+    // Check 2FA accounts matching this tab's website
+    let accounts = [];
+    try { accounts = JSON.parse(localStorage.getItem('superuser-2fa-accounts') || '[]'); } catch (_) {}
+    let host = getHost(tab.url || '');
+    try { host = new URL(tab.url).hostname; } catch(_) {}
+    ctxMatched2FaAccount = accounts.find(acc => acc.website && (host === acc.website || host.endsWith('.' + acc.website) || acc.website.includes(host)));
+
+    const paste2faEl = document.getElementById('ctx-paste2fa');
+    if (paste2faEl) {
+      if (ctxMatched2FaAccount) {
+        paste2faEl.style.display = 'flex';
+        paste2faEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Paste 2FA (${escapeHtml(ctxMatched2FaAccount.name)})`;
+      } else {
+        paste2faEl.style.display = 'none';
+      }
+    }
+
+    suContextMenu.style.left = `${Math.min(x, window.innerWidth - 200)}px`;
+    suContextMenu.style.top = `${Math.min(y, window.innerHeight - 200)}px`;
+    suContextMenu.style.display = 'block';
+  }
+
+  document.getElementById('ctx-bookmark')?.addEventListener('click', () => {
+    closeContextMenu();
+    if (ctxCurrentTab) bookmarkCurrentTab(ctxCurrentTab);
+  });
+  document.getElementById('ctx-open2fa')?.addEventListener('click', () => {
+    closeContextMenu();
+    navigate('su://2fa');
+  });
+  document.getElementById('ctx-extensions')?.addEventListener('click', () => {
+    closeContextMenu();
+    navigate('su://extensions');
+  });
+  document.getElementById('ctx-paste2fa')?.addEventListener('click', async () => {
+    closeContextMenu();
+    if (!ctxMatched2FaAccount || !ctxCurrentTab) return;
+    try {
+      const code = await getTotpCode(ctxMatched2FaAccount.secret);
+      const frameDoc = ctxCurrentTab.frame?.contentDocument;
+      const activeEl = frameDoc?.activeElement;
+      if (activeEl && ('value' in activeEl)) {
+        activeEl.value = code;
+        activeEl.dispatchEvent(new Event('input', { bubbles: true }));
+        activeEl.dispatchEvent(new Event('change', { bubbles: true }));
+      } else if (activeEl && activeEl.isContentEditable) {
+        activeEl.textContent = code;
+      }
+      navigator.clipboard?.writeText(code).catch(() => {});
+      showToast(`Pasted 2FA code: ${code}`);
+      addLog(`Pasted 2FA code for ${ctxMatched2FaAccount.name}`, 'ok');
+    } catch (err) {
+      showToast('Error generating 2FA code', true);
+    }
+  });
 
   // Start only after every DOM reference and event handler has been initialized.
   document.getElementById('wispSelectPage').value = ['local', OFFICIAL_WISP_URL,
@@ -4186,11 +5112,25 @@ frame.addEventListener('load', () => {
   setupLearningScreen();
   loadExtensionCatalog();
   renderShortcuts();
+  renderBookmarksBar();
   let restoredTabs = false;
   initScramjetProxy().then(ready => {
     if (ready && !restoredTabs) {
       restoredTabs = true;
       if (!restoreTabs()) createTab('home');
+    }
+  });
+
+  // Launch in about:blank immediately when the page loads (if top-level window)
+  window.addEventListener('load', () => {
+    const isEmbedded = (() => {
+      try { return window.self !== window.top; } catch (_) { return true; }
+    })();
+    if (!isEmbedded && !sessionStorage.getItem('su_page_blanked')) {
+      sessionStorage.setItem('su_page_blanked', '1');
+      setTimeout(() => {
+        launchInAboutBlank();
+      }, 250);
     }
   });
   </script>
