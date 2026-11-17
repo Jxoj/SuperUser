@@ -1,0 +1,22 @@
+You're implementing this end to end in one pass. No staged delivery, no check-ins, no partial files with "rest unchanged". Print every file whole even when long.
+
+Situation: Scramjet/Wisp client, client-side code only — no server functions, no database, no Cloudflare. The bare gateway host loads fine; the filter blocks the proxied document navigation because the URL shape contains %3A%2F%2F and paired random segments. A service worker intercepts that navigation and serves it over Wisp so no HTTP request to the flagged path occurs. URL shaping is the second layer, payload obfuscation the third.
+
+Deliver every file complete:
+
+1. config module — path prefix list, encoding strategy list, mode flag. One place, nothing hardcoded elsewhere.
+2. service worker — registered at origin root, clients.claim, intercepts document navigations under the configured prefix, does not intercept its own control page or the app shell.
+3. SW document handler — resolve token to the gateway native path, fetch over Wisp, return a Response. The browser must never fall through to network for these.
+4. URL codec — multiple strategies, all resolvable by the SW: base64url in path, base64url in query under ?u=, hex, short static code table. Encode and decode each.
+5. fragment shape — bare path only, target in the hash. Note in a comment that fetch events drop fragments, so the target is passed by postMessage from the parent rather than read off the request.
+6. block detection — inspect the fetched body for fingerprints before injecting into the iframe, retry the next shape on a hit. Detection runs client-side because there is no server to hash for me.
+7. reputation — localStorage with TTL, winner cached, consulted only on failure. No cross-device store.
+8. polymorphic payload mutator — per-request schema, renamed keys, rotating XOR mask from crypto.getRandomValues, returns Uint8Array.
+9. matching demutator — exact inverse, symmetric.
+10. chunking — offset headers, receive-side reassembly buffer.
+11. Wisp framing — binary frames, type byte, varint stream id, payload, schema as length-prefixed preamble. Not JSON.
+12. capability probe — best effort, 404 means unsupported, never throws, defaults to client-only mode.
+13. fallback — probe fails, everything runs unmutated.
+14. README — adding a shape, SW scope requirement, and the unavoidable first-load caveat.
+
+Constraints: no preamble before the first file. One sentence at the end for anything I should know. Unknowable detail: pick the common option, note it in that sentence, keep moving. Don't ask mid-output. Paragraph ending in a question: answer it yourself.
