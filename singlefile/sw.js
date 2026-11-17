@@ -3,7 +3,7 @@ importScripts(new URL("./controller/controller.sw.js", self.location.href).href)
 
 const APP_BASE = new URL("./", self.location.href);
 const CACHE_PREFIX = `superuser-shell:${APP_BASE.pathname}`;
-const CACHE_NAME   = `${CACHE_PREFIX}:v6-polymorphic`;
+const CACHE_NAME   = `${CACHE_PREFIX}:v5`;
 const PROXY_CACHE  = `${CACHE_PREFIX}:proxy-assets:v1`;
 
 const SHELL_FILES = [
@@ -14,7 +14,6 @@ const SHELL_FILES = [
   "controller/epoxy.js",
   "scramjet/scramjet.js",
   "scramjet/scramjet.wasm",
-  "client/polymorphic-handshake.js",
   "extensions/scripts/index.json",
   "internals/games/index.html",
   "internals/games/providers.json",
