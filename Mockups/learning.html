@@ -1,1361 +1,1746 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Learning</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Cedar Academy | Rooted in Wisdom, Growing in Excellence</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Playfair Display (Academic Serif) & Plus Jakarta Sans (Clean UI Sans) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            900: '#312e81',
+                        cedar: {
+                            950: '#0a1f16',
+                            900: '#123325',
+                            800: '#1a4734',
+                            700: '#245e45',
+                            600: '#2f7858',
+                            100: '#e8f3ee',
+                            50: '#f4f9f6',
                         },
-                        spark: {
-                            cyan: '#06b6d4',
-                            emerald: '#10b981',
-                            amber: '#f59e0b',
-                            rose: '#f43f5e',
-                            purple: '#8b5cf6'
+                        gold: {
+                            600: '#b0862b',
+                            500: '#c99b38',
+                            400: '#dfb656',
+                            100: '#fbf4e2',
+                        },
+                        cream: {
+                            50: '#fdfcf9',
+                            100: '#f8f5ed',
+                            200: '#efe9d8',
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Canvas Confetti -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-        .code-font {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        .glow-effect {
-            box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.3);
-        }
-        .glow-effect-cyan {
-            box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.3);
-        }
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-    </style>
 </head>
-<body class="min-h-screen flex flex-col selection:bg-brand-500 selection:text-white pb-12">
+<body class="bg-cream-50 text-slate-800 font-sans antialiased selection:bg-cedar-800 selection:text-white">
 
-    <!-- Top Navigation Bar -->
-    <header class="sticky top-0 z-40 w-full glass-panel border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                
-                <!-- Logo & Brand -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="setActiveTab('dashboard')">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-spark-cyan flex items-center justify-center shadow-lg shadow-brand-500/30">
-                        <i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i>
-                    </div>
-                    <div>
-                        <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-500 bg-clip-text text-transparent">Super Learning</span>
-                        <span class="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">LABS</span>
-                    </div>
-                </div>
-
-                <!-- Main Desktop Navigation -->
-                <nav class="hidden md:flex items-center space-x-1">
-                    <button id="nav-dashboard" onclick="setActiveTab('dashboard')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-brand-400 bg-brand-500/10 flex items-center space-x-2">
-                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                        <span>Dashboard</span>
-                    </button>
-                    <button id="nav-courses" onclick="setActiveTab('courses')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2">
-                        <i data-lucide="book-open" class="w-4 h-4"></i>
-                        <span>Courses</span>
-                    </button>
-                    <button id="nav-labs" onclick="setActiveTab('labs')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2">
-                        <i data-lucide="flask-conical" class="w-4 h-4"></i>
-                        <span>Interactive Labs</span>
-                    </button>
-                    <button id="nav-progress" onclick="setActiveTab('progress')" class="nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2">
-                        <i data-lucide="trophy" class="w-4 h-4"></i>
-                        <span>Progress</span>
-                    </button>
-                </nav>
-
-                <!-- User HUD & Profile -->
-                <div class="flex items-center space-x-4">
-                    <!-- Streak Counter -->
-                    <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold" title="7 Day Learning Streak">
-                        <i data-lucide="flame" class="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse"></i>
-                        <span id="streak-counter">7 Days</span>
-                    </div>
-
-                    <!-- XP Points -->
-                    <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-spark-purple/10 border border-spark-purple/20 text-spark-purple text-xs font-bold" title="Total Experience Points">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-spark-purple"></i>
-                        <span id="user-xp">1,450 XP</span>
-                    </div>
-
-                    <!-- Profile Avatar Dropdown Button -->
-                    <div class="relative group">
-                        <button class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 border-2 border-brand-500/40 hover:border-brand-500 transition-colors text-slate-300 hover:text-white" title="Student Profile">
-                            <i data-lucide="user" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-
+    <!-- Top Academic Announcement Bar -->
+    <div class="bg-cedar-950 text-cream-100 text-xs sm:text-sm py-2.5 px-4 border-b border-cedar-800">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+                <span class="js-school-year-range inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gold-500 text-cedar-950">2026–2027</span>
+                <span>Enrollment & Priority Registration is now open for Kindergarten through Grade 12.</span>
             </div>
-        </div>
-
-        <!-- Mobile Navigation Row -->
-        <div class="md:hidden flex items-center justify-around border-t border-slate-800 py-2 px-2 bg-slate-900/90">
-            <button onclick="setActiveTab('dashboard')" class="mobile-nav-btn text-xs text-brand-400 font-medium flex flex-col items-center gap-1">
-                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                <span>Home</span>
-            </button>
-            <button onclick="setActiveTab('courses')" class="mobile-nav-btn text-xs text-slate-400 font-medium flex flex-col items-center gap-1">
-                <i data-lucide="book-open" class="w-5 h-5"></i>
-                <span>Courses</span>
-            </button>
-            <button onclick="setActiveTab('labs')" class="mobile-nav-btn text-xs text-slate-400 font-medium flex flex-col items-center gap-1">
-                <i data-lucide="flask-conical" class="w-5 h-5"></i>
-                <span>Labs</span>
-            </button>
-            <button onclick="setActiveTab('progress')" class="mobile-nav-btn text-xs text-slate-400 font-medium flex flex-col items-center gap-1">
-                <i data-lucide="trophy" class="w-5 h-5"></i>
-                <span>Stats</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- MAIN CONTENT AREA -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex-1">
-
-        <!-- ==================== VIEW 1: DASHBOARD ==================== -->
-        <section id="view-dashboard" class="space-y-8 transition-opacity duration-300">
-            
-            <!-- Hero Greeting Banner -->
-            <div class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-brand-900 via-indigo-950 to-slate-900 p-6 sm:p-8 border border-brand-500/20 shadow-2xl">
-                <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="absolute right-1/3 -top-10 w-64 h-64 bg-spark-cyan/20 rounded-full blur-3xl pointer-events-none"></div>
-
-                <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-                    <div class="lg:col-span-2 space-y-3">
-                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 text-xs font-semibold border border-brand-500/30">
-                            <i data-lucide="compass" class="w-3.5 h-3.5"></i>
-                            <span>Daily STEM Focus: Kinematics & Polynomials</span>
-                        </div>
-                        <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-                            Welcome back! <span class="inline-block animate-bounce">🚀</span>
-                        </h1>
-                        <p class="text-slate-300 text-sm sm:text-base max-w-xl">
-                            You've completed <span class="text-white font-semibold">65%</span> of your weekly STEM goals. Jump back into your interactive labs or tackle today's physics challenge!
-                        </p>
-                    </div>
-
-                    <!-- Daily Challenge Widget Card -->
-                    <div class="glass-panel p-5 rounded-2xl border border-white/10 shadow-lg space-y-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <span class="p-2 rounded-lg bg-amber-500/20 text-amber-400">
-                                    <i data-lucide="target" class="w-5 h-5"></i>
-                                </span>
-                                <h3 class="font-bold text-sm text-white">Daily Spark Challenge</h3>
-                            </div>
-                            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-spark-purple/20 text-spark-purple border border-spark-purple/30">+50 XP</span>
-                        </div>
-
-                        <p class="text-xs text-slate-300 font-medium" id="daily-question-text">
-                            If a projectile is launched at an angle of 45°, which component of initial velocity determines its maximum height?
-                        </p>
-
-                        <div class="grid grid-cols-2 gap-2 text-xs" id="daily-options-container">
-                            <button onclick="checkDailyAnswer(0, false)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
-                                A) Horizontal ($v_x$)
-                            </button>
-                            <button onclick="checkDailyAnswer(1, true)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
-                                B) Vertical ($v_y$)
-                            </button>
-                            <button onclick="checkDailyAnswer(2, false)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
-                                C) Total Speed ($v$)
-                            </button>
-                            <button onclick="checkDailyAnswer(3, false)" class="daily-opt text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-brand-600/30 border border-slate-700 hover:border-brand-500/50 text-slate-200 transition">
-                                D) Gravity ($g$)
-                            </button>
-                        </div>
-                        <div id="daily-feedback" class="hidden text-xs font-semibold p-2 rounded-lg"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Resume Learning Dashboard Cards -->
-            <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-white flex items-center space-x-2">
-                        <i data-lucide="play-circle" class="w-5 h-5 text-brand-400"></i>
-                        <span>Continue Learning</span>
-                    </h2>
-                    <button onclick="setActiveTab('courses')" class="text-sm text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1">
-                        <span>View All Courses</span>
-                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Resume Card 1 -->
-                    <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition-all duration-300 hover:-translate-y-1 group">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                                Mathematics • Intermediate
-                            </span>
-                            <span class="text-xs text-slate-400 flex items-center space-x-1">
-                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                                <span>25 mins left</span>
-                            </span>
-                        </div>
-                        <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">
-                            Algebra II: Quadratic Equation Transformations
-                        </h3>
-                        <p class="text-xs text-slate-400 mt-1 mb-4 line-clamp-2">
-                            Master how coefficients $a, b, c$ manipulate vertex coordinates, axis of symmetry, and parabolic curvature using dynamic graph sliders.
-                        </p>
-                        
-                        <!-- Progress Bar -->
-                        <div class="space-y-1.5 mb-5">
-                            <div class="flex justify-between text-xs font-semibold">
-                                <span class="text-slate-300">Progress</span>
-                                <span class="text-brand-400">65%</span>
-                            </div>
-                            <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div class="h-full bg-gradient-to-r from-brand-500 to-spark-cyan rounded-full" style="width: 65%;"></div>
-                            </div>
-                        </div>
-
-                        <button onclick="openLessonModal('quadratic')" class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm flex items-center justify-center space-x-2 transition shadow-lg shadow-brand-600/25">
-                            <i data-lucide="play" class="w-4 h-4 fill-white"></i>
-                            <span>Resume Lesson & Interactive Lab</span>
-                        </button>
-                    </div>
-
-                    <!-- Resume Card 2 -->
-                    <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-spark-cyan/40 transition-all duration-300 hover:-translate-y-1 group">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-spark-cyan/20 text-spark-cyan border border-spark-cyan/30">
-                                Physics • Intermediate
-                            </span>
-                            <span class="text-xs text-slate-400 flex items-center space-x-1">
-                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                                <span>40 mins left</span>
-                            </span>
-                        </div>
-                        <h3 class="text-lg font-bold text-white group-hover:text-spark-cyan transition-colors">
-                            Projectile Motion & Trajectory Vectors
-                        </h3>
-                        <p class="text-xs text-slate-400 mt-1 mb-4 line-clamp-2">
-                            Simulate cannonball trajectories across different gravity environments (Earth, Moon, Mars) and analyze vector components.
-                        </p>
-
-                        <!-- Progress Bar -->
-                        <div class="space-y-1.5 mb-5">
-                            <div class="flex justify-between text-xs font-semibold">
-                                <span class="text-slate-300">Progress</span>
-                                <span class="text-spark-cyan">40%</span>
-                            </div>
-                            <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div class="h-full bg-gradient-to-r from-spark-cyan to-spark-emerald rounded-full" style="width: 40%;"></div>
-                            </div>
-                        </div>
-
-                        <button onclick="openLessonModal('projectile')" class="w-full py-2.5 px-4 rounded-xl bg-spark-cyan/20 hover:bg-spark-cyan text-white hover:text-slate-900 border border-spark-cyan/40 font-semibold text-sm flex items-center justify-center space-x-2 transition shadow-lg shadow-spark-cyan/10">
-                            <i data-lucide="flask-conical" class="w-4 h-4"></i>
-                            <span>Launch Kinematics Simulator</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Stats & Recommended Labs Row -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="glass-panel p-4 rounded-2xl flex items-center space-x-4 border border-slate-800">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xl">
-                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-extrabold text-white">24</p>
-                        <p class="text-xs text-slate-400">Labs Completed</p>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl flex items-center space-x-4 border border-slate-800">
-                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xl">
-                        <i data-lucide="clock-4" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-extrabold text-white">18.5 hrs</p>
-                        <p class="text-xs text-slate-400">Interactive Time</p>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl flex items-center space-x-4 border border-slate-800">
-                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
-                        <i data-lucide="award" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-extrabold text-white">Top 5%</p>
-                        <p class="text-xs text-slate-400">Community Rank</p>
-                    </div>
-                </div>
-            </div>
-
-        </section>
-
-        <!-- ==================== VIEW 2: COURSES CATALOG ==================== -->
-        <section id="view-courses" class="hidden space-y-6">
-            
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Explore Interactive Courses</h1>
-                    <p class="text-slate-400 text-sm">Interactive visual modules for high school & college STEM subjects.</p>
-                </div>
-
-                <!-- Search Input -->
-                <div class="relative w-full md:w-80">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="course-search-input" onkeyup="filterCourses()" placeholder="Search algebra, physics, cells..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500 transition">
-                </div>
-            </div>
-
-            <!-- Subject Filter Tabs -->
-            <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
-                <button onclick="setSubjectFilter('all')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-600 text-white transition">
-                    All Subjects
-                </button>
-                <button onclick="setSubjectFilter('math')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
-                    Mathematics
-                </button>
-                <button onclick="setSubjectFilter('physics')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
-                    Physics
-                </button>
-                <button onclick="setSubjectFilter('chemistry')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
-                    Chemistry
-                </button>
-                <button onclick="setSubjectFilter('biology')" class="subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition">
-                    Biology
+            <div class="flex items-center gap-4 text-cream-200">
+                <a href="#registration" class="underline hover:text-gold-400 transition font-medium">Start Application →</a>
+                <span class="hidden md:inline text-cedar-700">|</span>
+                <button onclick="openPortalModal()" class="hidden md:inline-flex items-center gap-1 hover:text-gold-400 transition">
+                    <i data-lucide="lock" class="w-3.5 h-3.5"></i> Portal Login
                 </button>
             </div>
-
-            <!-- Courses Grid -->
-            <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Dynamically Rendered by JS -->
-            </div>
-
-        </section>
-
-        <!-- ==================== VIEW 3: STANDALONE INTERACTIVE LABS ==================== -->
-        <section id="view-labs" class="hidden space-y-6">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">STEM Interactive Sandbox Labs</h1>
-                    <p class="text-slate-400 text-sm">Experiment directly with live physical models, circuit builders, and graphing calculators.</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <!-- Lab Card 1: Quadratic Function Grapher -->
-                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <span class="p-3 rounded-xl bg-brand-500/20 text-brand-400">
-                            <i data-lucide="line-chart" class="w-6 h-6"></i>
-                        </span>
-                        <div>
-                            <h3 class="font-bold text-white text-lg">Quadratic Grapher & Root Finder</h3>
-                            <p class="text-xs text-slate-400">Math Lab • Interactive Parabola Simulation</p>
-                        </div>
-                    </div>
-                    <p class="text-xs text-slate-300 mb-4">
-                        Adjust parabola constants $a, b, c$ to observe real-time transformations, vertex movement, and discriminant roots behavior.
-                    </p>
-                    <button onclick="openLessonModal('quadratic')" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition">
-                        Open Graph Sandbox
-                    </button>
-                </div>
-
-                <!-- Lab Card 2: Projectile Kinematics Simulator -->
-                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-spark-cyan/40 transition">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <span class="p-3 rounded-xl bg-spark-cyan/20 text-spark-cyan">
-                            <i data-lucide="rocket" class="w-6 h-6"></i>
-                        </span>
-                        <div>
-                            <h3 class="font-bold text-white text-lg">Projectile Kinematics Lab</h3>
-                            <p class="text-xs text-slate-400">Physics Lab • Launch Vector Physics</p>
-                        </div>
-                    </div>
-                    <p class="text-xs text-slate-300 mb-4">
-                        Launch projectiles at customizable launch angles, speeds, and planetary gravity constants. View real-time velocity vectors.
-                    </p>
-                    <button onclick="openLessonModal('projectile')" class="w-full py-2.5 rounded-xl bg-spark-cyan/20 hover:bg-spark-cyan text-white hover:text-slate-900 border border-spark-cyan/40 font-semibold text-sm transition">
-                        Open Projectile Sandbox
-                    </button>
-                </div>
-
-                <!-- Lab Card 3: Electric Circuit Builder -->
-                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-amber-500/40 transition">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <span class="p-3 rounded-xl bg-amber-500/20 text-amber-400">
-                            <i data-lucide="zap" class="w-6 h-6"></i>
-                        </span>
-                        <div>
-                            <h3 class="font-bold text-white text-lg">Ohm's Law & Circuit Lab</h3>
-                            <p class="text-xs text-slate-400">Physics / EE Lab • Interactive Voltage & Resistance</p>
-                        </div>
-                    </div>
-                    <p class="text-xs text-slate-300 mb-4">
-                        Simulate DC electric circuits, toggle switches, adjust voltage sources and resistor values to visualize electron velocity and power dissipation.
-                    </p>
-                    <button onclick="openLessonModal('circuit')" class="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-white hover:text-slate-900 border border-amber-500/40 font-semibold text-sm transition">
-                        Open Circuit Sandbox
-                    </button>
-                </div>
-
-                <!-- Lab Card 4: 3D Molecular Model Viewer -->
-                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-emerald-500/40 transition">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <span class="p-3 rounded-xl bg-emerald-500/20 text-emerald-400">
-                            <i data-lucide="atom" class="w-6 h-6"></i>
-                        </span>
-                        <div>
-                            <h3 class="font-bold text-white text-lg">Interactive Molecular Visualizer</h3>
-                            <p class="text-xs text-slate-400">Chemistry Lab • Ball-and-Stick Geometry</p>
-                        </div>
-                    </div>
-                    <p class="text-xs text-slate-300 mb-4">
-                        Rotate and inspect molecular atomic bonding geometries including $H_2O$, $CO_2$, and $CH_4$ with real-time bond angle calculations.
-                    </p>
-                    <button onclick="openLessonModal('chemistry')" class="w-full py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-white hover:text-slate-900 border border-emerald-500/40 font-semibold text-sm transition">
-                        Open Molecular Viewer
-                    </button>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- ==================== VIEW 4: PROGRESS & ANALYTICS ==================== -->
-        <section id="view-progress" class="hidden space-y-6">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Your STEM Mastery & Stats</h1>
-                    <p class="text-slate-400 text-sm">Detailed overview of your concept retention, lab accuracy, and learning streak.</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Skill Radar / Breakdown -->
-                <div class="glass-panel p-6 rounded-2xl border border-slate-800 lg:col-span-2 space-y-6">
-                    <h3 class="text-lg font-bold text-white">Subject Mastery Overview</h3>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <div class="flex justify-between text-xs font-semibold mb-1.5">
-                                <span class="text-slate-300 flex items-center space-x-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
-                                    <span>Algebra & Calculus</span>
-                                </span>
-                                <span class="text-brand-400">82% Mastery</span>
-                            </div>
-                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div class="h-full bg-brand-500 rounded-full" style="width: 82%;"></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between text-xs font-semibold mb-1.5">
-                                <span class="text-slate-300 flex items-center space-x-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-spark-cyan"></span>
-                                    <span>Classical Mechanics & Physics</span>
-                                </span>
-                                <span class="text-spark-cyan">68% Mastery</span>
-                            </div>
-                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div class="h-full bg-spark-cyan rounded-full" style="width: 68%;"></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between text-xs font-semibold mb-1.5">
-                                <span class="text-slate-300 flex items-center space-x-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                                    <span>Organic & Inorganic Chemistry</span>
-                                </span>
-                                <span class="text-emerald-400">45% Mastery</span>
-                            </div>
-                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div class="h-full bg-emerald-500 rounded-full" style="width: 45%;"></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between text-xs font-semibold mb-1.5">
-                                <span class="text-slate-300 flex items-center space-x-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                                    <span>Cellular Biology & Genetics</span>
-                                </span>
-                                <span class="text-purple-400">30% Mastery</span>
-                            </div>
-                            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div class="h-full bg-purple-500 rounded-full" style="width: 30%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Badges Earned Card -->
-                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
-                    <h3 class="text-lg font-bold text-white">Recent Achievements</h3>
-                    <div class="space-y-3">
-                        <div class="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700">
-                            <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">
-                                🏆
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Parabola Master</h4>
-                                <p class="text-xs text-slate-400">Solved 10 vertex form problems</p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700">
-                            <div class="w-10 h-10 rounded-lg bg-spark-cyan/20 text-spark-cyan flex items-center justify-center font-bold text-lg">
-                                🚀
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Kinematics Ace</h4>
-                                <p class="text-xs text-slate-400">Completed trajectory launch simulations</p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700">
-                            <div class="w-10 h-10 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-lg">
-                                ⚡
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">7-Day Flame</h4>
-                                <p class="text-xs text-slate-400">Maintained daily learning streak</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- ==================== INTERACTIVE LESSON MODAL OVERLAY ==================== -->
-    <div id="lesson-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-            
-            <!-- Modal Header Bar -->
-            <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 bg-slate-900/90">
-                <div class="flex items-center space-x-3">
-                    <span id="modal-subject-tag" class="px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                        Math Lab
-                    </span>
-                    <h2 id="modal-title" class="text-base sm:text-lg font-bold text-white truncate max-w-md">
-                        Interactive Lesson Title
-                    </h2>
-                </div>
-                
-                <div class="flex items-center space-x-3">
-                    <span class="text-xs text-slate-400 font-semibold hidden sm:inline-block">Lesson Step <span text-brand-400 id="modal-step">1/3</span></span>
-                    <button onclick="closeLessonModal()" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Modal Body Content -->
-            <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
-                
-                <!-- Lesson Explanation Banner -->
-                <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-2">
-                    <div class="flex items-center space-x-2 text-brand-400 text-xs font-bold uppercase tracking-wider">
-                        <i data-lucide="book-open-check" class="w-4 h-4"></i>
-                        <span>Key Concept & Formula</span>
-                    </div>
-                    <p id="modal-description" class="text-sm text-slate-200 leading-relaxed">
-                        Concept description goes here...
-                    </p>
-                    <div id="modal-formula-box" class="mt-2 p-3 rounded-xl bg-slate-950 border border-brand-500/30 text-brand-300 font-mono text-xs sm:text-sm flex items-center justify-between">
-                        <span id="modal-formula-text">$y = a(x - h)^2 + k$</span>
-                        <span class="text-slate-500 text-xs">Standard Form</span>
-                    </div>
-                </div>
-
-                <!-- DYNAMIC SIMULATION CONTAINER -->
-                <div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                            <i data-lucide="sliders" class="w-4 h-4 text-spark-cyan"></i>
-                            <span id="sim-title">Live Simulation & Visual Sandbox</span>
-                        </h3>
-                        <span class="text-xs text-slate-400">Interactive Canvas • Drag/Adjust Sliders</span>
-                    </div>
-
-                    <!-- Canvas Box -->
-                    <div class="relative w-full h-64 sm:h-80 bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
-                        <canvas id="sim-canvas" class="w-full h-full block"></canvas>
-                        
-                        <!-- Overlay Canvas Stats Badge -->
-                        <div id="sim-stats-overlay" class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300 font-mono">
-                            Loading dynamic variables...
-                        </div>
-                    </div>
-
-                    <!-- Interactive Controls Panel (Sliders / Toggles) -->
-                    <div id="sim-controls-panel" class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                        <!-- Controls dynamically generated by JS -->
-                    </div>
-                </div>
-
-                <!-- PRACTICAL QUIZ ASSESSMENT -->
-                <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                            <i data-lucide="help-circle" class="w-4 h-4 text-spark-purple"></i>
-                            <span>Concept Knowledge Check</span>
-                        </h3>
-                        <span class="text-xs text-spark-purple font-semibold bg-spark-purple/10 px-2.5 py-0.5 rounded-full border border-spark-purple/20">+100 XP</span>
-                    </div>
-
-                    <p id="quiz-question" class="text-xs sm:text-sm text-slate-200 font-medium">
-                        Quiz question will appear here based on the active lesson.
-                    </p>
-
-                    <div id="quiz-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-                        <!-- Options generated dynamically -->
-                    </div>
-
-                    <div id="quiz-feedback" class="hidden p-3 rounded-xl text-xs font-semibold border"></div>
-                </div>
-
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center">
-                <button onclick="closeLessonModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition">
-                    Exit Lesson
-                </button>
-                <button onclick="completeCurrentLesson()" id="finish-btn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-spark-cyan hover:from-brand-500 hover:to-spark-cyan/80 text-white font-bold text-xs sm:text-sm transition shadow-lg shadow-brand-500/20 flex items-center space-x-2">
-                    <span>Complete Lesson (+100 XP)</span>
-                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                </button>
-            </div>
-
         </div>
     </div>
 
-    <!-- JAVASCRIPT APP LOGIC & SIMULATION ENGINES -->
-    <script>
-        // Global App State
-        let currentTab = 'dashboard';
-        let currentSubjectFilter = 'all';
-        let userXP = 1450;
-        let activeLessonId = null;
-        let animFrameId = null;
-
-        // Course Catalog Data
-        const coursesData = [
-            {
-                id: 'quadratic',
-                title: 'Quadratic Functions & Parabolic Transformations',
-                subject: 'math',
-                subjectName: 'Mathematics',
-                difficulty: 'Intermediate',
-                lessonsCount: 12,
-                duration: '2.5 hrs',
-                progress: 65,
-                tag: 'Graph Visualizer',
-                color: 'brand',
-                desc: 'Learn how $f(x) = ax^2 + bx + c$ bends, shifts, and intersects axes with dynamic slider graphs.',
-                formula: 'f(x) = ax² + bx + c',
-                quiz: {
-                    question: 'What happens to the parabola graph when coefficient "a" is negative?',
-                    options: [
-                        { text: 'A) The parabola opens downward (∩ shape)', correct: true },
-                        { text: 'B) The graph shifts to the right', correct: false },
-                        { text: 'C) The parabola turns into a straight line', correct: false },
-                        { text: 'D) The y-intercept becomes zero', correct: false }
-                    ],
-                    explanation: 'Correct! When coefficient a < 0, the leading term causes the parabola to open downwards, forming a maximum vertex point.'
-                }
-            },
-            {
-                id: 'projectile',
-                title: 'Kinematics: 2D Projectile Motion Vectors',
-                subject: 'physics',
-                subjectName: 'Physics',
-                difficulty: 'Intermediate',
-                lessonsCount: 15,
-                duration: '3.5 hrs',
-                progress: 40,
-                tag: 'Launch Physics',
-                color: 'spark-cyan',
-                desc: 'Decompose initial velocity vectors into horizontal and vertical components across planetary gravity fields.',
-                formula: 'Range R = (v² · sin(2θ)) / g',
-                quiz: {
-                    question: 'At what launch angle (neglecting air resistance) is maximum horizontal range achieved?',
-                    options: [
-                        { text: 'A) 30 degrees', correct: false },
-                        { text: 'B) 45 degrees', correct: true },
-                        { text: 'C) 60 degrees', correct: false },
-                        { text: 'D) 90 degrees', correct: false }
-                    ],
-                    explanation: 'Spot on! sin(2 × 45°) = sin(90°) = 1, maximizing horizontal trajectory distance.'
-                }
-            },
-            {
-                id: 'circuit',
-                title: 'Electric Circuits & Ohm\'s Law Simulation',
-                subject: 'physics',
-                subjectName: 'Physics',
-                difficulty: 'Beginner',
-                lessonsCount: 9,
-                duration: '2.0 hrs',
-                progress: 80,
-                tag: 'Circuit Builder',
-                color: 'amber',
-                desc: 'Calculate current flow $I = V/R$, observe electron drift speeds, and monitor lamp power brightness.',
-                formula: 'V = I · R  |  P = I² · R',
-                quiz: {
-                    question: 'If voltage (V) across a fixed resistor is doubled, what happens to current (I)?',
-                    options: [
-                        { text: 'A) Current is halved', correct: false },
-                        { text: 'B) Current remains unchanged', correct: false },
-                        { text: 'C) Current is doubled', correct: true },
-                        { text: 'D) Current quadruples', correct: false }
-                    ],
-                    explanation: 'Exactly right! According to Ohm\'s Law (I = V/R), current is directly proportional to voltage.'
-                }
-            },
-            {
-                id: 'chemistry',
-                title: '3D Molecular Geometry & Valence Shells',
-                subject: 'chemistry',
-                subjectName: 'Chemistry',
-                difficulty: 'Beginner',
-                lessonsCount: 10,
-                duration: '2.2 hrs',
-                progress: 15,
-                tag: '3D Molecular Model',
-                color: 'emerald',
-                desc: 'Inspect interactive 3D chemical bonds, electron pair repulsion, and molecular symmetry angles.',
-                formula: 'VSEPR Theory Angles (e.g. 104.5° for H₂O)',
-                quiz: {
-                    question: 'What is the molecular geometry shape of Water (H₂O)?',
-                    options: [
-                        { text: 'A) Linear (180°)', correct: false },
-                        { text: 'B) Bent (~104.5°)', correct: true },
-                        { text: 'C) Trigonal Planar (120°)', correct: false },
-                        { text: 'D) Tetrahedral (109.5°)', correct: false }
-                    ],
-                    explanation: 'Correct! Two lone pairs on oxygen compress the H-O-H bond angle down to approximately 104.5°.'
-                }
-            },
-            {
-                id: 'calculus',
-                title: 'Calculus: Derivatives & Slope Visualizer',
-                subject: 'math',
-                subjectName: 'Mathematics',
-                difficulty: 'Advanced',
-                lessonsCount: 18,
-                duration: '4.5 hrs',
-                progress: 0,
-                tag: 'Calculus Sandbox',
-                color: 'brand',
-                desc: 'Explore instantaneous rate of change $f\'(x)$ by sliding secant lines into tangent lines.',
-                formula: 'f\'(x) = lim(Δx→0) [f(x+Δx) - f(x)] / Δx',
-                quiz: {
-                    question: 'What is the derivative of f(x) = x³ with respect to x?',
-                    options: [
-                        { text: 'A) 3x²', correct: true },
-                        { text: 'B) x²', correct: false },
-                        { text: 'C) 3x', correct: false },
-                        { text: 'D) 6x', correct: false }
-                    ],
-                    explanation: 'Great job! By the power rule d/dx[xⁿ] = n·xⁿ⁻¹, the derivative of x³ is 3x².'
-                }
-            },
-            {
-                id: 'biology',
-                title: 'Cellular Respiration & Mitochondria Energy',
-                subject: 'biology',
-                subjectName: 'Biology',
-                difficulty: 'Intermediate',
-                lessonsCount: 8,
-                duration: '1.8 hrs',
-                progress: 10,
-                tag: 'Microorganism Lab',
-                color: 'purple',
-                desc: 'Trace ATP generation pathways through glycolysis, Krebs cycle, and electron transport chains.',
-                formula: 'C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + 36 ATP',
-                quiz: {
-                    question: 'Which organelle is known as the powerhouse generating ATP synthesis in eukaryotic cells?',
-                    options: [
-                        { text: 'A) Ribosome', correct: false },
-                        { text: 'B) Mitochondrion', correct: true },
-                        { text: 'C) Golgi Apparatus', correct: false },
-                        { text: 'D) Endoplasmic Reticulum', correct: false }
-                    ],
-                    explanation: 'Correct! Mitochondria produce cellular ATP energy through oxidative phosphorylation.'
-                }
-            }
-        ];
-
-        // Initialize App
-        window.addEventListener('DOMContentLoaded', () => {
-            if (globalThis.lucide?.createIcons) lucide.createIcons();
-            renderCourses();
-        });
-
-        // Tab Navigation Switcher
-        function setActiveTab(tabId) {
-            currentTab = tabId;
-
-            // Hide all views
-            ['dashboard', 'courses', 'labs', 'progress'].forEach(view => {
-                const el = document.getElementById(`view-${view}`);
-                if (el) el.classList.add('hidden');
-            });
-
-            // Show selected view
-            const activeView = document.getElementById(`view-${tabId}`);
-            if (activeView) activeView.classList.remove('hidden');
-
-            // Update Desktop Nav Styling
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.className = 'nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2';
-            });
-            const activeNav = document.getElementById(`nav-${tabId}`);
-            if (activeNav) {
-                activeNav.className = 'nav-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 text-brand-400 bg-brand-500/10 flex items-center space-x-2';
-            }
-        }
-
-        // Subject Filter Handler
-        function setSubjectFilter(filter) {
-            currentSubjectFilter = filter;
-            document.querySelectorAll('.subject-filter-btn').forEach(btn => {
-                btn.className = 'subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 hover:text-white transition';
-            });
-            event.target.className = 'subject-filter-btn px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-600 text-white transition';
-            renderCourses();
-        }
-
-        function filterCourses() {
-            renderCourses();
-        }
-
-        // Render Course Cards List
-        function renderCourses() {
-            const grid = document.getElementById('courses-grid');
-            if (!grid) return;
-
-            const searchQuery = (document.getElementById('course-search-input')?.value || '').toLowerCase();
-
-            const filtered = coursesData.filter(course => {
-                const matchesSubject = (currentSubjectFilter === 'all') || (course.subject === currentSubjectFilter);
-                const matchesSearch = course.title.toLowerCase().includes(searchQuery) || course.desc.toLowerCase().includes(searchQuery);
-                return matchesSubject && matchesSearch;
-            });
-
-            grid.innerHTML = filtered.map(course => `
-                <div class="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group">
+    <!-- Primary Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-cream-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Cedar School Crest & Title -->
+                <a href="#" class="flex items-center gap-3.5 group">
+                    <div class="w-12 h-12 rounded-xl bg-cedar-900 flex items-center justify-center shadow-md border-2 border-gold-500 group-hover:scale-105 transition-transform">
+                        <!-- Custom SVG Cedar Tree Crest -->
+                        <svg class="w-7 h-7 text-gold-400" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 3L8 12H12.5L6.5 19H11.5L5 25.5H27L20.5 19H25.5L19.5 12H24L16 3Z" fill="currentColor"/>
+                            <rect x="14.2" y="25.5" width="3.6" height="4.5" rx="0.5" fill="#fdfcf9"/>
+                        </svg>
+                    </div>
                     <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                ${course.subjectName}
-                            </span>
-                            <span class="text-xs text-slate-400 flex items-center space-x-1">
-                                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-                                <span>${course.lessonsCount} Lessons</span>
-                            </span>
-                        </div>
+                        <span class="block font-serif text-xl sm:text-2xl font-bold text-cedar-900 tracking-tight leading-none">CEDAR ACADEMY</span>
+                        <span class="block text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold mt-1">Est. 1954 • K–12 Preparatory</span>
+                    </div>
+                </a>
 
-                        <h3 class="text-base font-bold text-white group-hover:text-brand-300 transition-colors mb-2">
-                            ${course.title}
-                        </h3>
+                <!-- Desktop Links -->
+                <nav class="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-700">
+                    <a href="#about" class="hover:text-cedar-800 transition py-2">About</a>
+                    <a href="#academics" class="hover:text-cedar-800 transition py-2">Academics</a>
+                    <a href="#campus-life" class="hover:text-cedar-800 transition py-2">News & Events</a>
+                    <a href="#tuition" class="hover:text-cedar-800 transition py-2">Tuition & Aid</a>
+                    <a href="#faculty" class="hover:text-cedar-800 transition py-2">Faculty & FAQ</a>
+                </nav>
 
-                        <p class="text-xs text-slate-400 mb-4 line-clamp-2">
-                            ${course.desc}
-                        </p>
+                <!-- Action Buttons -->
+                <div class="hidden sm:flex items-center gap-3">
+                    <button onclick="openApplicationsDrawer()" class="relative inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-cedar-900 bg-cedar-50 hover:bg-cedar-100 border border-cedar-200 transition">
+                        <i data-lucide="folder-check" class="w-4 h-4 text-cedar-700"></i>
+                        <span>Applications</span>
+                        <span id="navAppBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-cedar-800 text-white font-bold">1560+</span>
+                    </button>
+                    <button onclick="openPortalModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-cream-100 border border-slate-200 transition">
+                        <i data-lucide="user-circle" class="w-4 h-4 text-gold-600"></i>
+                        <span>Portal</span>
+                    </button>
+                    <a href="#registration" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-cedar-900 text-white hover:bg-cedar-800 shadow-sm hover:shadow transition">
+                        <span>Register Now</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-gold-400"></i>
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Toggle -->
+                <div class="flex items-center gap-2 lg:hidden">
+                    <button onclick="openApplicationsDrawer()" class="sm:hidden relative p-2.5 rounded-xl bg-cedar-50 text-cedar-900 border border-cedar-200" aria-label="Saved Applications">
+                        <i data-lucide="folder-check" class="w-5 h-5"></i>
+                        <span id="mobileAppBadge" class="absolute -top-1.5 -right-2 px-1.5 h-5 text-[10px] flex items-center justify-center rounded-full bg-gold-500 text-cedar-950 font-bold">1560+</span>
+                    </button>
+                    <button id="mobileMenuBtn" onclick="toggleMobileMenu()" class="p-2.5 rounded-xl text-cedar-900 hover:bg-cream-100 border border-cream-200" aria-label="Open Navigation">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Drawer Menu -->
+        <div id="mobileMenu" class="hidden lg:hidden bg-white border-t border-cream-200 px-4 pt-3 pb-6 space-y-2 shadow-lg">
+            <a href="#about" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl font-semibold text-slate-700 hover:bg-cream-100">About Cedar</a>
+            <a href="#academics" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl font-semibold text-slate-700 hover:bg-cream-100">Academics & Programs</a>
+            <a href="#campus-life" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl font-semibold text-slate-700 hover:bg-cream-100">News & Calendar</a>
+            <a href="#tuition" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl font-semibold text-slate-700 hover:bg-cream-100">Tuition & Financial Aid</a>
+            <a href="#faculty" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl font-semibold text-slate-700 hover:bg-cream-100">Faculty & FAQ</a>
+            <div class="pt-3 border-t border-cream-200 grid grid-cols-2 gap-3">
+                <button onclick="toggleMobileMenu(); openPortalModal();" class="w-full py-3 px-4 rounded-xl font-semibold text-cedar-900 bg-cream-100 border border-cream-200 text-center">
+                    Student Portal
+                </button>
+                <a href="#registration" onclick="toggleMobileMenu()" class="w-full py-3 px-4 rounded-xl font-bold text-white bg-cedar-900 text-center">
+                    Register Now
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative overflow-hidden bg-cedar-950 text-white">
+        <!-- Subtle Architectural Pattern Background -->
+        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#dfb656_1px,transparent_1px)] [background-size:24px_24px]"></div>
+        <div class="absolute -right-24 -top-24 w-96 h-96 rounded-full bg-cedar-800/40 blur-3xl"></div>
+        <div class="absolute -left-24 bottom-0 w-80 h-80 rounded-full bg-gold-500/10 blur-3xl"></div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cedar-900/90 border border-gold-500/40 text-gold-400 text-xs sm:text-sm font-semibold tracking-wide">
+                        <i data-lucide="award" class="w-4 h-4"></i>
+                        <span>Rooted in Wisdom • Growing in Excellence</span>
                     </div>
 
-                    <div class="space-y-4">
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-xs font-semibold">
-                                <span class="text-slate-400">Completion</span>
-                                <span class="text-brand-400">${course.progress}%</span>
+                    <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.12] tracking-tight text-white">
+                        Where Curious Minds Grow Strong Roots.
+                    </h1>
+
+                    <p class="text-base sm:text-lg text-cream-200/90 max-w-2xl leading-relaxed">
+                        At Cedar Academy, we unite timeless academic rigor with hands-on discovery across Kindergarten through Grade 12—preparing principled scholars, creative thinkers, and compassionate leaders.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-2">
+                        <a href="#registration" class="inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-cedar-950 font-bold text-base shadow-lg shadow-black/20 transition">
+                            <span>Apply / Register for <span class="js-school-year-range">2026–2027</span></span>
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </a>
+                        <a href="#academics" class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl bg-cedar-900/80 hover:bg-cedar-800 text-white border border-cedar-700 font-semibold text-base transition">
+                            <i data-lucide="book-open" class="w-5 h-5 text-gold-400"></i>
+                            <span>Explore Programs</span>
+                        </a>
+                    </div>
+
+                    <!-- Three Pillar Quick Highlights -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 border-t border-cedar-800/80">
+                        <div class="flex items-start gap-3">
+                            <div class="p-2.5 rounded-xl bg-cedar-900 border border-cedar-700 text-gold-400 shrink-0">
+                                <i data-lucide="graduation-cap" class="w-5 h-5"></i>
                             </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div class="h-full bg-brand-500 rounded-full" style="width: ${course.progress}%;"></div>
+                            <div>
+                                <h3 class="font-bold text-white text-sm">Academic Excellence</h3>
+                                <p class="text-xs text-cream-200/75 mt-0.5">12:1 student-to-faculty ratio & AP Honors track</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="p-2.5 rounded-xl bg-cedar-900 border border-cedar-700 text-gold-400 shrink-0">
+                                <i data-lucide="microscope" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-sm">STEM & Fine Arts</h3>
+                                <p class="text-xs text-cream-200/75 mt-0.5">Robotics labs, conservatory music & studio art</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="p-2.5 rounded-xl bg-cedar-900 border border-cedar-700 text-gold-400 shrink-0">
+                                <i data-lucide="heart-handshake" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-sm">Vibrant Community</h3>
+                                <p class="text-xs text-cream-200/75 mt-0.5">28+ clubs, varsity athletics & family traditions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Campus Showcase Card -->
+                <div class="lg:col-span-5">
+                    <div class="bg-cedar-900/90 border border-cedar-700/80 rounded-2xl p-4 sm:p-5 shadow-2xl">
+                        <div class="relative rounded-xl overflow-hidden aspect-[4/3] bg-cedar-800">
+                            <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1000&q=80"
+                                 onerror="this.src='https://placehold.co/800x600/123325/dfb656?text=Cedar+Academy+Campus'"
+                                 alt="Cedar Academy Main Brick Hall and Courtyard"
+                                 class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-cedar-950/90 via-cedar-950/20 to-transparent"></div>
+                            <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-2">
+                                <div>
+                                    <span class="px-2.5 py-1 rounded-md bg-gold-500 text-cedar-950 text-xs font-bold uppercase tracking-wider">Main Campus</span>
+                                    <p class="font-serif text-lg font-bold text-white mt-1.5">Founders Hall & Arboretum</p>
+                                </div>
+                                <a href="#contact" class="px-3 py-2 rounded-lg bg-white/95 hover:bg-white text-cedar-950 text-xs font-bold shadow transition">
+                                    Book a Tour
+                                </a>
                             </div>
                         </div>
 
-                        <button onclick="openLessonModal('${course.id}')" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-brand-600 text-slate-200 hover:text-white border border-slate-700 hover:border-brand-500 font-semibold text-xs transition flex items-center justify-center space-x-2">
-                            <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                            <span>${course.progress > 0 ? 'Resume Course' : 'Start Course'}</span>
+                        <!-- Key Campus Metrics -->
+                        <div class="grid grid-cols-3 gap-3 mt-4 text-center">
+                            <div class="p-3 rounded-xl bg-cedar-950/70 border border-cedar-800">
+                                <div class="font-serif text-2xl font-bold text-gold-400">100%</div>
+                                <div class="text-[11px] text-cream-200/80 mt-0.5">College Acceptance</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-cedar-950/70 border border-cedar-800">
+                                <div class="font-serif text-2xl font-bold text-gold-400">12:1</div>
+                                <div class="text-[11px] text-cream-200/80 mt-0.5">Class Ratio</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-cedar-950/70 border border-cedar-800">
+                                <div class="font-serif text-2xl font-bold text-gold-400">42</div>
+                                <div class="text-[11px] text-cream-200/80 mt-0.5">Acre Campus</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About & Mission Section -->
+    <section id="about" class="py-16 sm:py-24 bg-cream-50 border-b border-cream-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-6 space-y-5">
+                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">About Cedar Academy</span>
+                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-cedar-950 leading-tight">
+                        Seven Decades of Character, Scholarship, and Stewardship.
+                    </h2>
+                    <p class="text-slate-600 leading-relaxed">
+                        Founded in 1954 amidst forty-two acres of native cedar groves, Cedar Academy believes education should nurture both intellect and integrity. Our classrooms combine seminar-style discussion, modern scientific laboratories, and outdoor environmental learning.
+                    </p>
+                    <p class="text-slate-600 leading-relaxed">
+                        Every student is known by name, mentored individually by dedicated educators, and encouraged to discover their unique voice across academics, athletics, service, and the arts.
+                    </p>
+
+                    <div class="grid sm:grid-cols-2 gap-4 pt-3">
+                        <div class="p-4 rounded-xl bg-white border border-cream-200 shadow-sm">
+                            <div class="flex items-center gap-2.5 text-cedar-900 font-bold mb-1">
+                                <i data-lucide="compass" class="w-5 h-5 text-gold-600"></i>
+                                <span>Our Mission</span>
+                            </div>
+                            <p class="text-sm text-slate-600">To cultivate disciplined inquiry, ethical leadership, and lifelong curiosity in every learner.</p>
+                        </div>
+                        <div class="p-4 rounded-xl bg-white border border-cream-200 shadow-sm">
+                            <div class="flex items-center gap-2.5 text-cedar-900 font-bold mb-1">
+                                <i data-lucide="shield-check" class="w-5 h-5 text-gold-600"></i>
+                                <span>Accreditation</span>
+                            </div>
+                            <p class="text-sm text-slate-600">Fully accredited K–12 independent preparatory school with National Blue Ribbon distinction.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-6">
+                    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-cream-200 shadow-md relative">
+                        <i data-lucide="quote" class="w-10 h-10 text-gold-500/30 absolute top-6 right-6"></i>
+                        <p class="font-serif italic text-xl sm:text-2xl text-cedar-900 leading-relaxed">
+                            “Like the cedar tree that thrives through every season, we equip our students with deep intellectual roots and the resilience to reach toward their highest potential.”
+                        </p>
+                        <div class="mt-6 pt-5 border-t border-cream-200 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-cedar-900 text-gold-400 font-serif font-bold flex items-center justify-center text-lg">
+                                EW
+                            </div>
+                            <div>
+                                <div class="font-bold text-cedar-950">Dr. Eleanor Vance-Whitaker</div>
+                                <div class="text-sm text-slate-500">Head of School • Ed.D., Harvard Graduate School of Education</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Academics & Programs Section (Interactive Filter Tabs) -->
+    <section id="academics" class="py-16 sm:py-24 bg-white border-b border-cream-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto space-y-3">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">Academic Divisions</span>
+                <h2 class="font-serif text-3xl sm:text-4xl font-bold text-cedar-950">A Cohesive K–12 Learning Journey</h2>
+                <p class="text-slate-600">Explore our tailored curriculum across Lower, Middle, and Upper School divisions, enriched by specialized STEM labs, fine arts, and athletics.</p>
+            </div>
+
+            <!-- Division Filter Tabs -->
+            <div class="flex flex-wrap justify-center gap-2 sm:gap-3 mt-10" role="tablist" aria-label="Academic Grade Divisions">
+                <button onclick="selectDivision('elementary')" id="tab-elementary" class="division-tab px-5 py-3 rounded-xl font-bold text-sm transition bg-cedar-900 text-white shadow-sm">
+                    Lower School (Grades K–5)
+                </button>
+                <button onclick="selectDivision('middle')" id="tab-middle" class="division-tab px-5 py-3 rounded-xl font-bold text-sm transition bg-cream-100 text-slate-700 hover:bg-cream-200">
+                    Middle School (Grades 6–8)
+                </button>
+                <button onclick="selectDivision('high')" id="tab-high" class="division-tab px-5 py-3 rounded-xl font-bold text-sm transition bg-cream-100 text-slate-700 hover:bg-cream-200">
+                    Upper School (Grades 9–12)
+                </button>
+            </div>
+
+            <!-- Dynamic Division Panel -->
+            <div id="divisionContent" class="mt-10 bg-cream-50 border border-cream-200 rounded-2xl p-6 sm:p-10 shadow-sm">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <!-- Signature Enrichment Pillars -->
+            <div class="grid md:grid-cols-3 gap-6 mt-10">
+                <div class="p-6 rounded-2xl bg-cedar-900 text-white shadow-sm">
+                    <div class="w-11 h-11 rounded-xl bg-cedar-800 border border-cedar-700 flex items-center justify-center text-gold-400 mb-4">
+                        <i data-lucide="cpu" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="font-serif text-xl font-bold mb-2">Cedar Innovation & STEM Labs</h3>
+                    <p class="text-sm text-cream-200/85 leading-relaxed">
+                        Dedicated robotics arenas, 3D fabrication workshops, wet-chemistry suites, and environmental field stations along Cedar Creek.
+                    </p>
+                </div>
+                <div class="p-6 rounded-2xl bg-cream-100 border border-cream-200 text-cedar-950">
+                    <div class="w-11 h-11 rounded-xl bg-white border border-cream-200 flex items-center justify-center text-cedar-800 mb-4">
+                        <i data-lucide="palette" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="font-serif text-xl font-bold mb-2">Conservatory Fine & Performing Arts</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Symphony orchestra, jazz ensemble, ceramics studio, digital media production, and annual theatrical productions in Alder Auditorium.
+                    </p>
+                </div>
+                <div class="p-6 rounded-2xl bg-cream-100 border border-cream-200 text-cedar-950">
+                    <div class="w-11 h-11 rounded-xl bg-white border border-cream-200 flex items-center justify-center text-cedar-800 mb-4">
+                        <i data-lucide="trophy" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="font-serif text-xl font-bold mb-2">Cedar Stags Athletics</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        18 varsity and junior varsity teams including soccer, basketball, cross country, tennis, swimming, and track—built on sportsmanship.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Campus News, Events & Announcements -->
+    <section id="campus-life" class="py-16 sm:py-24 bg-cream-50 border-b border-cream-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">Campus Dispatch</span>
+                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-cedar-950 mt-1">News, Announcements & Calendar</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filterEvents('all')" class="event-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-cedar-900 text-white" data-filter="all">All Events</button>
+                    <button onclick="filterEvents('admissions')" class="event-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-cream-200 hover:bg-cream-100" data-filter="admissions">Admissions</button>
+                    <button onclick="filterEvents('academics')" class="event-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-cream-200 hover:bg-cream-100" data-filter="academics">Academics & Arts</button>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8">
+                <!-- Left: School Announcements & News -->
+                <div class="lg:col-span-7 space-y-5">
+                    <h3 class="font-serif text-xl font-bold text-cedar-900 flex items-center gap-2">
+                        <i data-lucide="newspaper" class="w-5 h-5 text-gold-600"></i>
+                        <span>Recent School Announcements</span>
+                    </h3>
+
+                    <article class="bg-white p-6 rounded-2xl border border-cream-200 shadow-sm hover:border-cedar-300 transition">
+                        <div class="flex items-center gap-3 text-xs font-semibold text-gold-600 mb-2">
+                            <span class="px-2.5 py-0.5 rounded-full bg-gold-100 text-gold-600">Admissions Notice</span>
+                            <span class="text-slate-400">November 14, <span class="js-current-year">2026</span></span>
+                        </div>
+                        <h4 class="font-serif text-xl font-bold text-cedar-950 mb-2"><span class="js-school-year-range">2026–2027</span> Priority Registration & Campus Open House</h4>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Families applying for Kindergarten through Grade 12 are invited to submit online registration forms early. Tour our newly expanded East Wing Science Commons and meet division principals.
+                        </p>
+                    </article>
+
+                    <article class="bg-white p-6 rounded-2xl border border-cream-200 shadow-sm hover:border-cedar-300 transition">
+                        <div class="flex items-center gap-3 text-xs font-semibold text-cedar-700 mb-2">
+                            <span class="px-2.5 py-0.5 rounded-full bg-cedar-100 text-cedar-800">STEM Achievement</span>
+                            <span class="text-slate-400">November 6, <span class="js-current-year">2026</span></span>
+                        </div>
+                        <h4 class="font-serif text-xl font-bold text-cedar-950 mb-2">Cedar Robotics Team Advances to Regional Championship</h4>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Upper School Team 4082 “The Green Stags” earned first place in autonomous navigation and engineering design at the State Autumn Invitational.
+                        </p>
+                    </article>
+
+                    <article class="bg-white p-6 rounded-2xl border border-cream-200 shadow-sm hover:border-cedar-300 transition">
+                        <div class="flex items-center gap-3 text-xs font-semibold text-slate-600 mb-2">
+                            <span class="px-2.5 py-0.5 rounded-full bg-cream-200 text-slate-800">Campus Health & Dining</span>
+                            <span class="text-slate-400">October 28, <span class="js-current-year">2026</span></span>
+                        </div>
+                        <h4 class="font-serif text-xl font-bold text-cedar-950 mb-2">Farm-to-Table Winter Dining Menu & Allergy-Safe Kitchen</h4>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Our culinary team has published the winter harvest menu featuring locally sourced produce and dedicated nut-free preparation stations. Parents can note dietary requirements directly in registration.
+                        </p>
+                    </article>
+                </div>
+
+                <!-- Right: Interactive Academic Calendar -->
+                <div class="lg:col-span-5">
+                    <div class="bg-white rounded-2xl border border-cream-200 p-6 shadow-sm">
+                        <h3 class="font-serif text-xl font-bold text-cedar-900 flex items-center gap-2 mb-5">
+                            <i data-lucide="calendar-days" class="w-5 h-5 text-gold-600"></i>
+                            <span>Upcoming Campus Dates</span>
+                        </h3>
+                        <div id="eventsList" class="space-y-4">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FULL STUDENT REGISTRATION & ADMISSIONS PORTAL -->
+    <section id="registration" class="py-16 sm:py-24 bg-cedar-950 text-white relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
+                <div class="max-w-2xl">
+                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-400">Admissions & Enrollment</span>
+                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-white mt-2">Student Registration Portal</h2>
+                    <p class="text-cream-200/85 mt-2">
+                        Complete the registration application below to enroll a new or returning student at Cedar Academy. Review your live application summary and download an official registration receipt upon submission.
+                    </p>
+                </div>
+                <div>
+                    <button type="button" onclick="openApplicationsDrawer()" class="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-cedar-900 hover:bg-cedar-800 border border-gold-500/40 text-gold-400 font-bold text-sm transition">
+                        <i data-lucide="folder-open" class="w-4 h-4"></i>
+                        <span>View Registered Applications (<span id="sectionAppCount">1560+</span>)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Registration Grid: Form (Left 8 cols) + Live Summary & Step Indicator (Right 4 cols) -->
+            <div class="grid lg:grid-cols-12 gap-8 items-start">
+                <!-- Interactive Multi-Section Registration Form -->
+                <div class="lg:col-span-8 bg-white text-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-cream-200">
+                    <!-- Step Progress Header -->
+                    <div class="flex items-center justify-between border-b border-cream-200 pb-5 mb-6">
+                        <div class="flex items-center gap-2 sm:gap-4">
+                            <button type="button" onclick="goToStep(1)" id="stepBtn1" class="flex items-center gap-2 text-sm font-bold text-cedar-900">
+                                <span class="w-7 h-7 rounded-full bg-cedar-900 text-white flex items-center justify-center text-xs">1</span>
+                                <span class="hidden sm:inline">Student Info</span>
+                            </button>
+                            <span class="w-6 h-0.5 bg-cream-200"></span>
+                            <button type="button" onclick="goToStep(2)" id="stepBtn2" class="flex items-center gap-2 text-sm font-semibold text-slate-400">
+                                <span class="w-7 h-7 rounded-full bg-cream-200 text-slate-600 flex items-center justify-center text-xs">2</span>
+                                <span class="hidden sm:inline">Parent & Contact</span>
+                            </button>
+                            <span class="w-6 h-0.5 bg-cream-200"></span>
+                            <button type="button" onclick="goToStep(3)" id="stepBtn3" class="flex items-center gap-2 text-sm font-semibold text-slate-400">
+                                <span class="w-7 h-7 rounded-full bg-cream-200 text-slate-600 flex items-center justify-center text-xs">3</span>
+                                <span class="hidden sm:inline">Interests & Health</span>
+                            </button>
+                        </div>
+                        <span id="stepLabel" class="text-xs font-bold uppercase tracking-wider text-gold-600">Step 1 of 3</span>
+                    </div>
+
+                    <!-- Inline Validation Alert Box -->
+                    <div id="formErrorBox" class="hidden mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-3">
+                        <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="font-bold">Please complete the required fields:</p>
+                            <p id="formErrorText" class="mt-0.5"></p>
+                        </div>
+                    </div>
+
+                    <form id="cedarRegistrationForm" novalidate>
+                        <!-- STEP 1: Student Details -->
+                        <div id="regStep1" class="space-y-5">
+                            <h3 class="font-serif text-xl font-bold text-cedar-950">Student Academic Information</h3>
+
+                            <div class="grid sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label for="studentName" class="block text-sm font-semibold text-slate-700 mb-1.5">Student Full Name *</label>
+                                    <input type="text" id="studentName" name="studentName" required placeholder="e.g., Clara Margaret Bennett"
+                                           class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                </div>
+                                <div>
+                                    <label for="studentDob" class="block text-sm font-semibold text-slate-700 mb-1.5">Date of Birth *</label>
+                                    <input type="date" id="studentDob" name="studentDob" required
+                                           class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                </div>
+                            </div>
+
+                            <div class="grid sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label for="gradeLevel" class="block text-sm font-semibold text-slate-700 mb-1.5">Grade Level Applying For *</label>
+                                    <select id="gradeLevel" name="gradeLevel" required
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                        <option value="">Select Grade (K–12)...</option>
+                                        <option value="Kindergarten">Kindergarten</option>
+                                        <option value="Grade 1">Grade 1 (Lower School)</option>
+                                        <option value="Grade 2">Grade 2 (Lower School)</option>
+                                        <option value="Grade 3">Grade 3 (Lower School)</option>
+                                        <option value="Grade 4">Grade 4 (Lower School)</option>
+                                        <option value="Grade 5">Grade 5 (Lower School)</option>
+                                        <option value="Grade 6">Grade 6 (Middle School)</option>
+                                        <option value="Grade 7">Grade 7 (Middle School)</option>
+                                        <option value="Grade 8">Grade 8 (Middle School)</option>
+                                        <option value="Grade 9">Grade 9 (Upper School)</option>
+                                        <option value="Grade 10">Grade 10 (Upper School)</option>
+                                        <option value="Grade 11">Grade 11 (Upper School)</option>
+                                        <option value="Grade 12">Grade 12 (Upper School)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="academicTerm" class="block text-sm font-semibold text-slate-700 mb-1.5">Academic Term *</label>
+                                    <select id="academicTerm" name="academicTerm" required
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                        <!-- Dynamically populated with current and upcoming academic years -->
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="previousSchool" class="block text-sm font-semibold text-slate-700 mb-1.5">Previous / Current School</label>
+                                <input type="text" id="previousSchool" name="previousSchool" placeholder="e.g., Oakridge Montessori or First-Time Kindergarten"
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                            </div>
+
+                            <div class="pt-4 flex justify-end">
+                                <button type="button" onclick="nextStep(2)" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cedar-900 hover:bg-cedar-800 text-white font-bold text-sm transition">
+                                    <span>Continue to Parent & Contact</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2: Parent / Guardian & Address -->
+                        <div id="regStep2" class="hidden space-y-5">
+                            <h3 class="font-serif text-xl font-bold text-cedar-950">Parent / Guardian & Household Details</h3>
+
+                            <div class="grid sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label for="parentName" class="block text-sm font-semibold text-slate-700 mb-1.5">Parent / Guardian Full Name *</label>
+                                    <input type="text" id="parentName" name="parentName" required placeholder="e.g., Jonathan Bennett"
+                                           class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                </div>
+                                <div>
+                                    <label for="parentEmail" class="block text-sm font-semibold text-slate-700 mb-1.5">Email Address *</label>
+                                    <input type="email" id="parentEmail" name="parentEmail" required placeholder="parent@example.com"
+                                           class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                </div>
+                            </div>
+
+                            <div class="grid sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label for="parentPhone" class="block text-sm font-semibold text-slate-700 mb-1.5">Primary Phone Number *</label>
+                                    <input type="tel" id="parentPhone" name="parentPhone" required placeholder="(555) 234-5678"
+                                           class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                </div>
+                                <div>
+                                    <label for="emergencyContact" class="block text-sm font-semibold text-slate-700 mb-1.5">Emergency Contact (Name & Phone) *</label>
+                                    <input type="text" id="emergencyContact" name="emergencyContact" required placeholder="e.g., Sarah Bennett • (555) 987-6543"
+                                           class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="homeAddress" class="block text-sm font-semibold text-slate-700 mb-1.5">Residential Address *</label>
+                                <input type="text" id="homeAddress" name="homeAddress" required placeholder="Street Address, City, State, ZIP Code"
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition">
+                            </div>
+
+                            <div class="pt-4 flex items-center justify-between">
+                                <button type="button" onclick="goToStep(1)" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-cream-100 hover:bg-cream-200 text-slate-700 font-semibold text-sm transition">
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                    <span>Back</span>
+                                </button>
+                                <button type="button" onclick="nextStep(3)" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cedar-900 hover:bg-cedar-800 text-white font-bold text-sm transition">
+                                    <span>Continue to Interests & Health</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: Extracurriculars, Medical Notes & Submit -->
+                        <div id="regStep3" class="hidden space-y-5">
+                            <h3 class="font-serif text-xl font-bold text-cedar-950">Co-Curricular Interests & Wellness Notes</h3>
+
+                            <div>
+                                <span class="block text-sm font-semibold text-slate-700 mb-2.5">Extracurricular & Enrichment Interests (Select all that apply)</span>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-cedar-50 cursor-pointer text-sm">
+                                        <input type="checkbox" name="interests" value="STEM & Robotics" class="rounded text-cedar-800 focus:ring-cedar-800">
+                                        <span>STEM & Robotics</span>
+                                    </label>
+                                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-cedar-50 cursor-pointer text-sm">
+                                        <input type="checkbox" name="interests" value="Varsity / Youth Athletics" class="rounded text-cedar-800 focus:ring-cedar-800">
+                                        <span>Athletics</span>
+                                    </label>
+                                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-cedar-50 cursor-pointer text-sm">
+                                        <input type="checkbox" name="interests" value="Orchestra & Music" class="rounded text-cedar-800 focus:ring-cedar-800">
+                                        <span>Orchestra & Music</span>
+                                    </label>
+                                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-cedar-50 cursor-pointer text-sm">
+                                        <input type="checkbox" name="interests" value="Visual & Studio Arts" class="rounded text-cedar-800 focus:ring-cedar-800">
+                                        <span>Studio Arts</span>
+                                    </label>
+                                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-cedar-50 cursor-pointer text-sm">
+                                        <input type="checkbox" name="interests" value="Debate & Model UN" class="rounded text-cedar-800 focus:ring-cedar-800">
+                                        <span>Debate & Model UN</span>
+                                    </label>
+                                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-cedar-50 cursor-pointer text-sm">
+                                        <input type="checkbox" name="interests" value="Outdoor Forestry Club" class="rounded text-cedar-800 focus:ring-cedar-800">
+                                        <span>Forestry & Eco Club</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="medicalNotes" class="block text-sm font-semibold text-slate-700 mb-1.5">Medical, Allergy, or Dietary Notes (Optional)</label>
+                                <textarea id="medicalNotes" name="medicalNotes" rows="3" placeholder="Please list any food allergies, medications, or learning accommodations our nurse and faculty should know..."
+                                          class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-cedar-800 focus:ring-2 focus:ring-cedar-800/20 outline-none transition"></textarea>
+                            </div>
+
+                            <label class="flex items-start gap-3 p-4 rounded-xl bg-cream-50 border border-cream-200 text-xs text-slate-600 cursor-pointer">
+                                <input type="checkbox" id="certifyCheckbox" required class="mt-0.5 rounded text-cedar-800 focus:ring-cedar-800">
+                                <span>I certify that the information provided in this registration application is accurate and complete for Cedar Academy Admissions review.</span>
+                            </label>
+
+                            <div class="pt-3 flex items-center justify-between">
+                                <button type="button" onclick="goToStep(2)" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-cream-100 hover:bg-cream-200 text-slate-700 font-semibold text-sm transition">
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                    <span>Back</span>
+                                </button>
+                                <button type="submit" class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-cedar-950 font-bold text-sm sm:text-base shadow-lg transition">
+                                    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                                    <span>Complete Student Registration</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Column: Live Summary Preview Card -->
+                <div class="lg:col-span-4 space-y-5">
+                    <div class="bg-cedar-900 border border-cedar-700 rounded-2xl p-6 shadow-xl">
+                        <div class="flex items-center justify-between pb-4 border-b border-cedar-800">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-5 h-5 text-gold-400"></i>
+                                <h3 class="font-serif text-lg font-bold text-white">Live Application Summary</h3>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cedar-800 text-gold-400 border border-gold-500/30">Draft</span>
+                        </div>
+
+                        <dl class="mt-4 space-y-3 text-sm">
+                            <div class="flex justify-between gap-2">
+                                <dt class="text-cream-200/70">Applicant:</dt>
+                                <dd id="previewStudentName" class="font-semibold text-white text-right">Not entered yet</dd>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <dt class="text-cream-200/70">Date of Birth:</dt>
+                                <dd id="previewDob" class="font-semibold text-white text-right">—</dd>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <dt class="text-cream-200/70">Applying Grade:</dt>
+                                <dd id="previewGrade" class="font-semibold text-gold-400 text-right">—</dd>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <dt class="text-cream-200/70">Term:</dt>
+                                <dd id="previewTerm" class="font-semibold text-white text-right js-default-term">Fall 2026–2027</dd>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <dt class="text-cream-200/70">Parent/Guardian:</dt>
+                                <dd id="previewParent" class="font-semibold text-white text-right">—</dd>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <dt class="text-cream-200/70">Contact Email:</dt>
+                                <dd id="previewEmail" class="font-semibold text-white text-right truncate max-w-[180px]">—</dd>
+                            </div>
+                            <div class="pt-2 border-t border-cedar-800">
+                                <dt class="text-cream-200/70 mb-1.5">Selected Interests:</dt>
+                                <dd id="previewInterests" class="flex flex-wrap gap-1.5">
+                                    <span class="text-xs text-cream-200/50 italic">None selected</span>
+                                </dd>
+                            </div>
+                        </dl>
+
+                        <div class="mt-6 p-3.5 rounded-xl bg-cedar-950/80 border border-cedar-800 text-xs text-cream-200/80 flex items-start gap-2.5">
+                            <i data-lucide="info" class="w-4 h-4 text-gold-400 shrink-0 mt-0.5"></i>
+                            <span>No application fee is required during online pre-registration. You will receive an instant Student Registration ID upon completion.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tuition & Financial Aid Calculator -->
+    <section id="tuition" class="py-16 sm:py-24 bg-white border-b border-cream-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">Affordability & Planning</span>
+                <h2 class="font-serif text-3xl sm:text-4xl font-bold text-cedar-950 mt-1"><span class="js-school-year-range">2026–2027</span> Tuition & Financial Aid Estimator</h2>
+                <p class="text-slate-600 mt-2">Over 38% of Cedar Academy families receive need-based tuition grants or sibling discounts. Estimate your annual investment below.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8 items-center bg-cream-50 border border-cream-200 rounded-2xl p-6 sm:p-10 shadow-sm">
+                <div class="lg:col-span-7 space-y-6">
+                    <div>
+                        <label for="calcDivision" class="block text-sm font-bold text-cedar-950 mb-2">1. Select Student Division</label>
+                        <select id="calcDivision" onchange="calculateTuition()" class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white font-medium focus:border-cedar-800 outline-none">
+                            <option value="14800">Lower School (Grades K–5) — $14,800 / year</option>
+                            <option value="17200">Middle School (Grades 6–8) — $17,200 / year</option>
+                            <option value="19600">Upper School (Grades 9–12) — $19,600 / year</option>
+                        </select>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <label class="flex items-center justify-between p-4 rounded-xl bg-white border border-cream-200 cursor-pointer">
+                            <div>
+                                <span class="block font-bold text-sm text-cedar-950">Sibling Discount</span>
+                                <span class="text-xs text-slate-500">10% reduction for 2nd+ child</span>
+                            </div>
+                            <input type="checkbox" id="calcSibling" onchange="calculateTuition()" class="w-5 h-5 rounded text-cedar-800">
+                        </label>
+
+                        <label class="flex items-center justify-between p-4 rounded-xl bg-white border border-cream-200 cursor-pointer">
+                            <div>
+                                <span class="block font-bold text-sm text-cedar-950">Annual Lump-Sum</span>
+                                <span class="text-xs text-slate-500">3% early payment credit</span>
+                            </div>
+                            <input type="checkbox" id="calcAnnual" onchange="calculateTuition()" class="w-5 h-5 rounded text-cedar-800">
+                        </label>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm font-bold text-cedar-950 mb-2">
+                            <label for="calcAidRange">Estimated Need-Based Aid Grant</label>
+                            <span id="calcAidPercent" class="text-gold-600">0% ($0)</span>
+                        </div>
+                        <input type="range" id="calcAidRange" min="0" max="50" step="5" value="0" oninput="calculateTuition()"
+                               class="w-full accent-cedar-800 cursor-pointer">
+                        <div class="flex justify-between text-xs text-slate-400 mt-1">
+                            <span>0% (Standard Tuition)</span>
+                            <span>25% Grant</span>
+                            <span>50% Max Grant</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 bg-cedar-900 text-white rounded-2xl p-6 sm:p-8 shadow-lg">
+                    <span class="text-xs font-bold uppercase tracking-widest text-gold-400">Estimated Net Tuition</span>
+                    <div class="font-serif text-4xl sm:text-5xl font-bold text-white mt-2" id="calcTotalAnnual">$14,800</div>
+                    <p class="text-xs text-cream-200/75 mt-1">Includes textbooks, STEM lab materials, and daily lunch.</p>
+
+                    <div class="mt-6 pt-5 border-t border-cedar-800 space-y-2.5 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-cream-200/80">10-Month Installment Plan:</span>
+                            <span class="font-bold text-gold-400" id="calcMonthly">$1,480 / mo</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-cream-200/80">Total Estimated Savings:</span>
+                            <span class="font-semibold text-emerald-300" id="calcSavings">$0</span>
+                        </div>
+                    </div>
+
+                    <a href="#registration" class="mt-6 w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-cedar-950 font-bold text-sm transition">
+                        <span>Apply with Financial Aid Inquiry</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Faculty Directory & Interactive FAQ Accordion -->
+    <section id="faculty" class="py-16 sm:py-24 bg-cream-50 border-b border-cream-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
+            <!-- Faculty Directory -->
+            <div>
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">Dedicated Educators</span>
+                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-cedar-950 mt-1">Meet Our Academic Leadership</h2>
+                </div>
+
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-2xl p-6 border border-cream-200 shadow-sm text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-cedar-900 text-gold-400 font-serif text-xl font-bold flex items-center justify-center mb-4">MC</div>
+                        <h3 class="font-serif text-lg font-bold text-cedar-950">Marcus Caldwell, M.Ed.</h3>
+                        <p class="text-xs font-bold text-gold-600 uppercase tracking-wider mt-1">Lower School Principal</p>
+                        <p class="text-sm text-slate-600 mt-3">18 years specializing in early literacy, Montessori foundations, and outdoor inquiry.</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-cream-200 shadow-sm text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-cedar-800 text-white font-serif text-xl font-bold flex items-center justify-center mb-4">PS</div>
+                        <h3 class="font-serif text-lg font-bold text-cedar-950">Dr. Priya Subramanian</h3>
+                        <p class="text-xs font-bold text-gold-600 uppercase tracking-wider mt-1">Chair of STEM & Robotics</p>
+                        <p class="text-sm text-slate-600 mt-3">Ph.D. in Mechanical Engineering; leads Cedar’s Upper School Physics and Robotics labs.</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-cream-200 shadow-sm text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-cedar-900 text-gold-400 font-serif text-xl font-bold flex items-center justify-center mb-4">JH</div>
+                        <h3 class="font-serif text-lg font-bold text-cedar-950">Julian Hawthorne, M.A.</h3>
+                        <p class="text-xs font-bold text-gold-600 uppercase tracking-wider mt-1">Upper School Dean</p>
+                        <p class="text-sm text-slate-600 mt-3">Harkness seminar humanities instructor and Director of College Counseling.</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-cream-200 shadow-sm text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-cedar-800 text-white font-serif text-xl font-bold flex items-center justify-center mb-4">CL</div>
+                        <h3 class="font-serif text-lg font-bold text-cedar-950">Clara Lindqvist, M.M.</h3>
+                        <p class="text-xs font-bold text-gold-600 uppercase tracking-wider mt-1">Director of Fine Arts</p>
+                        <p class="text-sm text-slate-600 mt-3">Juilliard-trained cellist overseeing Cedar’s K–12 orchestra, choir, and visual studio programs.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Accordion & Contact Form -->
+            <div id="contact" class="grid lg:grid-cols-12 gap-10 items-start">
+                <!-- Interactive FAQ Accordion -->
+                <div class="lg:col-span-6 space-y-4">
+                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">Admissions & Campus FAQ</span>
+                    <h3 class="font-serif text-2xl sm:text-3xl font-bold text-cedar-950">Frequently Asked Questions</h3>
+
+                    <div class="space-y-3 pt-2" id="faqAccordion">
+                        <!-- FAQ Item 1 -->
+                        <div class="bg-white rounded-2xl border border-cream-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(0)" class="w-full px-5 py-4 text-left font-bold text-cedar-950 flex items-center justify-between gap-4 hover:bg-cream-50 transition">
+                                <span>What are the school hours and before/after-care options?</span>
+                                <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-gold-600 transition-transform"></i>
+                            </button>
+                            <div class="faq-panel px-5 pb-4 text-sm text-slate-600 leading-relaxed">
+                                Regular academic classes run from 8:15 AM to 3:15 PM Monday through Friday. Complimentary Early Arrival begins at 7:30 AM, and Cedar Extended Care (with supervised homework and enrichment) is available until 6:00 PM.
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 2 -->
+                        <div class="bg-white rounded-2xl border border-cream-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(1)" class="w-full px-5 py-4 text-left font-bold text-cedar-950 flex items-center justify-between gap-4 hover:bg-cream-50 transition">
+                                <span>Does Cedar Academy provide bus transportation?</span>
+                                <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-gold-600 transition-transform"></i>
+                            </button>
+                            <div class="faq-panel hidden px-5 pb-4 text-sm text-slate-600 leading-relaxed">
+                                Yes! Cedar operates six regional morning and afternoon shuttle routes serving surrounding neighborhoods within a 22-mile radius of campus.
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 3 -->
+                        <div class="bg-white rounded-2xl border border-cream-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(2)" class="w-full px-5 py-4 text-left font-bold text-cedar-950 flex items-center justify-between gap-4 hover:bg-cream-50 transition">
+                                <span>What happens after I submit the online registration form?</span>
+                                <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-gold-600 transition-transform"></i>
+                            </button>
+                            <div class="faq-panel hidden px-5 pb-4 text-sm text-slate-600 leading-relaxed">
+                                You immediately receive a unique Student Registration ID and printable confirmation receipt. Within two business days, our Admissions Office reaches out to schedule a family campus tour and student shadow day.
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 4 -->
+                        <div class="bg-white rounded-2xl border border-cream-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(3)" class="w-full px-5 py-4 text-left font-bold text-cedar-950 flex items-center justify-between gap-4 hover:bg-cream-50 transition">
+                                <span>Is there a school uniform policy?</span>
+                                <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-gold-600 transition-transform"></i>
+                            </button>
+                            <div class="faq-panel hidden px-5 pb-4 text-sm text-slate-600 leading-relaxed">
+                                Students wear classic Cedar Academy attire featuring forest green, white, and khaki/navy separates, with Spirit Fridays celebrating Cedar Stags athletic and club wear.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Admissions & Schedule a Tour Form -->
+                <div class="lg:col-span-6 bg-white rounded-2xl p-6 sm:p-8 border border-cream-200 shadow-sm">
+                    <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">Get In Touch</span>
+                    <h3 class="font-serif text-2xl font-bold text-cedar-950 mt-1">Contact Admissions or Request a Tour</h3>
+                    <p class="text-sm text-slate-600 mt-1 mb-6">Have a question for our Admissions Counselors? Send us a direct note below.</p>
+
+                    <form id="contactForm" onsubmit="handleContactSubmit(event)" class="space-y-4">
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="contactName" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Your Name *</label>
+                                <input type="text" id="contactName" required placeholder="Full Name"
+                                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-cedar-800 outline-none text-sm">
+                            </div>
+                            <div>
+                                <label for="contactEmail" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Email Address *</label>
+                                <input type="email" id="contactEmail" required placeholder="you@example.com"
+                                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-cedar-800 outline-none text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="contactTopic" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Inquiry Topic</label>
+                            <select id="contactTopic" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white focus:border-cedar-800 outline-none text-sm">
+                                <option>Schedule a Private Campus Tour</option>
+                                <option>Kindergarten – Grade 12 Admissions Question</option>
+                                <option>Tuition & Financial Aid Consultation</option>
+                                <option>Athletics & Fine Arts Programs</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="contactMessage" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Message *</label>
+                            <textarea id="contactMessage" rows="3" required placeholder="How can our admissions team assist your family?"
+                                      class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-cedar-800 outline-none text-sm"></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-3 px-5 rounded-xl bg-cedar-900 hover:bg-cedar-800 text-white font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i data-lucide="send" class="w-4 h-4 text-gold-400"></i>
+                            <span>Send Message to Admissions</span>
+                        </button>
+                    </form>
+
+                    <div id="contactSuccessMsg" class="hidden mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm flex items-center gap-2.5">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                        <span>Thank you! Your inquiry has been received by the Cedar Academy Admissions Office.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-cedar-950 text-cream-200 pt-16 pb-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-cedar-800">
+                <!-- Brand & Address -->
+                <div class="lg:col-span-4 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cedar-900 border border-gold-500 flex items-center justify-center text-gold-400 font-serif font-bold text-xl">C</div>
+                        <div>
+                            <span class="block font-serif text-xl font-bold text-white">CEDAR ACADEMY</span>
+                            <span class="block text-[11px] uppercase tracking-widest text-gold-400">Rooted in Wisdom</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-cream-200/80 leading-relaxed">
+                        740 Cedar Grove Parkway, Oakridge Valley • Independent K–12 College Preparatory School.
+                    </p>
+                    <div class="text-sm space-y-1 text-cream-200/80">
+                        <p><strong class="text-white">Main Office:</strong> Mon–Fri, 7:30 AM – 5:30 PM</p>
+                        <p><strong class="text-white">Telephone:</strong> (555) 384-2900</p>
+                        <p><strong class="text-white">Admissions:</strong> admissions@cedaracademy.edu</p>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="lg:col-span-2 space-y-3">
+                    <h4 class="font-serif font-bold text-white text-base">Academics</h4>
+                    <ul class="space-y-2 text-sm text-cream-200/80">
+                        <li><a href="#academics" onclick="selectDivision('elementary')" class="hover:text-gold-400 transition">Lower School (K–5)</a></li>
+                        <li><a href="#academics" onclick="selectDivision('middle')" class="hover:text-gold-400 transition">Middle School (6–8)</a></li>
+                        <li><a href="#academics" onclick="selectDivision('high')" class="hover:text-gold-400 transition">Upper School (9–12)</a></li>
+                        <li><a href="#tuition" class="hover:text-gold-400 transition">Tuition & Grants</a></li>
+                    </ul>
+                </div>
+
+                <!-- Campus Resources -->
+                <div class="lg:col-span-2 space-y-3">
+                    <h4 class="font-serif font-bold text-white text-base">Community</h4>
+                    <ul class="space-y-2 text-sm text-cream-200/80">
+                        <li><a href="#registration" class="hover:text-gold-400 transition">Online Registration</a></li>
+                        <li><button onclick="openApplicationsDrawer()" class="hover:text-gold-400 transition text-left">Saved Applications</button></li>
+                        <li><button onclick="openPortalModal()" class="hover:text-gold-400 transition text-left">Parent & Student Portal</button></li>
+                        <li><a href="#campus-life" class="hover:text-gold-400 transition">School Calendar</a></li>
+                    </ul>
+                </div>
+
+                <!-- Newsletter Signup -->
+                <div class="lg:col-span-4 space-y-3">
+                    <h4 class="font-serif font-bold text-white text-base">The Cedar Chronicle Newsletter</h4>
+                    <p class="text-sm text-cream-200/80">Receive monthly campus highlights, admissions reminders, and student achievements.</p>
+                    <form onsubmit="handleNewsletterSubmit(event)" class="flex gap-2 pt-1">
+                        <input type="email" id="newsletterEmail" required placeholder="Enter your email"
+                               class="flex-1 px-4 py-2.5 rounded-xl bg-cedar-900 border border-cedar-700 text-white placeholder-cream-200/50 text-sm focus:border-gold-400 outline-none">
+                        <button type="submit" class="px-4 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-cedar-950 font-bold text-sm transition shrink-0">
+                            Subscribe
+                        </button>
+                    </form>
+                    <p id="newsletterFeedback" class="hidden text-xs text-gold-400 font-semibold"></p>
+                </div>
+            </div>
+
+            <div class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-cream-200/60">
+                <p>© <span class="js-current-year">2026</span> Cedar Academy. All rights reserved. Equal Opportunity Educational Institution.</p>
+                <div class="flex gap-5">
+                    <a href="#about" class="hover:text-white transition">Academic Honor Code</a>
+                    <a href="#contact" class="hover:text-white transition">Campus Map & Directions</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: REGISTRATION CONFIRMATION & PRINTABLE RECEIPT                -->
+    <!-- ===================================================================== -->
+    <div id="receiptModal" class="hidden fixed inset-0 z-50 bg-cedar-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-cream-200 my-8">
+            <div class="flex items-start justify-between gap-4 border-b border-cream-200 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Registration Confirmed</span>
+                        <h3 class="font-serif text-2xl font-bold text-cedar-950">Cedar Academy Receipt</h3>
+                    </div>
+                </div>
+                <button onclick="closeReceiptModal()" class="p-2 rounded-lg text-slate-400 hover:bg-cream-100 hover:text-slate-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Printable Receipt Content -->
+            <div id="printableReceiptArea" class="mt-5 bg-cream-50 border border-cream-200 rounded-xl p-5 space-y-3 text-sm">
+                <div class="flex items-center justify-between border-b border-cream-200 pb-3">
+                    <span class="text-slate-500">Student Registration ID:</span>
+                    <span id="receiptId" class="font-mono font-bold text-base text-cedar-900 bg-gold-100 px-3 py-1 rounded-lg border border-gold-400/50">CDR-2026-0000</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                        <span class="block text-xs text-slate-500">Student Name</span>
+                        <span id="receiptStudent" class="font-bold text-cedar-950">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-500">Applying Grade & Term</span>
+                        <span id="receiptGradeTerm" class="font-bold text-cedar-950">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-500">Parent / Guardian</span>
+                        <span id="receiptParent" class="font-semibold text-slate-800">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-500">Contact Email</span>
+                        <span id="receiptEmail" class="font-semibold text-slate-800 break-all">—</span>
+                    </div>
+                    <div class="col-span-2">
+                        <span class="block text-xs text-slate-500">Co-Curricular Interests</span>
+                        <span id="receiptInterests" class="font-medium text-slate-700">—</span>
+                    </div>
+                </div>
+                <div class="pt-3 border-t border-cream-200 text-xs text-slate-500 flex justify-between">
+                    <span>Status: <strong class="text-emerald-700">Submitted • Pending Campus Visit</strong></span>
+                    <span id="receiptDate">—</span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button type="button" onclick="printReceipt()" class="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-cedar-900 hover:bg-cedar-800 text-white font-bold text-sm transition">
+                    <i data-lucide="printer" class="w-4 h-4 text-gold-400"></i>
+                    <span>Print / Save Receipt</span>
+                </button>
+                <button type="button" onclick="closeReceiptModal(); openApplicationsDrawer();" class="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-cream-100 hover:bg-cream-200 text-cedar-950 font-bold text-sm transition">
+                    <i data-lucide="folder-check" class="w-4 h-4"></i>
+                    <span>View All Applications</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- DRAWER 2: VIEW & MANAGE REGISTERED APPLICATIONS (localStorage)        -->
+    <!-- ===================================================================== -->
+    <div id="applicationsDrawer" class="hidden fixed inset-0 z-50 bg-cedar-950/75 backdrop-blur-sm flex justify-end">
+        <div class="bg-white w-full max-w-lg h-full flex flex-col shadow-2xl">
+            <div class="p-6 bg-cedar-900 text-white flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-widest text-gold-400">Admissions Records</span>
+                    <h3 class="font-serif text-xl font-bold">Registered Applications</h3>
+                </div>
+                <button onclick="closeApplicationsDrawer()" class="p-2 rounded-xl bg-cedar-800 hover:bg-cedar-700 text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div id="applicationsListContainer" class="flex-1 overflow-y-auto p-6 space-y-4 bg-cream-50">
+                <!-- Populated by JS -->
+            </div>
+
+            <div class="p-4 bg-white border-t border-cream-200 flex items-center justify-between gap-3">
+                <span class="text-xs text-slate-500">Stored locally in your browser session.</span>
+                <a href="#registration" onclick="closeApplicationsDrawer()" class="px-4 py-2.5 rounded-xl bg-cedar-900 text-white text-xs font-bold hover:bg-cedar-800 transition">
+                    + New Registration
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 3: PARENT & STUDENT PORTAL LOGIN / DASHBOARD PREVIEW            -->
+    <!-- ===================================================================== -->
+    <div id="portalModal" class="hidden fixed inset-0 z-50 bg-cedar-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-cream-200">
+            <div class="flex items-center justify-between pb-4 border-b border-cream-200">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-lg bg-cedar-900 text-gold-400 flex items-center justify-center font-serif font-bold">C</div>
+                    <div>
+                        <h3 class="font-serif text-lg font-bold text-cedar-950">Cedar Family Portal</h3>
+                        <p class="text-xs text-slate-500">Grades, Schedules & Dining Balance</p>
+                    </div>
+                </div>
+                <button onclick="closePortalModal()" class="p-2 rounded-lg text-slate-400 hover:bg-cream-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Portal Sign-In View -->
+            <form id="portalLoginForm" onsubmit="handlePortalLogin(event)" class="mt-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Role</label>
+                    <select id="portalRole" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium">
+                        <option value="Parent / Guardian">Parent / Guardian</option>
+                        <option value="Student (Grades 6–12)">Student (Grades 6–12)</option>
+                        <option value="Faculty Member">Faculty Member</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Cedar ID or Email</label>
+                    <input type="text" id="portalUser" required placeholder="e.g., family@cedaracademy.edu"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm outline-none focus:border-cedar-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Passcode</label>
+                    <input type="password" required placeholder="••••••••"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm outline-none focus:border-cedar-800">
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-cedar-900 hover:bg-cedar-800 text-white font-bold text-sm transition">
+                    Sign In to Cedar Portal
+                </button>
+            </form>
+
+            <!-- Portal Logged-In Quick Snapshot -->
+            <div id="portalDashboardView" class="hidden mt-5 space-y-4">
+                <div class="p-4 rounded-xl bg-cedar-50 border border-cedar-200">
+                    <span class="text-xs font-bold text-cedar-800 uppercase tracking-wider" id="portalWelcomeRole">Parent Portal</span>
+                    <p class="font-serif text-lg font-bold text-cedar-950 mt-0.5" id="portalWelcomeUser">Welcome back!</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="p-3.5 rounded-xl bg-cream-50 border border-cream-200">
+                        <span class="text-xs text-slate-500 block">Attendance</span>
+                        <span class="font-bold text-cedar-900">99.2% Present</span>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-cream-50 border border-cream-200">
+                        <span class="text-xs text-slate-500 block">Dining Account</span>
+                        <span class="font-bold text-emerald-700">$64.50 Active</span>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-cream-50 border border-cream-200">
+                        <span class="text-xs text-slate-500 block">Upcoming Term</span>
+                        <span class="font-bold text-cedar-900 js-default-term">Fall 2026–2027</span>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-cream-50 border border-cream-200">
+                        <span class="text-xs text-slate-500 block">Advisor Note</span>
+                        <span class="font-bold text-gold-600">Honors Roll</span>
+                    </div>
+                </div>
+                <button onclick="resetPortalModal()" class="w-full py-2.5 rounded-xl bg-cream-100 hover:bg-cream-200 text-slate-700 font-semibold text-xs">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // =========================================================================
+        // 0. DYNAMIC REAL-WORLD YEAR & ACADEMIC TERM ENGINE
+        // =========================================================================
+        const CURRENT_YEAR = new Date().getFullYear();
+        const NEXT_YEAR = CURRENT_YEAR + 1;
+        const FOLLOWING_YEAR = CURRENT_YEAR + 2;
+        const CURRENT_SCHOOL_YEAR_RANGE = `${CURRENT_YEAR}–${NEXT_YEAR}`;
+        const UPCOMING_SCHOOL_YEAR_RANGE = `${NEXT_YEAR}–${FOLLOWING_YEAR}`;
+        const DEFAULT_FALL_TERM = `Fall ${CURRENT_SCHOOL_YEAR_RANGE}`;
+
+        function applyDynamicYears() {
+            document.querySelectorAll('.js-current-year').forEach(el => {
+                el.textContent = CURRENT_YEAR;
+            });
+            document.querySelectorAll('.js-next-year').forEach(el => {
+                el.textContent = NEXT_YEAR;
+            });
+            document.querySelectorAll('.js-school-year-range').forEach(el => {
+                el.textContent = CURRENT_SCHOOL_YEAR_RANGE;
+            });
+            document.querySelectorAll('.js-default-term').forEach(el => {
+                el.textContent = DEFAULT_FALL_TERM;
+            });
+
+            const termSelect = document.getElementById('academicTerm');
+            if (termSelect) {
+                termSelect.innerHTML = `
+                    <option value="Fall ${CURRENT_SCHOOL_YEAR_RANGE}">Fall ${CURRENT_SCHOOL_YEAR_RANGE} (Full Academic Year)</option>
+                    <option value="Spring ${NEXT_YEAR}">Spring ${NEXT_YEAR} (Mid-Year Transfer)</option>
+                    <option value="Summer Enrichment ${NEXT_YEAR}">Summer Enrichment ${NEXT_YEAR}</option>
+                    <option value="Fall ${UPCOMING_SCHOOL_YEAR_RANGE}">Fall ${UPCOMING_SCHOOL_YEAR_RANGE} (Early Priority)</option>
+                `;
+            }
+
+            const receiptIdEl = document.getElementById('receiptId');
+            if (receiptIdEl) {
+                receiptIdEl.textContent = `CDR-${CURRENT_YEAR}-0000`;
+            }
+        }
+
+        // =========================================================================
+        // 1. ACADEMIC DIVISIONS DATA & TAB SWITCHING
+        // =========================================================================
+        const divisionsData = {
+            elementary: {
+                badge: "Lower School • Kindergarten – Grade 5",
+                title: "Foundations of Wonder & Literacy",
+                description: "Our Lower School builds joyful confidence in reading, Singapore mathematics, hands-on nature science, and world languages (Spanish & Mandarin) within warm, sunlit classrooms.",
+                highlights: [
+                    "Phonics-rich literacy & small-group reading workshops",
+                    "Weekly outdoor ecology lessons in the Cedar Arboretum",
+                    "Dedicated specialist teachers for Music, Studio Art, and P.E.",
+                    "Social-emotional stewardship and daily Morning Assemblies"
+                ],
+                schedule: "8:15 AM – 3:00 PM • Average Class Size: 14 Students"
+            },
+            middle: {
+                badge: "Middle School • Grades 6 – 8",
+                title: "Inquiry, Collaboration & Discovery",
+                description: "Middle School bridges foundational mastery with independent critical thinking. Students rotate through specialized science labs, seminar humanities, and elective arts.",
+                highlights: [
+                    "Pre-Algebra through Honors Geometry & Lab Sciences",
+                    "Harkness table literature and historical research seminars",
+                    "Introductory Robotics, Coding, and Digital Media design",
+                    "Faculty advisory groups (8 students per advisor) & interscholastic sports"
+                ],
+                schedule: "8:15 AM – 3:15 PM • Average Class Size: 15 Students"
+            },
+            high: {
+                badge: "Upper School • Grades 9 – 12",
+                title: "College Preparatory Scholarship & Leadership",
+                description: "Upper School empowers young adults to pursue intellectual depth through 22 AP & Honors courses, senior capstone theses, and individualized college counseling.",
+                highlights: [
+                    "22 Advanced Placement (AP) & Honors seminar courses",
+                    "Senior Independent Research Capstone & Community Practicum",
+                    "1-on-1 College Counseling starting in Grade 10",
+                    "Student Government, Varsity Athletics, and Conservatory Ensembles"
+                ],
+                schedule: "8:15 AM – 3:25 PM • Average Class Size: 13 Students"
+            }
+        };
+
+        function selectDivision(key) {
+            const data = divisionsData[key];
+            if (!data) return;
+
+            // Update active tab styling
+            document.querySelectorAll('.division-tab').forEach(btn => {
+                btn.classList.remove('bg-cedar-900', 'text-white', 'shadow-sm');
+                btn.classList.add('bg-cream-100', 'text-slate-700');
+            });
+            const activeBtn = document.getElementById(`tab-${key}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-cream-100', 'text-slate-700');
+                activeBtn.classList.add('bg-cedar-900', 'text-white', 'shadow-sm');
+            }
+
+            // Render panel content
+            const container = document.getElementById('divisionContent');
+            container.innerHTML = `
+                <div class="grid lg:grid-cols-12 gap-8 items-center">
+                    <div class="lg:col-span-7 space-y-4">
+                        <span class="inline-block px-3 py-1 rounded-full bg-gold-100 text-gold-600 text-xs font-bold uppercase tracking-wider">${data.badge}</span>
+                        <h3 class="font-serif text-2xl sm:text-3xl font-bold text-cedar-950">${data.title}</h3>
+                        <p class="text-slate-600 leading-relaxed">${data.description}</p>
+                        <div class="pt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-cedar-800">
+                            <span class="inline-flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-cream-200">
+                                <i data-lucide="clock" class="w-4 h-4 text-gold-600"></i>
+                                ${data.schedule}
+                            </span>
+                            <a href="#registration" class="inline-flex items-center gap-1 text-cedar-900 underline hover:text-gold-600">
+                                Apply for this division →
+                            </a>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-5 bg-white rounded-2xl p-6 border border-cream-200 shadow-sm">
+                        <h4 class="font-serif font-bold text-cedar-950 mb-3">Curriculum Highlights</h4>
+                        <ul class="space-y-2.5 text-sm text-slate-700">
+                            ${data.highlights.map(item => `
+                                <li class="flex items-start gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4 text-cedar-700 shrink-0 mt-0.5"></i>
+                                    <span>${item}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // =========================================================================
+        // 2. CAMPUS EVENTS CALENDAR & FILTERING
+        // =========================================================================
+        const campusEvents = [
+            { month: "NOV", day: "21", title: `Autumn Admissions Open House (${CURRENT_YEAR})`, time: "9:30 AM – 12:00 PM • Founders Hall", category: "admissions" },
+            { month: "DEC", day: "04", title: `Winter ${CURRENT_YEAR} Conservatory Orchestra Concert`, time: "7:00 PM • Alder Auditorium", category: "academics" },
+            { month: "DEC", day: "12", title: `K–12 STEM & Robotics Expo (${CURRENT_YEAR})`, time: "1:00 PM – 4:00 PM • Science Commons", category: "academics" },
+            { month: "JAN", day: "15", title: `Priority Registration Deadline (${CURRENT_SCHOOL_YEAR_RANGE})`, time: `5:00 PM • Online Admissions Portal (${NEXT_YEAR})`, category: "admissions" }
+        ];
+
+        function filterEvents(category) {
+            document.querySelectorAll('.event-filter-btn').forEach(btn => {
+                if (btn.dataset.filter === category) {
+                    btn.className = "event-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-cedar-900 text-white";
+                } else {
+                    btn.className = "event-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-cream-200 hover:bg-cream-100";
+                }
+            });
+
+            const filtered = category === 'all' ? campusEvents : campusEvents.filter(e => e.category === category);
+            const list = document.getElementById('eventsList');
+            list.innerHTML = filtered.map(ev => `
+                <div class="flex items-center gap-4 p-3.5 rounded-xl bg-cream-50 border border-cream-200">
+                    <div class="w-14 h-14 rounded-xl bg-cedar-900 text-white flex flex-col items-center justify-center shrink-0 border border-gold-500/40">
+                        <span class="text-[10px] font-bold tracking-widest text-gold-400">${ev.month}</span>
+                        <span class="font-serif text-xl font-bold leading-none mt-0.5">${ev.day}</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-cedar-950 text-sm">${ev.title}</h4>
+                        <p class="text-xs text-slate-500 mt-1">${ev.time}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // =========================================================================
+        // 3. MULTI-STEP REGISTRATION FORM, LIVE PREVIEW & LOCALSTORAGE
+        // =========================================================================
+        const STORAGE_KEY = 'cedar_academy_registrations_v1';
+        let currentStep = 1;
+
+        function getSavedApplications() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (err) {
+                console.error("Storage read error:", err);
+                return [];
+            }
+        }
+
+        function saveApplications(apps) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
+            } catch (err) {
+                console.error("Storage write error:", err);
+            }
+            updateApplicationBadges();
+        }
+
+        function updateApplicationBadges() {
+            const count = getSavedApplications().length;
+            const badgeText = count > 0 ? `1560+ (${count} new)` : '1560+';
+            const compactBadgeText = '1560+';
+            const navBadge = document.getElementById('navAppBadge');
+            const mobileBadge = document.getElementById('mobileAppBadge');
+            const sectionCount = document.getElementById('sectionAppCount');
+            if (navBadge) navBadge.textContent = badgeText;
+            if (mobileBadge) mobileBadge.textContent = compactBadgeText;
+            if (sectionCount) sectionCount.textContent = badgeText;
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+            document.getElementById('formErrorBox').classList.add('hidden');
+
+            [1, 2, 3].forEach(s => {
+                const panel = document.getElementById(`regStep${s}`);
+                const btn = document.getElementById(`stepBtn${s}`);
+                const circle = btn.querySelector('span');
+
+                if (s === step) {
+                    panel.classList.remove('hidden');
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-cedar-900', 'font-bold');
+                    circle.className = "w-7 h-7 rounded-full bg-cedar-900 text-white flex items-center justify-center text-xs";
+                } else {
+                    panel.classList.add('hidden');
+                    btn.classList.add('text-slate-400');
+                    btn.classList.remove('text-cedar-900', 'font-bold');
+                    circle.className = s < step
+                        ? "w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs"
+                        : "w-7 h-7 rounded-full bg-cream-200 text-slate-600 flex items-center justify-center text-xs";
+                }
+            });
+
+            document.getElementById('stepLabel').textContent = `Step ${step} of 3`;
+        }
+
+        function showFormError(message) {
+            const box = document.getElementById('formErrorBox');
+            document.getElementById('formErrorText').textContent = message;
+            box.classList.remove('hidden');
+            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function nextStep(targetStep) {
+            if (targetStep === 2) {
+                const name = document.getElementById('studentName').value.trim();
+                const dob = document.getElementById('studentDob').value;
+                const grade = document.getElementById('gradeLevel').value;
+                if (!name || !dob || !grade) {
+                    showFormError("Please enter the student's full name, date of birth, and grade level.");
+                    return;
+                }
+            } else if (targetStep === 3) {
+                const pName = document.getElementById('parentName').value.trim();
+                const pEmail = document.getElementById('parentEmail').value.trim();
+                const pPhone = document.getElementById('parentPhone').value.trim();
+                const emergency = document.getElementById('emergencyContact').value.trim();
+                const address = document.getElementById('homeAddress').value.trim();
+
+                if (!pName || !pEmail || !pPhone || !emergency || !address) {
+                    showFormError("Please complete all parent/guardian contact, emergency contact, and address fields.");
+                    return;
+                }
+                if (!pEmail.includes('@') || !pEmail.includes('.')) {
+                    showFormError("Please enter a valid parent/guardian email address.");
+                    return;
+                }
+            }
+            goToStep(targetStep);
+        }
+
+        // Live Summary Preview Sync
+        function updateLiveSummary() {
+            const sName = document.getElementById('studentName').value.trim();
+            const dob = document.getElementById('studentDob').value;
+            const grade = document.getElementById('gradeLevel').value;
+            const term = document.getElementById('academicTerm').value;
+            const pName = document.getElementById('parentName').value.trim();
+            const pEmail = document.getElementById('parentEmail').value.trim();
+
+            document.getElementById('previewStudentName').textContent = sName || "Not entered yet";
+            document.getElementById('previewDob').textContent = dob || "—";
+            document.getElementById('previewGrade').textContent = grade || "—";
+            document.getElementById('previewTerm').textContent = term || DEFAULT_FALL_TERM;
+            document.getElementById('previewParent').textContent = pName || "—";
+            document.getElementById('previewEmail').textContent = pEmail || "—";
+
+            const checkedInterests = Array.from(document.querySelectorAll('input[name="interests"]:checked')).map(el => el.value);
+            const interestsContainer = document.getElementById('previewInterests');
+            if (checkedInterests.length === 0) {
+                interestsContainer.innerHTML = `<span class="text-xs text-cream-200/50 italic">None selected</span>`;
+            } else {
+                interestsContainer.innerHTML = checkedInterests.map(item =>
+                    `<span class="px-2 py-0.5 rounded-md bg-cedar-800 text-gold-400 text-xs font-medium">${item}</span>`
+                ).join('');
+            }
+        }
+
+        // Attach live preview listeners
+        document.getElementById('cedarRegistrationForm').addEventListener('input', updateLiveSummary);
+        document.getElementById('cedarRegistrationForm').addEventListener('change', updateLiveSummary);
+
+        // Final Form Submission
+        document.getElementById('cedarRegistrationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const certify = document.getElementById('certifyCheckbox').checked;
+            if (!certify) {
+                showFormError("Please check the certification box to confirm your registration details.");
+                return;
+            }
+
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentDob = document.getElementById('studentDob').value;
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            const academicTerm = document.getElementById('academicTerm').value;
+            const previousSchool = document.getElementById('previousSchool').value.trim() || "N/A";
+            const parentName = document.getElementById('parentName').value.trim();
+            const parentEmail = document.getElementById('parentEmail').value.trim();
+            const parentPhone = document.getElementById('parentPhone').value.trim();
+            const emergencyContact = document.getElementById('emergencyContact').value.trim();
+            const homeAddress = document.getElementById('homeAddress').value.trim();
+            const medicalNotes = document.getElementById('medicalNotes').value.trim() || "None reported";
+            const interests = Array.from(document.querySelectorAll('input[name="interests"]:checked')).map(el => el.value);
+
+            const randomDigits = Math.floor(1000 + Math.random() * 9000);
+            const regId = `CDR-${CURRENT_YEAR}-${randomDigits}`;
+            const submittedAt = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            const newApplication = {
+                id: regId,
+                studentName,
+                studentDob,
+                gradeLevel,
+                academicTerm,
+                previousSchool,
+                parentName,
+                parentEmail,
+                parentPhone,
+                emergencyContact,
+                homeAddress,
+                interests,
+                medicalNotes,
+                submittedAt
+            };
+
+            const existing = getSavedApplications();
+            existing.unshift(newApplication);
+            saveApplications(existing);
+
+            // Populate & Show Receipt Modal
+            openReceiptForApplication(newApplication);
+
+            // Reset Form & Return to Step 1
+            this.reset();
+            updateLiveSummary();
+            goToStep(1);
+        });
+
+        function openReceiptForApplication(app) {
+            document.getElementById('receiptId').textContent = app.id;
+            document.getElementById('receiptStudent').textContent = app.studentName;
+            document.getElementById('receiptGradeTerm').textContent = `${app.gradeLevel} • ${app.academicTerm}`;
+            document.getElementById('receiptParent').textContent = app.parentName;
+            document.getElementById('receiptEmail').textContent = app.parentEmail;
+            document.getElementById('receiptInterests').textContent = app.interests && app.interests.length ? app.interests.join(', ') : 'General Academic Track';
+            document.getElementById('receiptDate').textContent = `Submitted: ${app.submittedAt}`;
+
+            document.getElementById('receiptModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.add('hidden');
+        }
+
+        function printReceipt() {
+            const receiptHtml = document.getElementById('printableReceiptArea').innerHTML;
+            const printWin = window.open('', '_blank', 'width=700,height=650');
+            if (!printWin) return;
+            printWin.document.write(`
+                <html>
+                <head>
+                    <title>Cedar Academy Registration Receipt</title>
+                    <style>
+                        body { font-family: Georgia, serif; padding: 32px; color: #123325; }
+                        h1 { margin-bottom: 4px; }
+                        .box { border: 2px solid #123325; border-radius: 12px; padding: 20px; margin-top: 20px; font-family: sans-serif; line-height: 1.6; }
+                    </style>
+                </head>
+                <body>
+                    <h1>CEDAR ACADEMY</h1>
+                    <p>Official Student Registration Confirmation Receipt</p>
+                    <div class="box">${receiptHtml}</div>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+            printWin.print();
+        }
+
+        // =========================================================================
+        // 4. SAVED APPLICATIONS DRAWER
+        // =========================================================================
+        function openApplicationsDrawer() {
+            renderApplicationsDrawer();
+            document.getElementById('applicationsDrawer').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeApplicationsDrawer() {
+            document.getElementById('applicationsDrawer').classList.add('hidden');
+        }
+
+        function deleteApplication(id) {
+            const updated = getSavedApplications().filter(app => app.id !== id);
+            saveApplications(updated);
+            renderApplicationsDrawer();
+        }
+
+        function viewReceiptById(id) {
+            const app = getSavedApplications().find(a => a.id === id);
+            if (app) {
+                closeApplicationsDrawer();
+                openReceiptForApplication(app);
+            }
+        }
+
+        function renderApplicationsDrawer() {
+            const apps = getSavedApplications();
+            const container = document.getElementById('applicationsListContainer');
+
+            if (apps.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-14 px-4 bg-white rounded-2xl border border-cream-200">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-cream-100 text-cedar-800 flex items-center justify-center mb-3">
+                            <i data-lucide="folder-open" class="w-6 h-6"></i>
+                        </div>
+                        <h4 class="font-serif text-lg font-bold text-cedar-950">No Registrations Yet</h4>
+                        <p class="text-sm text-slate-500 mt-1">Submitted student registrations will appear here with downloadable confirmation receipts.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = apps.map(app => `
+                <div class="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <span class="font-mono text-xs font-bold px-2.5 py-0.5 rounded bg-gold-100 text-gold-600">${app.id}</span>
+                            <h4 class="font-serif text-lg font-bold text-cedar-950 mt-1.5">${app.studentName}</h4>
+                            <p class="text-xs font-semibold text-cedar-700">${app.gradeLevel} • ${app.academicTerm}</p>
+                        </div>
+                        <span class="text-xs text-slate-400">${app.submittedAt}</span>
+                    </div>
+                    <div class="text-xs text-slate-600 border-t border-cream-200 pt-2.5 space-y-1">
+                        <p><strong>Parent:</strong> ${app.parentName} (${app.parentPhone})</p>
+                        <p><strong>Interests:</strong> ${app.interests && app.interests.length ? app.interests.join(', ') : 'General Track'}</p>
+                    </div>
+                    <div class="pt-2 flex items-center gap-2">
+                        <button onclick="viewReceiptById('${app.id}')" class="flex-1 py-2 px-3 rounded-xl bg-cedar-50 hover:bg-cedar-100 text-cedar-900 font-bold text-xs transition">
+                            View Receipt
+                        </button>
+                        <button onclick="deleteApplication('${app.id}')" class="py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs transition">
+                            Remove
                         </button>
                     </div>
                 </div>
             `).join('');
-
-            if (globalThis.lucide?.createIcons) lucide.createIcons();
+            lucide.createIcons();
         }
 
-        // Daily Question Checker
-        function checkDailyAnswer(index, isCorrect) {
-            const feedback = document.getElementById('daily-feedback');
-            const btns = document.querySelectorAll('.daily-opt');
-            
-            btns.forEach((btn, i) => {
-                btn.disabled = true;
-                if (i === 1) {
-                    btn.classList.add('bg-emerald-500/20', 'border-emerald-500/50', 'text-emerald-300');
-                } else if (i === index && !isCorrect) {
-                    btn.classList.add('bg-rose-500/20', 'border-rose-500/50', 'text-rose-300');
+        // =========================================================================
+        // 5. TUITION & AID CALCULATOR
+        // =========================================================================
+        function calculateTuition() {
+            const base = parseFloat(document.getElementById('calcDivision').value) || 14800;
+            const hasSibling = document.getElementById('calcSibling').checked;
+            const hasAnnual = document.getElementById('calcAnnual').checked;
+            const aidPct = parseFloat(document.getElementById('calcAidRange').value) || 0;
+
+            const aidAmount = Math.round(base * (aidPct / 100));
+            let net = base - aidAmount;
+
+            if (hasSibling) net = Math.round(net * 0.90);
+            if (hasAnnual) net = Math.round(net * 0.97);
+
+            const savings = base - net;
+            const monthly = Math.round(net / 10);
+
+            document.getElementById('calcAidPercent').textContent = `${aidPct}% ($${aidAmount.toLocaleString()})`;
+            document.getElementById('calcTotalAnnual').textContent = `$${net.toLocaleString()}`;
+            document.getElementById('calcMonthly').textContent = `$${monthly.toLocaleString()} / mo`;
+            document.getElementById('calcSavings').textContent = `$${savings.toLocaleString()}`;
+        }
+
+        // =========================================================================
+        // 6. FAQ ACCORDION, CONTACT FORM, NEWSLETTER & PORTAL MODAL
+        // =========================================================================
+        function toggleFaq(index) {
+            const panels = document.querySelectorAll('.faq-panel');
+            const icons = document.querySelectorAll('.faq-icon');
+            panels.forEach((panel, i) => {
+                if (i === index) {
+                    panel.classList.toggle('hidden');
+                    icons[i].classList.toggle('rotate-180');
+                } else {
+                    panel.classList.add('hidden');
+                    icons[i].classList.remove('rotate-180');
                 }
             });
+        }
 
+        function handleContactSubmit(e) {
+            e.preventDefault();
+            document.getElementById('contactForm').reset();
+            const msg = document.getElementById('contactSuccessMsg');
+            msg.classList.remove('hidden');
+            setTimeout(() => msg.classList.add('hidden'), 6000);
+        }
+
+        function handleNewsletterSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('newsletterEmail');
+            const feedback = document.getElementById('newsletterFeedback');
+            feedback.textContent = `Subscribed ${input.value} to The Cedar Chronicle!`;
             feedback.classList.remove('hidden');
-            if (isCorrect) {
-                feedback.className = 'text-xs font-semibold p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300';
-                feedback.innerHTML = '✨ Spot on! Vertical velocity ($v_y = v \\sin\\theta$) governs peak height! +50 XP added.';
-                userXP += 50;
-                document.getElementById('user-xp').innerText = `${userXP.toLocaleString()} XP`;
-                if (typeof confetti === 'function') confetti({ particleCount: 40, spread: 60, origin: { y: 0.3 } });
-            } else {
-                feedback.className = 'text-xs font-semibold p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300';
-                feedback.innerHTML = '❌ Not quite. Vertical component ($v_y$) is countered by gravity to determine apex height.';
-            }
+            input.value = '';
         }
 
-        // Open Interactive Lesson Modal & Launch Canvas Simulator
-        function openLessonModal(courseId) {
-            const course = coursesData.find(c => c.id === courseId) || coursesData[0];
-            activeLessonId = course.id;
-
-            document.getElementById('modal-title').innerText = course.title;
-            document.getElementById('modal-subject-tag').innerText = course.subjectName;
-            document.getElementById('modal-description').innerText = course.desc;
-            document.getElementById('modal-formula-text').innerText = course.formula;
-            document.getElementById('sim-title').innerText = `${course.title} - Live Interactive Sandbox`;
-
-            // Quiz render
-            document.getElementById('quiz-question').innerText = course.quiz.question;
-            const quizGrid = document.getElementById('quiz-options-grid');
-            quizGrid.innerHTML = course.quiz.options.map((opt, i) => `
-                <button onclick="checkLessonQuiz(${i}, ${opt.correct}, '${course.id}')" class="quiz-btn text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-200 transition font-medium">
-                    ${opt.text}
-                </button>
-            `).join('');
-            
-            const feedback = document.getElementById('quiz-feedback');
-            feedback.classList.add('hidden');
-
-            // Show Modal
-            document.getElementById('lesson-modal').classList.remove('hidden');
-            if (globalThis.lucide?.createIcons) lucide.createIcons();
-
-            // Setup Simulation Canvas based on Course ID
-            setTimeout(() => {
-                initSimulationEngine(course.id);
-            }, 100);
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
         }
 
-        function closeLessonModal() {
-            document.getElementById('lesson-modal').classList.add('hidden');
-            if (animFrameId) cancelAnimationFrame(animFrameId);
+        function openPortalModal() {
+            document.getElementById('portalModal').classList.remove('hidden');
         }
 
-        function checkLessonQuiz(index, isCorrect, courseId) {
-            const course = coursesData.find(c => c.id === courseId);
-            const feedback = document.getElementById('quiz-feedback');
-            const btns = document.querySelectorAll('.quiz-btn');
-
-            btns.forEach((btn, i) => {
-                btn.disabled = true;
-                if (course.quiz.options[i].correct) {
-                    btn.className = 'quiz-btn text-left p-3 rounded-xl bg-emerald-500/20 border border-emerald-500 text-xs text-emerald-300 font-semibold';
-                } else if (i === index) {
-                    btn.className = 'quiz-btn text-left p-3 rounded-xl bg-rose-500/20 border border-rose-500 text-xs text-rose-300 font-semibold';
-                }
-            });
-
-            feedback.classList.remove('hidden');
-            if (isCorrect) {
-                feedback.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300';
-                feedback.innerText = course.quiz.explanation;
-                if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
-            } else {
-                feedback.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-500/10 border border-rose-500/30 text-rose-300';
-                feedback.innerText = 'Incorrect. ' + course.quiz.explanation;
-            }
+        function closePortalModal() {
+            document.getElementById('portalModal').classList.add('hidden');
         }
 
-        function completeCurrentLesson() {
-            userXP += 100;
-            document.getElementById('user-xp').innerText = `${userXP.toLocaleString()} XP`;
-            
-            // Boost progress of active lesson
-            const c = coursesData.find(item => item.id === activeLessonId);
-            if (c) c.progress = Math.min(100, c.progress + 25);
-
-            renderCourses();
-            if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } });
-            closeLessonModal();
+        function handlePortalLogin(e) {
+            e.preventDefault();
+            const role = document.getElementById('portalRole').value;
+            const user = document.getElementById('portalUser').value.trim();
+            document.getElementById('portalWelcomeRole').textContent = role;
+            document.getElementById('portalWelcomeUser').textContent = `Welcome, ${user}`;
+            document.getElementById('portalLoginForm').classList.add('hidden');
+            document.getElementById('portalDashboardView').classList.remove('hidden');
         }
 
-        // ==================== SIMULATION ENGINES ====================
-
-        let simState = {};
-
-        function initSimulationEngine(type) {
-            const canvas = document.getElementById('sim-canvas');
-            const ctx = canvas.getContext('2d');
-            const controls = document.getElementById('sim-controls-panel');
-            
-            // Resize Canvas to container
-            canvas.width = canvas.parentElement.clientWidth || 600;
-            canvas.height = canvas.parentElement.clientHeight || 300;
-
-            if (animFrameId) cancelAnimationFrame(animFrameId);
-
-            if (type === 'quadratic' || type === 'calculus') {
-                // QUADRATIC SIMULATION
-                simState = { a: 1, b: 0, c: -4 };
-                controls.innerHTML = `
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-slate-300">
-                            <span>a (curvature): <b id="val-a" class="text-brand-400">1</b></span>
-                        </div>
-                        <input type="range" min="-3" max="3" step="0.2" value="1" oninput="simState.a = parseFloat(this.value); document.getElementById('val-a').innerText=this.value;" class="w-full accent-brand-500">
-                    </div>
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-slate-300">
-                            <span>b (slope): <b id="val-b" class="text-brand-400">0</b></span>
-                        </div>
-                        <input type="range" min="-6" max="6" step="0.5" value="0" oninput="simState.b = parseFloat(this.value); document.getElementById('val-b').innerText=this.value;" class="w-full accent-brand-500">
-                    </div>
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-slate-300">
-                            <span>c (y-intercept): <b id="val-c" class="text-brand-400">-4</b></span>
-                        </div>
-                        <input type="range" min="-8" max="8" step="1" value="-4" oninput="simState.c = parseFloat(this.value); document.getElementById('val-c').innerText=this.value;" class="w-full accent-brand-500">
-                    </div>
-                `;
-
-                function drawQuadratic() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    const cx = canvas.width / 2;
-                    const cy = canvas.height / 2;
-                    const scale = 20; // 20px per unit
-
-                    // Draw Grid
-                    ctx.strokeStyle = '#1e293b';
-                    ctx.lineWidth = 1;
-                    for (let x = 0; x < canvas.width; x += scale) {
-                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-                    }
-                    for (let y = 0; y < canvas.height; y += scale) {
-                        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-                    }
-
-                    // Axes
-                    ctx.strokeStyle = '#475569';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); ctx.stroke();
-
-                    // Plot Curve f(x) = a x^2 + b x + c
-                    const a = simState.a, b = simState.b, c = simState.c;
-                    ctx.strokeStyle = '#6366f1';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-
-                    let first = true;
-                    for (let px = 0; px <= canvas.width; px += 2) {
-                        const x = (px - cx) / scale;
-                        const y = a * x * x + b * x + c;
-                        const py = cy - y * scale;
-
-                        if (first) { ctx.moveTo(px, py); first = false; }
-                        else { ctx.lineTo(px, py); }
-                    }
-                    ctx.stroke();
-
-                    // Vertex marker (-b / 2a)
-                    if (a !== 0) {
-                        const vx = -b / (2 * a);
-                        const vy = a * vx * vx + b * vx + c;
-                        const vpx = cx + vx * scale;
-                        const vpy = cy - vy * scale;
-
-                        ctx.fillStyle = '#06b6d4';
-                        ctx.beginPath(); ctx.arc(vpx, vpy, 6, 0, Math.PI * 2); ctx.fill();
-                    }
-
-                    // Update Overlay Text
-                    const disc = b*b - 4*a*c;
-                    document.getElementById('sim-stats-overlay').innerText = `f(x) = ${a}x² ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c} | Vertex: (${(-b/(2*a||1)).toFixed(1)}, ${(c - b*b/(4*a||1)).toFixed(1)})`;
-
-                    animFrameId = requestAnimationFrame(drawQuadratic);
-                }
-                drawQuadratic();
-
-            } else if (type === 'projectile') {
-                // PROJECTILE SIMULATION
-                simState = { angle: 45, v0: 35, g: 9.8, t: 0 };
-                controls.innerHTML = `
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-slate-300">
-                            <span>Launch Angle: <b id="val-ang" class="text-spark-cyan">45°</b></span>
-                        </div>
-                        <input type="range" min="15" max="85" step="1" value="45" oninput="simState.angle = parseFloat(this.value); simState.t=0; document.getElementById('val-ang').innerText=this.value+'°';" class="w-full accent-spark-cyan">
-                    </div>
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-slate-300">
-                            <span>Initial Velocity: <b id="val-v0" class="text-spark-cyan">35 m/s</b></span>
-                        </div>
-                        <input type="range" min="10" max="60" step="2" value="35" oninput="simState.v0 = parseFloat(this.value); simState.t=0; document.getElementById('val-v0').innerText=this.value+' m/s';" class="w-full accent-spark-cyan">
-                    </div>
-                    <div class="flex items-center justify-center pt-2">
-                        <button onclick="simState.t = 0;" class="px-4 py-1.5 rounded-xl bg-spark-cyan/20 text-spark-cyan border border-spark-cyan/40 text-xs font-bold hover:bg-spark-cyan hover:text-slate-900 transition">
-                            Re-launch Cannonball
-                        </button>
-                    </div>
-                `;
-
-                function drawProjectile() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    const rad = (simState.angle * Math.PI) / 180;
-                    const vx = simState.v0 * Math.cos(rad);
-                    const vy = simState.v0 * Math.sin(rad);
-                    const g = simState.g;
-
-                    // Ground line
-                    ctx.strokeStyle = '#334155';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.moveTo(40, canvas.height - 30); ctx.lineTo(canvas.width - 20, canvas.height - 30); ctx.stroke();
-
-                    // Trajectory Path Line
-                    ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
-                    ctx.setLineDash([4, 4]);
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    
-                    const maxT = (2 * vy) / g;
-                    for (let t = 0; t <= maxT; t += 0.05) {
-                        const px = 40 + vx * t * 3.5;
-                        const py = (canvas.height - 30) - (vy * t - 0.5 * g * t * t) * 3.5;
-                        if (t === 0) ctx.moveTo(px, py);
-                        else ctx.lineTo(px, py);
-                    }
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-
-                    // Animated Projectile Position
-                    simState.t += 0.03;
-                    if (simState.t > maxT) simState.t = 0;
-
-                    const curX = 40 + vx * simState.t * 3.5;
-                    const curY = (canvas.height - 30) - (vy * simState.t - 0.5 * g * simState.t * simState.t) * 3.5;
-
-                    // Draw Projectile Ball
-                    ctx.fillStyle = '#06b6d4';
-                    ctx.beginPath(); ctx.arc(curX, curY, 8, 0, Math.PI * 2); ctx.fill();
-
-                    // Velocity Vector Arrow
-                    ctx.strokeStyle = '#f59e0b';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(curX, curY);
-                    ctx.lineTo(curX + vx * 0.8, curY - (vy - g * simState.t) * 0.8);
-                    ctx.stroke();
-
-                    const range = (simState.v0 * simState.v0 * Math.sin(2 * rad)) / g;
-                    const maxHeight = (vy * vy) / (2 * g);
-                    document.getElementById('sim-stats-overlay').innerText = `Range: ${range.toFixed(1)}m | Max Height: ${maxHeight.toFixed(1)}m`;
-
-                    animFrameId = requestAnimationFrame(drawProjectile);
-                }
-                drawProjectile();
-
-            } else if (type === 'circuit') {
-                // ELECTRIC CIRCUIT SIMULATION
-                simState = { volts: 12, ohms: 10, switchOn: true, electronOffset: 0 };
-                controls.innerHTML = `
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-slate-300">
-                            <span>Voltage (V): <b id="val-v" class="text-amber-400">12V</b></span>
-                        </div>
-                        <input type="range" min="3" max="24" step="1" value="12" oninput="simState.volts = parseFloat(this.value); document.getElementById('val-v').innerText=this.value+'V';" class="w-full accent-amber-500">
-                    </div>
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-slate-300">
-                            <span>Resistance (Ω): <b id="val-r" class="text-amber-400">10Ω</b></span>
-                        </div>
-                        <input type="range" min="2" max="30" step="1" value="10" oninput="simState.ohms = parseFloat(this.value); document.getElementById('val-r').innerText=this.value+'Ω';" class="w-full accent-amber-500">
-                    </div>
-                    <div class="flex items-center justify-center pt-2">
-                        <button onclick="simState.switchOn = !simState.switchOn; this.innerText = simState.switchOn ? 'Switch Circuit OFF' : 'Switch Circuit ON';" class="px-4 py-1.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs font-bold transition">
-                            Switch Circuit OFF
-                        </button>
-                    </div>
-                `;
-
-                function drawCircuit() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    const padX = 80, padY = 50;
-                    const w = canvas.width - padX * 2;
-                    const h = canvas.height - padY * 2;
-
-                    // Draw Circuit Wires
-                    ctx.strokeStyle = '#475569';
-                    ctx.lineWidth = 4;
-                    ctx.strokeRect(padX, padY, w, h);
-
-                    // Draw Battery Symbol (Left wire)
-                    const bx = padX, by = padY + h / 2;
-                    ctx.fillStyle = '#0f172a';
-                    ctx.fillRect(bx - 10, by - 25, 20, 50);
-                    ctx.strokeStyle = '#f59e0b';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath(); ctx.moveTo(bx - 15, by - 12); ctx.lineTo(bx + 15, by - 12); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(bx - 8, by + 12); ctx.lineTo(bx + 8, by + 12); ctx.stroke();
-
-                    // Draw Lamp Bulb (Right wire)
-                    const lx = padX + w, ly = padY + h / 2;
-                    const current = simState.switchOn ? simState.volts / simState.ohms : 0;
-                    const brightness = Math.min(1, current / 2.4);
-
-                    ctx.fillStyle = `rgba(245, 158, 11, ${brightness * 0.8})`;
-                    ctx.beginPath(); ctx.arc(lx, ly, 25, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.stroke();
-
-                    // Electrons Flowing Animation
-                    if (simState.switchOn) {
-                        simState.electronOffset += current * 1.2;
-                    }
-
-                    const perimeter = 2 * (w + h);
-                    ctx.fillStyle = '#38bdf8';
-                    for (let d = 0; d < perimeter; d += 35) {
-                        const pos = (d + simState.electronOffset) % perimeter;
-                        let ex = 0, ey = 0;
-                        if (pos < w) { ex = padX + pos; ey = padY; }
-                        else if (pos < w + h) { ex = padX + w; ey = padY + (pos - w); }
-                        else if (pos < 2 * w + h) { ex = padX + w - (pos - (w + h)); ey = padY + h; }
-                        else { ex = padX; ey = padY + h - (pos - (2 * w + h)); }
-
-                        ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI * 2); ctx.fill();
-                    }
-
-                    const power = current * simState.volts;
-                    document.getElementById('sim-stats-overlay').innerText = `Current (I): ${current.toFixed(2)} A | Power (P): ${power.toFixed(1)} W`;
-
-                    animFrameId = requestAnimationFrame(drawCircuit);
-                }
-                drawCircuit();
-
-            } else {
-                // MOLECULAR / DEFAULT SIMULATION
-                simState = { angle: 0 };
-                controls.innerHTML = `
-                    <div class="col-span-3 text-center text-xs text-slate-400">
-                        Drag or observe real-time 3D valence atom rotation
-                    </div>
-                `;
-
-                function drawMolecule() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    const cx = canvas.width / 2;
-                    const cy = canvas.height / 2;
-
-                    simState.angle += 0.02;
-
-                    const r = 70;
-                    const h1x = cx + Math.cos(simState.angle) * r;
-                    const h1y = cy + Math.sin(simState.angle) * 30 - 30;
-
-                    const h2x = cx + Math.cos(simState.angle + 2.2) * r;
-                    const h2y = cy + Math.sin(simState.angle + 2.2) * 30 + 30;
-
-                    // Bonds
-                    ctx.strokeStyle = '#94a3b8';
-                    ctx.lineWidth = 6;
-                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(h1x, h1y); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(h2x, h2y); ctx.stroke();
-
-                    // Central Oxygen Atom
-                    ctx.fillStyle = '#f43f5e';
-                    ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Inter'; ctx.fillText('O', cx - 4, cy + 4);
-
-                    // Hydrogen 1
-                    ctx.fillStyle = '#38bdf8';
-                    ctx.beginPath(); ctx.arc(h1x, h1y, 16, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#fff'; ctx.fillText('H', h1x - 4, h1y + 4);
-
-                    // Hydrogen 2
-                    ctx.fillStyle = '#38bdf8';
-                    ctx.beginPath(); ctx.arc(h2x, h2y, 16, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#fff'; ctx.fillText('H', h2x - 4, h2y + 4);
-
-                    document.getElementById('sim-stats-overlay').innerText = `Molecule: H₂O Water | Bond Angle: 104.5°`;
-                    animFrameId = requestAnimationFrame(drawMolecule);
-                }
-                drawMolecule();
-            }
+        function resetPortalModal() {
+            document.getElementById('portalLoginForm').reset();
+            document.getElementById('portalLoginForm').classList.remove('hidden');
+            document.getElementById('portalDashboardView').classList.add('hidden');
         }
+
+        // =========================================================================
+        // INITIALIZE ON PAGE LOAD
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            applyDynamicYears();
+            selectDivision('elementary');
+            filterEvents('all');
+            calculateTuition();
+            updateApplicationBadges();
+            updateLiveSummary();
+            lucide.createIcons();
+        });
     </script>
 </body>
 </html>
