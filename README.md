@@ -57,7 +57,8 @@ Additional client features include persisted tabs/settings, icon-based search
 provider selection, removable and custom home shortcuts (including Soundboard
 and `su://extensions`), the `su://games` provider hub, lightweight ad/tracker
 filtering, site userscript prompts from `extensions/scripts/index.json`, and a
-Wisp selector with Official, self-hosted, public, and custom endpoint options.
+current Wisp endpoint display with automatic discovery and an optional custom
+endpoint.
 Scramjet proxy URLs use the `/eduapi/` route. Settings are grouped into Proxy,
 Extensions, Personalization, and General pages; General includes a factory reset
 that clears SuperUser data from local storage. The Official Wisp endpoint is the
@@ -96,23 +97,19 @@ by default. The public
 `wss://wisp.mercurywork.shop/` endpoint is also available, and custom
 `ws://` or `wss://` endpoints can be entered in Settings. Endpoint selection is
 verified with an actual proxied HTTPS request, not just a WebSocket open.
-Self-hosted uses Wisp v2; Official and MercuryWorkshop use Wisp v1 by default.
-Settings also exposes an explicit protocol override.
+Discovery checks each server for Wisp v1 and v2 support, prefers v2 when
+available, and displays the protocols each endpoint supports. Self-hosted Wisp
+supports v2; older endpoints can fall back to v1.
 
 ## Builds
 
-Run `npm run build` to generate `singlefile/index.html`, the service-worker and
-Scramjet runtime assets, the game hub and learning mockup assets, the Netlify
-CORS headers, and `singlefile/launcher.js`. The launcher opens an `about:blank` tab immediately,
-checks the selected mirror, and tries the other mirror if the selected one is
-unavailable. When a mirror works, it navigates that tab to the mirror so the
-page keeps the real HTTPS origin required by the service worker.
+Run `npm run build` to generate `singlefile/index.html` and
+`singlefile/launcher.js`. The HTML build inlines the CSS, application JavaScript,
+Scramjet runtime, controller scripts, extension catalog and scripts, shortcut
+icons, internal pages, and learning mockup. The remaining requirements are a
+browser environment and network access to the Wisp transport.
 
-The generated HTML inlines the application scripts; runtime files, shortcut
-icons, and game hub assets are deployed beside it. On the first successful
-visit, the service worker caches the app shell and Scramjet runtime for use if
-the mirror later goes offline. Browser security does not allow an
-`about:blank`, `blob:`, or standalone `file:` page to register the same-origin
-service worker this proxy requires, so no browser-only launcher can make a
-first-ever launch work when every mirror is offline. When both mirrors are
-unreachable, use a reachable custom server URL in the launcher.
+The generated HTML is designed to be moved or opened independently, but proxy
+service-worker behavior still requires a secure context (`https://` or
+`localhost`). Browser security does not allow `file:` or `about:blank` to
+register the proxy service worker by themselves.

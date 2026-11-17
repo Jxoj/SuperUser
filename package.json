@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "build:singlefile": "python build_singlefile.py",
-    "build:launcher": "python build_js.py",
+    "build:singlefile": "python3 build_singlefile.py",
+    "build:launcher": "python3 build_js.py",
     "build": "npm run build:singlefile && npm run build:launcher"
   },
   "keywords": [],
