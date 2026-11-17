@@ -54,12 +54,14 @@ Closing the actual SuperUser browser tab uses the browser's native confirmation
 dialog.
 
 Additional client features include persisted tabs/settings, icon-based search
-provider selection, removable and custom home shortcuts, the `su://games`
-provider hub, lightweight ad/tracker filtering, custom image/video backgrounds,
-site userscript prompts from `extensions/scripts/index.json`, and a Wisp
-selector with Official, self-hosted, public, and custom endpoint options.
-Settings are grouped into Proxy, Extensions, Personalization, and General pages.
-The Official Wisp endpoint is the default and recommended transport.
+provider selection, removable and custom home shortcuts (including Soundboard
+and `su://extensions`), the `su://games` provider hub, lightweight ad/tracker
+filtering, site userscript prompts from `extensions/scripts/index.json`, and a
+Wisp selector with Official, self-hosted, public, and custom endpoint options.
+Scramjet proxy URLs use the `/eduapi/` route. Settings are grouped into Proxy,
+Extensions, Personalization, and General pages; General includes a factory reset
+that clears SuperUser data from local storage. The Official Wisp endpoint is the
+default and recommended transport.
 
 ## Production (with nginx + SSL)
 

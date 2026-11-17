@@ -24,7 +24,6 @@
       --danger: #ef4444;
       --radius: 12px;
       --radius-pill: 9999px;
-      --home-bg-image: none;
     }
 
     *, *::before, *::after {
@@ -40,9 +39,6 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       overflow: hidden;
       user-select: none;
-      background-image: var(--home-bg-image);
-      background-size: cover;
-      background-position: center;
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -1601,6 +1597,11 @@
       color: var(--green);
     }
 
+    .modal-btn.danger:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
     /* Help Commands Table */
     .cmd-list-table {
       width: 100%;
@@ -1777,7 +1778,6 @@
         <div class="quick-chips">
           <div id="quickShortcuts"></div>
         </div>
-        <input type="file" id="backgroundUpload" accept="image/*,video/*" hidden>
       </section>
 
       <!-- PROXIED BROWSER FRAME -->
@@ -1826,16 +1826,15 @@
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="personalization">
-          <div class="page-card" data-searchable="background image video custom">
-            <h3>Custom background</h3><p>Use an image or video as the app background.</p>
-            <button class="modal-btn" id="backgroundUploadBtn">Choose background</button>
-            <button class="modal-btn" id="clearBackgroundBtn">Clear</button>
-          </div>
           <div class="page-card" data-searchable="intro animation">
             <h3>Intro Animation</h3><p>Replay the SuperUser intro animation.</p><button class="modal-btn" id="replayIntroPageBtn">Replay Intro</button>
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="general">
+          <div class="page-card" data-searchable="factory reset clear local storage data">
+            <h3>Factory Reset</h3><p>Remove all SuperUser data saved in this browser and restore the default settings.</p>
+            <button class="modal-btn danger" id="factoryResetBtn">Factory Reset</button>
+          </div>
           <div class="page-card" data-searchable="service worker reset cache">
             <h3>Reset Service Worker</h3><p>Unregister and reload the proxy cache.</p><button class="modal-btn" id="resetSwPageBtn">Reset SW</button>
           </div>
@@ -2208,6 +2207,7 @@
   const frameLoader     = document.getElementById('frameLoader');
   const frameLoaderMsg   = document.getElementById('frameLoaderMsg');
   const learningScreen   = document.getElementById('learningScreen');
+  const SCRAMJET_PREFIX  = 'eduapi/';
   const SETTINGS_KEY     = 'superuser-settings';
   const OFFICIAL_WISP_URL = 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/';
   const TABS_KEY         = 'superuser-tabs';
@@ -2219,19 +2219,20 @@
     { title: 'YouTube', url: 'https://www.youtube.com', domain: 'youtube.com' },
     { title: 'Discord', url: 'https://discord.com/app', domain: 'discord.com' },
     { title: 'ChatGPT', url: 'https://chatgpt.com', domain: 'chatgpt.com' },
-    { title: 'Games', url: 'su://games', svg: GAMEPAD_SVG }
+    { title: 'Games', url: 'su://games', svg: GAMEPAD_SVG },
+    { title: 'Soundboard', url: 'https://www.myinstants.com/' },
+    { title: 'Extensions', url: 'su://extensions', icon: '🧩' }
   ];
   const defaultSettings  = {
     wisp: OFFICIAL_WISP_URL,
     wispVersion: 'auto',
     searchProvider: 'startpage',
-    adBlock: true,
-    background: false
+    adBlock: true
   };
   let settings = { ...defaultSettings };
   try { settings = { ...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (_) {}
-  if (typeof settings.background !== 'boolean') {
-    settings.background = false;
+  if ('background' in settings) {
+    delete settings.background;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }
   if (settings.wispVersion === 1 || settings.wispVersion === 2 ||
@@ -2271,6 +2272,16 @@
       localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
     }
     localStorage.setItem('superuser-games-shortcut-v1', 'true');
+  }
+  if (!localStorage.getItem('superuser-shortcuts-v2')) {
+    for (const title of ['Soundboard', 'Extensions']) {
+      const shortcut = DEFAULT_SHORTCUTS.find(item => item.title === title);
+      if (shortcut && !visibleShortcuts.some(item => item.title === title)) {
+        visibleShortcuts = [...visibleShortcuts, shortcut];
+      }
+    }
+    localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(visibleShortcuts));
+    localStorage.setItem('superuser-shortcuts-v2', 'true');
   }
 
   const AD_HOSTS = /(^|\.)((doubleclick|googlesyndication|googleadservices|adnxs|adsrvr|advertising|imasdk|adform|criteo|taboola|outbrain|scorecardresearch)\.)/i;
@@ -2671,7 +2682,7 @@
           transport,
           config: {
             ...$scramjetController.config,
-            prefix: appPath('~/sj/'),
+            prefix: appPath(SCRAMJET_PREFIX),
             scramjetPath: appPath('scramjet/scramjet.js'),
             injectPath: appPath('controller/controller.inject.js'),
             wasmPath: appPath('scramjet/scramjet.wasm')
@@ -3386,7 +3397,7 @@
     let publicUrl = loc;
     try {
       const currentUrl = new URL(loc, location.href);
-      const proxyPrefix = new URL(appPath('~/sj/'), location.href).pathname;
+      const proxyPrefix = new URL(appPath(SCRAMJET_PREFIX), location.href).pathname;
       if (currentUrl.origin === location.origin && currentUrl.pathname.startsWith(proxyPrefix)) {
         const segments = currentUrl.pathname.slice(proxyPrefix.length).split('/').reverse();
         const decodedTarget = segments.map(segment => {
@@ -4013,6 +4024,13 @@ frame.addEventListener('load', () => {
     }
   });
 
+  document.getElementById('factoryResetBtn').addEventListener('click', () => {
+    if (!confirm('Factory Reset will permanently remove all SuperUser data saved in this browser. Continue?')) return;
+    localStorage.clear();
+    allowApplicationUnload = true;
+    location.reload();
+  });
+
   function onWispChange() {
     const source = this;
     const other = source.id === 'wispSelectPage'
@@ -4087,116 +4105,6 @@ frame.addEventListener('load', () => {
       if (settings.adBlock) installAdBlocker(tab);
     });
   });
-  document.getElementById('backgroundUploadBtn').addEventListener('click', () => document.getElementById('backgroundUpload').click());
-  document.getElementById('backgroundUpload').addEventListener('change', event => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      showToast('Background must be under 8 MB', true);
-      return;
-    }
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      showToast('Choose an image or video file', true);
-      return;
-    }
-    saveBackgroundFile(file).then(() => {
-      settings.background = true;
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      return applyBackground();
-    }).catch(error => {
-      addLog(`Could not save background: ${error.message}`, 'err');
-      showToast('Could not save that background', true);
-    });
-  });
-  document.getElementById('clearBackgroundBtn').addEventListener('click', () => {
-    deleteBackgroundFile().then(() => {
-      settings.background = false;
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      return applyBackground();
-    }).catch(error => {
-      addLog(`Could not clear background: ${error.message}`, 'err');
-      showToast('Could not clear the background', true);
-    });
-  });
-
-  const BACKGROUND_DB = 'superuser-backgrounds';
-  let backgroundObjectUrl = '';
-
-  function openBackgroundDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(BACKGROUND_DB, 1);
-      request.onupgradeneeded = () => request.result.createObjectStore('files');
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error || new Error('IndexedDB could not be opened'));
-    });
-  }
-
-  async function saveBackgroundFile(file) {
-    const db = await openBackgroundDatabase();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction('files', 'readwrite');
-      transaction.objectStore('files').put(file, 'custom');
-      transaction.oncomplete = () => { db.close(); resolve(); };
-      transaction.onerror = () => { db.close(); reject(transaction.error || new Error('Background save failed')); };
-      transaction.onabort = () => { db.close(); reject(transaction.error || new Error('Background save was aborted')); };
-    });
-  }
-
-  async function loadBackgroundFile() {
-    const db = await openBackgroundDatabase();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction('files', 'readonly');
-      const request = transaction.objectStore('files').get('custom');
-      request.onsuccess = () => { db.close(); resolve(request.result || null); };
-      request.onerror = () => { db.close(); reject(request.error || new Error('Background load failed')); };
-    });
-  }
-
-  async function deleteBackgroundFile() {
-    const db = await openBackgroundDatabase();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction('files', 'readwrite');
-      transaction.objectStore('files').delete('custom');
-      transaction.oncomplete = () => { db.close(); resolve(); };
-      transaction.onerror = () => { db.close(); reject(transaction.error || new Error('Background removal failed')); };
-      transaction.onabort = () => { db.close(); reject(transaction.error || new Error('Background removal was aborted')); };
-    });
-  }
-
-  async function applyBackground() {
-    let video = document.getElementById('customBackgroundVideo');
-    if (backgroundObjectUrl) URL.revokeObjectURL(backgroundObjectUrl);
-    backgroundObjectUrl = '';
-    const file = settings.background ? await loadBackgroundFile() : null;
-    if (!file) {
-      video?.remove();
-      document.documentElement.style.setProperty('--home-bg-image', 'none');
-      return;
-    }
-    backgroundObjectUrl = URL.createObjectURL(file);
-    if (file.type.startsWith('video/')) {
-      if (!video) {
-        video = document.createElement('video');
-        video.id = 'customBackgroundVideo';
-        video.autoplay = true;
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        Object.assign(video.style, {
-          position: 'fixed', inset: '0', width: '100%', height: '100%',
-          objectFit: 'cover', zIndex: '-1', opacity: '.35', pointerEvents: 'none'
-        });
-        document.body.prepend(video);
-      }
-      video.src = backgroundObjectUrl;
-      document.documentElement.style.setProperty('--home-bg-image', 'none');
-    } else {
-      video?.remove();
-      document.documentElement.style.setProperty('--home-bg-image', `url("${backgroundObjectUrl}")`);
-    }
-  }
-  applyBackground().catch(error => addLog(`Could not load background: ${error.message}`, 'warn'));
-
   window.addEventListener('beforeunload', (event) => {
     if (allowApplicationUnload) return;
     event.preventDefault();
