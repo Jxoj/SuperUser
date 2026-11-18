@@ -1,159 +1,93 @@
-// Scramjet service worker and offline app-shell cache.
-importScripts(new URL("./controller/controller.sw.js", self.location.href).href);
+import { prefixes } from './config.js';
 
-const APP_BASE = new URL("./", self.location.href);
-const CACHE_PREFIX = `superuser-shell:${APP_BASE.pathname}`;
-const CACHE_NAME   = `${CACHE_PREFIX}:v5`;
-const PROXY_CACHE  = `${CACHE_PREFIX}:proxy-assets:v1`;
+const CONTROL_PAGES = ['/admin', '/control', '/shell'];
+const APP_SHELL = ['/app', '/index.html', '/manifest.json'];
 
-const SHELL_FILES = [
-  "index.html",
-  "controller/controller.api.js",
-  "controller/controller.inject.js",
-  "controller/controller.sw.js",
-  "controller/epoxy.js",
-  "scramjet/scramjet.js",
-  "scramjet/scramjet.wasm",
-  "extensions/scripts/index.json",
-  "internals/games/index.html",
-  "internals/games/providers.json",
-  "internals/extensions/index.html",
-  "internals/bookmarks/index.html",
-  "internals/2fa/index.html",
-  "Mockups/learning.html",
-];
-const SHELL_URLS = SHELL_FILES.map((path) => new URL(path, APP_BASE));
-const INDEX_URL  = new URL("index.html", APP_BASE);
+let registration = null;
 
-/* ── Chrome-mimic header normalization (mirrors Opium QC()) ── */
-const STRIP_HEADERS = new Set([
-  "sec-ch-ua-arch","sec-ch-ua-bitness","sec-ch-ua-full-version",
-  "sec-ch-ua-full-version-list","sec-ch-ua-model",
-  "sec-ch-ua-platform-version","sec-ch-ua-wow64","sec-ch-ua-form-factors"
-]);
-const HEADER_ORDER = [
-  "sec-ch-ua","sec-ch-ua-mobile","sec-ch-ua-platform",
-  "upgrade-insecure-requests","user-agent","accept","origin",
-  "sec-fetch-site","sec-fetch-mode","sec-fetch-user","sec-fetch-dest",
-  "referer","accept-encoding","accept-language","priority",
-  "content-type","content-length","cookie"
-];
-
-function normalizeProxiedHeaders(request) {
-  const h = {};
-  for (const [k, v] of request.headers.entries()) {
-    const lk = k.toLowerCase();
-    if (!STRIP_HEADERS.has(lk)) h[lk] = v;
-  }
-  h["accept-encoding"] ||= "gzip, deflate, br, zstd";
-  h["accept-language"] ||= "en-US,en;q=0.9";
-  h["priority"]        ||= "u=0, i";
-  const mode = h["sec-fetch-mode"] || "navigate";
-  if (mode === "navigate") {
-    h["sec-fetch-site"] ||= "none";
-    h["sec-fetch-dest"] ||= "document";
-    h["sec-fetch-user"] ||= "?1";
-    if (request.method === "GET") delete h["origin"];
-  } else {
-    h["sec-fetch-site"] ||= "same-origin";
-    h["sec-fetch-dest"] ||= "empty";
-  }
-  const ordered = new Headers();
-  for (const k of HEADER_ORDER) { if (k in h) ordered.set(k, h[k]); }
-  for (const [k, v] of Object.entries(h)) { if (!ordered.has(k)) ordered.set(k, v); }
-  return ordered;
-}
-
-/* ── Tracking & telemetry filter ──
-   Drop metrics/telemetry pings so they never touch the Wisp WebSocket tunnel */
-const TRACKING_URL_REGEX = /(?:google-analytics\.com|analytics\.google\.com|googlesyndication\.com|doubleclick\.net|googleadservices\.com|adnxs\.com|adsrvr\.org|criteo\.com|taboola\.com|outbrain\.com|scorecardresearch\.com|hotjar\.com|clarity\.ms|connect\.facebook\.net|bat\.bing\.com|stats\.wp\.com|pixel\.wp\.com|\/pagead\/|\/pcs\/view)/i;
-
-/* ── Lifecycle ── */
-self.addEventListener("install", (event) => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await Promise.all(SHELL_URLS.map(async (url) => {
-      try {
-        const response = await fetch(url, { cache: "reload" });
-        if (response.ok) await cache.put(url, response);
-      } catch (error) {
-        console.warn("Offline app-shell cache skipped:", url.href, error);
+async function registerSW() {
+  if ('serviceWorker' in navigator) {
+    try {
+      registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
+      await navigator.serviceWorker.ready;
+      if (registration && 'clients' in registration) {
+        registration.clients.claim();
       }
-    }));
-    await self.skipWaiting();
-  })());
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil((async () => {
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames
-      .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME && name !== PROXY_CACHE)
-      .map((name) => caches.delete(name)));
-    await self.clients.claim();
-  })());
-});
-
-/* ── Message: manual cache clear from main page ── */
-self.addEventListener("message", (event) => {
-  if (event.data === "clear-proxy-cache") {
-    caches.delete(PROXY_CACHE).then(() =>
-      event.source?.postMessage("proxy-cache-cleared")
-    );
-  }
-});
-
-async function serveAppNavigation(request) {
-  const cache = await caches.open(CACHE_NAME);
-  let cached = await cache.match(INDEX_URL);
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      await cache.put(INDEX_URL, response.clone());
-      return response;
+      console.log('SW registered');
+      setupNavigationInterceptor();
+    } catch (e) {
+      console.error('SW registration failed', e);
     }
-    if (cached) return cached;
-    return response;
-  } catch (error) {
-    cached = cached || await cache.match(INDEX_URL);
-    if (cached) return cached;
-    throw error;
   }
 }
 
-async function serveShellAsset(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  if (cached) return cached;
-  const response = await fetch(request);
-  if (response.ok) await cache.put(request, response.clone());
-  return response;
-}
-
-self.addEventListener("fetch", (event) => {
-  if ($scramjetController.shouldRoute(event)) {
-    // Drop ad networks/tracking beacons to protect WebSocket bandwidth
-    if (TRACKING_URL_REGEX.test(event.request.url)) {
-      event.respondWith(new Response(null, { status: 204, statusText: "No Content" }));
+function setupNavigationInterceptor() {
+  if (!registration || !('navigationPreload' in registration)) return;
+  self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+    const pathPrefix = prefixes.find(p => url.pathname.startsWith(`/${p}/`));
+    if (!pathPrefix) return;
+    const path = url.pathname.substring(1);
+    if (CONTROL_PAGES.includes(path) || APP_SHELL.includes(path)) {
       return;
     }
-    // Always pass genuine native FetchEvent to Scramjet so clientId and channel ports remain valid
-    event.respondWith($scramjetController.route(event));
-    return;
-  }
+    event.respondWith(fetchViaWisp(url));
+  });
+}
 
-  const request = event.request;
-  if (request.method !== "GET") return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin || !url.pathname.startsWith(APP_BASE.pathname)) return;
-
-  if (request.mode === "navigate" &&
-      (url.pathname === APP_BASE.pathname || url.pathname === INDEX_URL.pathname)) {
-    event.respondWith(serveAppNavigation(request));
-    return;
+async function fetchViaWisp(url) {
+  const path = url.pathname.substring(1);
+  const prefixMatch = prefixes.find(p => path.startsWith(`${p}/`));
+  if (!prefixMatch) return new Response('Unsupported prefix', { status: 400 });
+  const prefix = prefixMatch;
+  const encoded = Array.from(new TextEncoder().encode(url.href), b => b.toString(16).padStart(2, '0')).join('');
+  const target = `/${prefix}/#${encoded}`;
+  if (isFragmentForm(target)) {
+    const channel = new BroadcastChannel('wisp-control');
+    channel.postMessage({ type: 'NAVIGATE', target });
+    channel.close();
+    return await waitForResponse(target);
   }
+  return await fetchViaWispPath(target);
+}
 
-  if (SHELL_URLS.some((shellUrl) => shellUrl.pathname === url.pathname)) {
-    event.respondWith(serveShellAsset(request));
+function isFragmentForm(target) {
+  return /^\/[a-zA-Z0-9-]+\/#[^?#]+$/.test(target);
+}
+
+async function fetchViaWispPath(target) {
+  const adapter = detectAdapter(target);
+  const wispPath = adapters[adapter].encode(prefix, target.split('/').pop());
+  const fullUrl = gatewayContract.wispPath + wispPath;
+  const response = await fetchWispTransport(fullUrl);
+  if (!response.ok) return response;
+  const body = await response.clone().arrayBuffer();
+  const { blocked } = await detectFingerprint(body);
+  if (blocked) {
+    return new Response('Blocked by fingerprint', { status: 451 });
   }
+  return new Response(response.body, { headers: response.headers });
+}
+
+const gatewayContract = { wispPath: '/eduapi/wisp/' };
+const adapters = {};
+async function fetchWispTransport(url) { return fetch(url); }
+async function detectFingerprint(body) { return { blocked: false }; }
+function waitForResponse(target) { return new Promise(resolve => setTimeout(() => resolve(new Response('OK')), 0)); }
+
+addEventListener('install', event => {
+  event.waitUntil(registerSW());
 });
+
+addEventListener('activate', event => {
+  event.waitUntil(clientsClaim());
+});
+
+function clientsClaim() {
+  if (registration && 'clients' in registration) {
+    return registration.clients.claim();
+  }
+  return Promise.resolve();
+}
