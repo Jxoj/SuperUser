@@ -27,11 +27,11 @@ export const gatewayContract = {
 
 Six encoding forms, evaluated in order of least to most privileged:
 
-1. **fragment** - `/v2/#<b64url>`: Target never enters network URL at all
-2. **path-b64** - `/v2/<b64url>`: Opaque, no reserved characters
-3. **query-b64** - `/v2?u=<b64url>`: Reads as an ordinary deep link
-4. **path-schemeless** - `/v2/<pct-encoded, scheme stripped>`: Drops the %3A%2F%2F signature
-5. **path-hex** - `/v2/<hex>`: Different alphabet, still path-shaped
+1. **registry** - `/{prefix}/{h16}/{filename}`: Hashed directory with generic filename, no decode needed
+2. **self-contained** - `/{prefix}/{h8}.{hexPayload}.{ext}`: Hash prefix with hex payload, decodable
+3. **fragment** - `/v2/#<b64url>`: Target never enters network URL at all
+4. **path-hex** - `/v2/<hex>`: Different alphabet, still path-shaped
+5. **query-b64** - `/v2?u=<b64url>`: Reads as an ordinary deep link
 6. **native** - `/eduapi/{seg1}/{seg2}/<pct-encoded full URL>`: Guaranteed baseline when nothing else lands
 
 ### 3. Protocol Implementation
@@ -116,7 +116,9 @@ Caches the first successful form for each origin in localStorage with a 1-hour T
 Run `npm run build` to generate the single-file HTML distribution, launcher, and SVGs.
 Configure `TARGET_URL` and `HTML_INPUT_PATH` at the top of `build_svg.py`: the build
 writes the URL launcher to `singlefile/index.svg` and embeds the configured HTML file
-in `singlefile/html.svg`.
+in `singlefile/html.svg`. The embedded document gets a relative `<base>` element so
+its app paths and service-worker URL resolve from the SVG's directory instead of
+from the iframe's `about:srcdoc` URL.
 The single-file build inlines app scripts, approved learning-page CDN scripts, backend
 and extension data, and local images. It keeps service-worker and WebAssembly runtime
 files alongside the HTML because browsers require those resources to be served from

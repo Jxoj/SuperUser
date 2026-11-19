@@ -94,11 +94,14 @@ function detectFormType(url) {
   const parsed = new URL(url);
   const path = parsed.pathname;
   const query = parsed.search;
-  if (path.match(/^\/\w+\/#[^?#]+$/)) return 'fragment';
-  if (path.match(/^\/\w+\/[A-Za-z0-9_-]+$/)) return 'path-b64';
+  
+  if (path.match(/^\/([^\/]+)\/#[^?#]+$/)) return 'fragment';
+  if (path.match(/^\/([^\/]+)\/([0-9a-f]{16})(?:\/([^\/]+))?$/)) return 'registry';
+  if (path.match(/^\/([^\/]+)\/([0-9a-f]{8})\.([^.]+)\.([0-9a-f]+)$/)) return 'self-contained';
+  if (path.match(/^\/([^\/]+)\/([A-Za-z0-9_-]+)$/) && !path.includes('#') && !path.includes('.')) return 'path-b64';
   if (query.startsWith('?u=')) return 'query-b64';
-  if (path.match(/^\/\w+\/[^?#]+$/)) return 'path-schemeless';
-  if (path.match(/^\/\w+\/[0-9a-f]+$/)) return 'path-hex';
+  if (path.match(/^\/([^\/]+)\/[^?#]+$/) && !path.includes('#')) return 'path-schemeless';
+  if (path.match(/^\/([^\/]+)\/([0-9a-f]+)$/) && !path.match(/^\/([^\/]+)\/([0-9a-f]{16})(?:\/([^\/]+))?$/)) return 'path-hex';
   if (path.match(/^\/eduapi\/\w+\/\w+\/([^/?]+)/)) return 'native';
   return null;
 }
@@ -108,21 +111,29 @@ function extractTargetFromUrl(url, formType) {
   const path = parsed.pathname;
   const query = parsed.search;
   switch (formType) {
+    case 'registry': {
+      const match = path.match(/^\/([^\/]+)\/([0-9a-f]{16})(?:\/([^\/]+))?$/);
+      return match ? `[registry:${match[1]}:${match[2]}:${match[3] || 'unknown'}]` : null;
+    }
+    case 'self-contained': {
+      const match = path.match(/^\/([^\/]+)\/([0-9a-f]{8})\.([^.]+)\.([0-9a-f]+)$/);
+      return match ? `[self-contained:${match[1]}:${match[2]}.${match[3]}.${match[4]}]` : null;
+    }
     case 'path-b64': {
-      const match = path.match(/^\/\w+\/([^/?]+)/);
-      return match ? adapters['path-b64'].decode(match[1]) : null;
+      const match = path.match(/^\/([^\/]+)\/([^/?]+)/);
+      return match ? adapters['path-b64'].decode(match[2]) : null;
     }
     case 'query-b64': {
       const match = query.match(/\bu=([^&#]+)/);
       return match ? adapters['query-b64'].decode(match[1]) : null;
     }
     case 'path-schemeless': {
-      const match = path.match(/^\/\w+\/([^/?]+)/);
-      return match ? adapters['path-schemeless'].decode(match[1]) : null;
+      const match = path.match(/^\/([^\/]+)\/([^/?]+)/);
+      return match ? adapters['path-schemeless'].decode(match[2]) : null;
     }
     case 'path-hex': {
-      const match = path.match(/^\/\w+\/([^/?]+)/);
-      return match ? adapters['path-hex'].decode(match[1]) : null;
+      const match = path.match(/^\/([^\/]+)\/([^/?]+)/);
+      return match ? adapters['path-hex'].decode(match[2]) : null;
     }
     case 'native': {
       const match = path.match(/^\/eduapi\/\w+\/\w+\/([^/?]+)/);

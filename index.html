@@ -1968,7 +1968,8 @@
   <!-- Local Epoxy transport bundle (fallback to CDN) -->
   <script src="/controller/epoxy.js"></script>
   <script>
-    const APP_BASE = new URL('./', location.href).pathname;
+    const APP_BASE_URL = new URL('./', document.baseURI);
+    const APP_BASE = APP_BASE_URL.pathname;
     const appPath = path => `${APP_BASE}${path.replace(/^\/+/, '')}`;
     const appAsset = path => appPath(path);
     const fetchAppAsset = (path, options) => fetch(appPath(path), options);
@@ -2549,7 +2550,7 @@
         throw new Error('Service Workers are not supported in this browser.');
       }
 
-      const swUrl = new URL(`${appPath('sw.js')}?v=14`, location.href).href;
+      const swUrl = new URL(`${appPath('sw.js')}?v=15`, APP_BASE_URL).href;
       const reg = await navigator.serviceWorker.register(swUrl, {
         scope: APP_BASE,
         updateViaCache: 'none'
@@ -2743,11 +2744,11 @@
 
   function migrateInternalGameUrl(url) {
     try {
-      const gamesPath = new URL(appPath('internals/games/'), location.href).pathname;
-      const proxyPath = new URL(appPath('~/sj/'), location.href).pathname;
+      const gamesPath = new URL(appPath('internals/games/'), APP_BASE_URL).pathname;
+      const proxyPath = new URL(appPath('~/sj/'), APP_BASE_URL).pathname;
       let candidate = url;
       for (let attempt = 0; attempt < 5; attempt++) {
-        const currentUrl = new URL(candidate, location.href);
+        const currentUrl = new URL(candidate, APP_BASE_URL);
         if (currentUrl.origin === location.origin && currentUrl.pathname.startsWith(gamesPath)) {
           const path = currentUrl.pathname.slice(gamesPath.length);
           const provider = path.split('/')[0];
@@ -3122,27 +3123,27 @@
     if (match) {
       const route = new URL(url);
       if (match[1]) route.searchParams.set('provider', match[1]);
-      const hubUrl = new URL(appPath('internals/games/index.html'), location.href);
+      const hubUrl = new URL(appPath('internals/games/index.html'), APP_BASE_URL);
       hubUrl.search = route.search;
       hubUrl.hash = route.hash;
       return hubUrl.href;
     }
     if (/^su:\/\/extensions\/?(?:\?[^#]*)?(?:#.*)?$/i.test(url)) {
-      return new URL(appPath('internals/extensions/index.html'), location.href).href;
+      return new URL(appPath('internals/extensions/index.html'), APP_BASE_URL).href;
     }
     if (/^su:\/\/bookmarks\/?(?:\?[^#]*)?(?:#.*)?$/i.test(url)) {
-      return new URL(appPath('internals/bookmarks/index.html'), location.href).href;
+      return new URL(appPath('internals/bookmarks/index.html'), APP_BASE_URL).href;
     }
     if (/^su:\/\/2fa\/?(?:\?[^#]*)?(?:#.*)?$/i.test(url)) {
-      return new URL(appPath('internals/2fa/index.html'), location.href).href;
+      return new URL(appPath('internals/2fa/index.html'), APP_BASE_URL).href;
     }
     return '';
   }
 
   function isInternalGameDocument(url) {
     try {
-      const currentUrl = new URL(url, location.href);
-      const internalsPath = new URL(appPath('internals/'), location.href).pathname;
+      const currentUrl = new URL(url, APP_BASE_URL);
+      const internalsPath = new URL(appPath('internals/'), APP_BASE_URL).pathname;
       return currentUrl.origin === location.origin && currentUrl.pathname.startsWith(internalsPath);
     } catch (_) {
       return false;
@@ -3313,8 +3314,8 @@
     const previousUrl = tab.url;
     let publicUrl = loc;
     try {
-      const currentUrl = new URL(loc, location.href);
-      const proxyPrefix = new URL(appPath(SCRAMJET_PREFIX), location.href).pathname;
+      const currentUrl = new URL(loc, APP_BASE_URL);
+      const proxyPrefix = new URL(appPath(SCRAMJET_PREFIX), APP_BASE_URL).pathname;
       if (currentUrl.origin === location.origin && currentUrl.pathname.startsWith(proxyPrefix)) {
         const segments = currentUrl.pathname.slice(proxyPrefix.length).split('/').reverse();
         const decodedTarget = segments.map(segment => {
@@ -3829,7 +3830,7 @@
       showToast('Pop-up blocked — allow pop-ups for this site', true);
       return;
     }
-    const proxyUrl = location.href;
+    const proxyUrl = document.baseURI;
     target.document.open();
     target.document.write(`<!DOCTYPE html><html><head>
 <meta charset="UTF-8">

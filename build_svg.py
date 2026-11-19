@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from pathlib import Path
 
 
@@ -14,9 +15,105 @@ TARGET_URL = "https://jsuperuser.netlify.app"
 HTML_INPUT_PATH = ROOT / "singlefile" / "index.html"
 OUTPUT_DIR = ROOT / "singlefile"
 
+# Prefix set for registry and self-contained forms
+PREFIXES = ["/assets/", "/static/", "/cdn/", "/pkg/", "/_next/static/"]
+
+
+def add_relative_base(document_html: str) -> str:
+    if re.search(r"<base\b", document_html, flags=re.IGNORECASE):
+        return document_html
+
+    base_tag = '<base href="./">'
+    head_match = re.search(r"<head\b[^>]*>", document_html, flags=re.IGNORECASE)
+    if head_match:
+        insert_at = head_match.end()
+        return f"{document_html[:insert_at]}\n{base_tag}{document_html[insert_at:]}"
+
+    html_match = re.search(r"<html\b[^>]*>", document_html, flags=re.IGNORECASE)
+    if html_match:
+        insert_at = html_match.end()
+        return f"{document_html[:insert_at]}\n<head>{base_tag}</head>{document_html[insert_at:]}"
+
+    return f"<!doctype html><html><head>{base_tag}</head><body>{document_html}</body></html>"
+
+def getRegistryUrl(target: str) -> str:
+    """Generate a registry URL for the target."""
+    import hashlib
+    
+    # Normalize URL: lowercase scheme and host only
+    from urllib.parse import urlparse
+    parsed = urlparse(target)
+    scheme = parsed.scheme.lower() if parsed.scheme else ''
+    host = parsed.netloc.lower() if parsed.netloc else ''
+    path = parsed.path
+    query = parsed.query
+    fragment = parsed.fragment
+    normalized = scheme + '://' + host + path + (query or '') + (fragment or '')
+    
+    # Generate h16 (first 16 hex chars of SHA-256)
+    h16 = hashlib.sha256(normalized.encode()).hexdigest()[:16]
+    
+    # Determine filename from target
+    ext = path.split('.')[-1].lower()
+    extensionTier = {
+        'js': 'main.js',
+        'json': 'data.json', 
+        'html': 'index.html',
+        'css': 'app.css',
+        'png': None,
+        'jpg': None,
+        'jpeg': None,
+        'svg': None,
+        'woff2': None
+    }
+    
+    filename = extensionTier.get(ext) or 'chunk.js'
+    
+    # Choose a prefix from the set
+    prefix = "/assets/"  # default, could be random
+    
+    # Generate registry URL
+    if filename:
+        return f"{prefix}{h16}/{filename}"
+    else:
+        return f"{prefix}{h16}"
+
+def getSelfContainedUrl(target: str) -> str:
+    """Generate a self-contained URL for the target."""
+    import hashlib
+    
+    # Normalize URL: lowercase scheme and host only
+    from urllib.parse import urlparse
+    parsed = urlparse(target)
+    scheme = parsed.scheme.lower() if parsed.scheme else ''
+    host = parsed.netloc.lower() if parsed.netloc else ''
+    path = parsed.path
+    query = parsed.query
+    fragment = parsed.fragment
+    normalized = scheme + '://' + host + path + (query or '') + (fragment or '')
+    
+    # Generate full SHA-256 hash
+    hex = hashlib.sha256(normalized.encode()).hexdigest()
+    h8 = hex[:8]
+    hexPayload = hex[8:]
+    
+    # Determine extension
+    ext = path.split('.')[-1].lower()
+    validExts = ['js', 'json', 'html', 'css', 'png', 'jpg', 'svg', 'woff2']
+    ext = ext if ext in validExts else ''
+    
+    # Choose a prefix from the set
+    prefix = "/static/"  # default, could be random
+    
+    # Generate self-contained URL
+    if ext:
+        return f"{prefix}{h8}.{hexPayload}.{ext}"
+    else:
+        return f"{prefix}{h8}.{hexPayload}"
+
 
 def build_html_svg(document_html: str) -> str:
-    safe_html = html.escape(document_html, quote=True)
+    safe_html = html.escape(add_relative_base(document_html), quote=True)
     safe_html = (
         safe_html.replace("\r", "&#13;")
         .replace("\n", "&#10;")

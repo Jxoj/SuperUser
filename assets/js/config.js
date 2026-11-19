@@ -12,14 +12,14 @@ export const gatewayContract = {
   }
 };
 
-export const prefixes = ['v2', 'v3', 'v4'];
+export const prefixes = ['assets', 'static', 'cdn', 'pkg', '_next/static/'];
 
 export const ladder = [
+  { form: 'registry', rationale: 'hashed directory with generic filename, no decode needed' },
+  { form: 'self-contained', rationale: 'hash prefix with hex payload, decodable' },
   { form: 'fragment', rationale: 'target never enters the network URL at all' },
-  { form: 'path-b64', rationale: 'opaque, no reserved characters' },
-  { form: 'query-b64', rationale: 'reads as an ordinary deep link' },
-  { form: 'path-schemeless', rationale: 'drops the %3A%2F%2F signature' },
   { form: 'path-hex', rationale: 'different alphabet, still path-shaped' },
+  { form: 'query-b64', rationale: 'reads as an ordinary deep link' },
   { form: 'native', rationale: 'guaranteed baseline when nothing else lands' }
 ];
 

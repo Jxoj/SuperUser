@@ -20,12 +20,35 @@ class Loader {
     let formType = null;
     let formIndex = -1;
     
+    // Sort prefixes by length (longest first) for proper prefix matching
+    const sortedPrefixes = [...prefixes].sort((a, b) => b.length - a.length);
+    
     for (let i = 0; i < ladder.length; i++) {
       const candidate = ladder[i];
-      if (adapters[candidate.form].encode(prefixes[0], target) === target) {
-        formType = candidate.form;
-        formIndex = i;
-        break;
+      const adapter = adapters[candidate.form];
+      
+      // For registry and self-contained forms, we need async encoding
+      if (candidate.form === 'registry' || candidate.form === 'self-contained') {
+        if (typeof adapter.encode === 'function') {
+          try {
+            const encoded = await adapter.encode(sortedPrefixes[0], target);
+            if (encoded === target) {
+              formType = candidate.form;
+              formIndex = i;
+              break;
+            }
+          } catch (error) {
+            // Skip if encoding fails
+            continue;
+          }
+        }
+      } else {
+        // For synchronous forms
+        if (adapter.encode(sortedPrefixes[0], target) === target) {
+          formType = candidate.form;
+          formIndex = i;
+          break;
+        }
       }
     }
     
