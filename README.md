@@ -25,14 +25,21 @@ export const gatewayContract = {
 
 ### 2. URL Forms and Ladder
 
-Six encoding forms, evaluated in order of least to most privileged:
+Six encoding forms, evaluated in this order:
 
-1. **registry** - `/{prefix}/{h16}/{filename}`: Hashed directory with generic filename, no decode needed
-2. **self-contained** - `/{prefix}/{h8}.{hexPayload}.{ext}`: Hash prefix with hex payload, decodable
-3. **fragment** - `/v2/#<b64url>`: Target never enters network URL at all
-4. **path-hex** - `/v2/<hex>`: Different alphabet, still path-shaped
-5. **query-b64** - `/v2?u=<b64url>`: Reads as an ordinary deep link
+1. **registry** - `/{prefix}/{h16}/{filename}`: IndexedDB lookup by the first 16 hex digits of SHA-256
+2. **self-contained** - `/{prefix}/{h8}/{hexPayload}.{ext}`: UTF-8 target encoded as hex; the first 8 hash digits are verified
+3. **fragment** - `/{prefix}/#<b64url>`: Target stays out of the network request
+4. **path-hex** - `/{prefix}/<hex>`: UTF-8 target encoded as hexadecimal
+5. **query-b64** - `/{prefix}?u=<b64url>`: Base64url-encoded target in the query
 6. **native** - `/eduapi/{seg1}/{seg2}/<pct-encoded full URL>`: Guaranteed baseline when nothing else lands
+
+The rotating prefix set is `/assets/`, `/static/`, `/cdn/`, `/pkg/`, and
+`/_next/static/`. Hashes use the target URL with only its scheme and host
+lowercased. The registry is capped at 5,000 targets and evicts least-recently
+used entries. Registry misses and invalid self-contained hashes return 404;
+they are never guessed. Successful hashed-route responses use
+`Cache-Control: public, max-age=31536000, immutable`.
 
 ### 3. Protocol Implementation
 
@@ -72,10 +79,11 @@ The schema is cryptographically signed using XOR rotation from `crypto.getRandom
 |------|---------|
 | `assets/js/config.js` | Contract, prefixes, ladder, mode configuration |
 | `assets/js/codecs.js` | Encode/decode pairs for URL forms |
+| `assets/js/registry.js` | Shared SHA-256, IndexedDB LRU registry, and URL-form helpers |
 | `assets/js/wisp-frames.js` | Experimental Wisp frame encoder and parser |
 | `assets/js/wisp-transport.js` | Experimental Wisp WebSocket transport |
 | `sw.js`, `assets/js/sw.js` | Root service-worker entry point and implementation |
-| `assets/js/sw-document.js` | Experimental token-to-Wisp request handling |
+| `assets/js/sw-document.js` | URL-form detection and decoding helpers |
 | `assets/js/detect.js` | Experimental fingerprint inspection |
 | `assets/js/reputation.js` | LocalStorage TTL cache |
 | `assets/js/mutator.js` | Experimental request mutation |
@@ -91,10 +99,11 @@ entry point imports the implementation from `assets/js/sw.js`, keeping the
 service-worker URL and scope stable while grouping JavaScript sources under
 `assets/js/`. The build copies and embeds this asset directory.
 
-The active URL-navigation path remains Scramjet with Epoxy/Wisp transport.
-The other modules below are a separate experimental pipeline; its Wisp
-transport currently has mocked response handling and is not used for active
-URL navigation.
+Top-level browser navigation first creates a registry URL and records the
+target in IndexedDB. The service worker resolves that URL and redirects within
+the current Scramjet frame to the native Scramjet route, where Epoxy/Wisp
+continues handling the proxied document and its subresources. If creating the
+hashed route fails, the UI logs the error and uses Scramjet's native route.
 
 ### 6. Fingerprint Detection
 
@@ -130,13 +139,14 @@ the configured pool until a server responds.
 
 ### Adding a Form
 
-1. Add to `assets/js/config.js` ladder array in order preference
-2. Implement encode/decode in `assets/js/codecs.js`
-3. Handle in `assets/js/sw-document.js`
+1. Add the form to `assets/js/config.js` in ladder order.
+2. Implement its encode/decode behavior in `assets/js/registry.js` and expose it
+   through `assets/js/codecs.js`.
+3. Handle it in `assets/js/sw.js` and the detection helpers.
 
 ### Deployment
 
-This client is designed to be embedded in existing web applications without server-side modifications. The service worker intercepts navigation events for configured prefixes, routing requests through the Wisp protocol to bypass network filtering.
+This client is designed to be embedded in existing web applications without server-side modifications. The service worker resolves hashed URLs before handing the resulting native route to the Scramjet/Wisp proxy.
 
 ## Vocabulary
 
@@ -153,4 +163,4 @@ Fetch events drop fragments, so the target is passed by postMessage from the par
 
 ## Testing
 
-All six forms round-trip through their adapters, the ladder halts at first success, unsupported forms are skipped cleanly, and preamble survives chunk splits. Probe respects all six rules (origin-only, one-per-session, 3s timeout, no retry on failure).
+Run codec coverage with `node --test --experimental-default-type=module tests/codec.test.mjs`.

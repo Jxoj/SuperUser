@@ -12,13 +12,13 @@ export const gatewayContract = {
   }
 };
 
-export const prefixes = ['assets', 'static', 'cdn', 'pkg', '_next/static/'];
+export const prefixes = ['/assets/', '/static/', '/cdn/', '/pkg/', '/_next/static/'];
 
 export const ladder = [
   { form: 'registry', rationale: 'hashed directory with generic filename, no decode needed' },
   { form: 'self-contained', rationale: 'hash prefix with hex payload, decodable' },
   { form: 'fragment', rationale: 'target never enters the network URL at all' },
-  { form: 'path-hex', rationale: 'different alphabet, still path-shaped' },
+  { form: 'path-hex', rationale: 'UTF-8 target encoded as hexadecimal' },
   { form: 'query-b64', rationale: 'reads as an ordinary deep link' },
   { form: 'native', rationale: 'guaranteed baseline when nothing else lands' }
 ];

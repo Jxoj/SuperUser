@@ -2550,7 +2550,7 @@
         throw new Error('Service Workers are not supported in this browser.');
       }
 
-      const swUrl = new URL(`${appPath('sw.js')}?v=15`, APP_BASE_URL).href;
+      const swUrl = new URL(`${appPath('sw.js')}?v=16`, APP_BASE_URL).href;
       const reg = await navigator.serviceWorker.register(swUrl, {
         scope: APP_BASE,
         updateViaCache: 'none'
@@ -3108,7 +3108,20 @@
         tab.frame.src = internalUrl;
       } else {
         tab.frame.dataset.loaded = 'true';
-        tab.sjFrame.go(getEffectiveLoadUrl(url));
+        const navigationId = (tab.codecNavigationId || 0) + 1;
+        tab.codecNavigationId = navigationId;
+        import(appPath('assets/js/codecs.js'))
+          .then(async ({ adapters, registry }) => {
+            const encodedPath = await adapters.registry.encode(registry.nextPrefix(), getEffectiveLoadUrl(url));
+            if (tab.codecNavigationId !== navigationId) return;
+            const framePath = `${tab.sjFrame.prefix}${encodedPath.replace(/^\/+/, '')}`;
+            tab.frame.src = new URL(framePath, location.origin).href;
+          })
+          .catch(error => {
+            if (tab.codecNavigationId !== navigationId) return;
+            addLog(`Hashed URL routing failed; using native proxy URL: ${error.message}`, 'warn');
+            tab.sjFrame.go(getEffectiveLoadUrl(url));
+          });
       }
     } catch (e) {
       addLog(`Navigation error: ${e.message}`, 'err');

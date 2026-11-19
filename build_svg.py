@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import html
+import hashlib
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parent
@@ -17,6 +19,48 @@ OUTPUT_DIR = ROOT / "singlefile"
 
 # Prefix set for registry and self-contained forms
 PREFIXES = ["/assets/", "/static/", "/cdn/", "/pkg/", "/_next/static/"]
+_prefix_index = 0
+
+
+def _next_prefix() -> str:
+    global _prefix_index
+    prefix = PREFIXES[_prefix_index % len(PREFIXES)]
+    _prefix_index += 1
+    return prefix
+
+
+def _normalize_target(target: str) -> str:
+    parsed = urlsplit(target)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("Target must be an absolute http(s) URL")
+    userinfo, separator, host = parsed.netloc.rpartition("@")
+    authority = f"{userinfo}{separator}{host.lower()}" if separator else host.lower()
+    return f"{parsed.scheme.lower()}://{authority}{parsed.path}" + (
+        f"?{parsed.query}" if parsed.query else ""
+    ) + (f"#{parsed.fragment}" if parsed.fragment else "")
+
+
+def _extension(target: str) -> str:
+    suffix = Path(urlsplit(target).path).suffix.lower().lstrip(".")
+    return suffix if suffix in {"js", "json", "html", "css", "png", "jpg", "svg", "woff2"} else ""
+
+
+def _registry_filename(target: str) -> str:
+    extension = _extension(target)
+    basename = Path(urlsplit(target).path).name
+    if extension == "js":
+        return "chunk.js" if re.search(r"(?:^|[.-])(?:chunk|vendor|runtime)(?:[.-]|$)", basename, re.I) else "main.js"
+    if extension == "json":
+        return "data.json"
+    if extension == "html":
+        return "index.html"
+    if extension == "css":
+        return "app.css"
+    if extension in {"png", "jpg", "svg"}:
+        return f"image.{extension}"
+    if extension == "woff2":
+        return "font.woff2"
+    return "resource"
 
 
 def add_relative_base(document_html: str) -> str:
@@ -38,78 +82,18 @@ def add_relative_base(document_html: str) -> str:
 
 def getRegistryUrl(target: str) -> str:
     """Generate a registry URL for the target."""
-    import hashlib
-    
-    # Normalize URL: lowercase scheme and host only
-    from urllib.parse import urlparse
-    parsed = urlparse(target)
-    scheme = parsed.scheme.lower() if parsed.scheme else ''
-    host = parsed.netloc.lower() if parsed.netloc else ''
-    path = parsed.path
-    query = parsed.query
-    fragment = parsed.fragment
-    normalized = scheme + '://' + host + path + (query or '') + (fragment or '')
-    
-    # Generate h16 (first 16 hex chars of SHA-256)
-    h16 = hashlib.sha256(normalized.encode()).hexdigest()[:16]
-    
-    # Determine filename from target
-    ext = path.split('.')[-1].lower()
-    extensionTier = {
-        'js': 'main.js',
-        'json': 'data.json', 
-        'html': 'index.html',
-        'css': 'app.css',
-        'png': None,
-        'jpg': None,
-        'jpeg': None,
-        'svg': None,
-        'woff2': None
-    }
-    
-    filename = extensionTier.get(ext) or 'chunk.js'
-    
-    # Choose a prefix from the set
-    prefix = "/assets/"  # default, could be random
-    
-    # Generate registry URL
-    if filename:
-        return f"{prefix}{h16}/{filename}"
-    else:
-        return f"{prefix}{h16}"
+    normalized = _normalize_target(target)
+    h16 = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+    return f"{_next_prefix()}{h16}/{_registry_filename(target)}"
 
 def getSelfContainedUrl(target: str) -> str:
     """Generate a self-contained URL for the target."""
-    import hashlib
-    
-    # Normalize URL: lowercase scheme and host only
-    from urllib.parse import urlparse
-    parsed = urlparse(target)
-    scheme = parsed.scheme.lower() if parsed.scheme else ''
-    host = parsed.netloc.lower() if parsed.netloc else ''
-    path = parsed.path
-    query = parsed.query
-    fragment = parsed.fragment
-    normalized = scheme + '://' + host + path + (query or '') + (fragment or '')
-    
-    # Generate full SHA-256 hash
-    hex = hashlib.sha256(normalized.encode()).hexdigest()
-    h8 = hex[:8]
-    hexPayload = hex[8:]
-    
-    # Determine extension
-    ext = path.split('.')[-1].lower()
-    validExts = ['js', 'json', 'html', 'css', 'png', 'jpg', 'svg', 'woff2']
-    ext = ext if ext in validExts else ''
-    
-    # Choose a prefix from the set
-    prefix = "/static/"  # default, could be random
-    
-    # Generate self-contained URL
-    if ext:
-        return f"{prefix}{h8}.{hexPayload}.{ext}"
-    else:
-        return f"{prefix}{h8}.{hexPayload}"
+    normalized = _normalize_target(target)
+    h8 = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:8]
+    payload = target.encode("utf-8").hex()
+    extension = _extension(target)
+    suffix = f".{extension}" if extension else ""
+    return f"{_next_prefix()}{h8}/{payload}{suffix}"
 
 
 def build_html_svg(document_html: str) -> str:

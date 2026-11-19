@@ -1,10 +1,14 @@
-import { gatewayContract, prefixes, ladder } from './config.js';
+import { gatewayContract, ladder } from './config.js';
 import { adapters } from './codecs.js';
 import { WispTransport } from './wisp-transport.js';
 import { Chunker } from './chunker.js';
 import { detect } from './detect.js';
+import './registry.js';
 import { getReputation, setReputation } from './reputation.js';
 import { prepareRequest } from './mutator.js';
+
+const registry = globalThis.SuperUserRegistry;
+if (!registry) throw new Error('URL registry helper did not initialize');
 
 class Loader {
   constructor() {
@@ -16,110 +20,74 @@ class Loader {
   }
 
   async load(target) {
-    // Determine form type based on ladder order
-    let formType = null;
-    let formIndex = -1;
-    
-    // Sort prefixes by length (longest first) for proper prefix matching
-    const sortedPrefixes = [...prefixes].sort((a, b) => b.length - a.length);
-    
-    for (let i = 0; i < ladder.length; i++) {
-      const candidate = ladder[i];
-      const adapter = adapters[candidate.form];
-      
-      // For registry and self-contained forms, we need async encoding
-      if (candidate.form === 'registry' || candidate.form === 'self-contained') {
-        if (typeof adapter.encode === 'function') {
+    const parsedTarget = new URL(target);
+    if (!['http:', 'https:'].includes(parsedTarget.protocol)) {
+      throw new TypeError('Proxy targets must use http or https');
+    }
+
+    const errors = [];
+    for (let index = 0; index < ladder.length; index += 1) {
+      const { form } = ladder[index];
+      const adapter = adapters[form];
+      if (!adapter || typeof adapter.encode !== 'function') {
+        errors.push(`${form}: adapter is unavailable`);
+        continue;
+      }
+
+      let encoded;
+      try {
+        encoded = await adapter.encode(registry.nextPrefix(), target);
+      } catch (error) {
+        errors.push(`${form}: ${error.message}`);
+        continue;
+      }
+
+      try {
+        const result = await this._attemptForm(target, form, index, encoded);
+        if (result.success) {
           try {
-            const encoded = await adapter.encode(sortedPrefixes[0], target);
-            if (encoded === target) {
-              formType = candidate.form;
-              formIndex = i;
-              break;
-            }
+            await setReputation(parsedTarget.origin, form);
+            this.reputationCache.set(parsedTarget.origin, form);
           } catch (error) {
-            // Skip if encoding fails
-            continue;
+            console.warn(`Could not persist URL-form reputation: ${error.message}`);
           }
+          return {
+            success: true,
+            form,
+            encoded,
+            result: result.data,
+            latency: result.latency,
+            adapter
+          };
         }
-      } else {
-        // For synchronous forms
-        if (adapter.encode(sortedPrefixes[0], target) === target) {
-          formType = candidate.form;
-          formIndex = i;
-          break;
-        }
+        errors.push(`${form}: request was unsuccessful`);
+      } catch (error) {
+        errors.push(`${form}: ${error.message}`);
       }
     }
-    
-    if (!formType) {
-      throw new Error('No form type matched');
-    }
-    
-    // Try to use the selected form
-    try {
-      const result = await this._attemptForm(target, formType, formIndex);
-      if (result.success) {
-        return {
-          success: true,
-          form: formType,
-          result: result.data,
-          latency: result.latency,
-          adapter: adapters[formType]
-        };
-      }
-    } catch (error) {
-      console.log(`${formType} failed:`, error.message);
-    }
-    
-    // All forms failed
+
     return {
       success: false,
-      error: 'All form attempts failed',
-      form: formType
+      error: `All form attempts failed (${errors.join('; ')})`,
+      form: ladder.at(-1)?.form
     };
   }
 
-  async _attemptForm(target, formType, formIndex) {
+  async _attemptForm(target, formType, formIndex, encoded) {
     const startTime = Date.now();
-    
-    // Check if we have cached reputation for this origin
     const origin = new URL(target).origin;
-    const cachedWinner = await getReputation(origin);
-    
-    if (cachedWinner === formType) {
-      console.log(`Using cached winner for ${origin}: ${formType}`);
-      // We need to actually attempt this form to get a result
-      return this._performAttempt(target, formType, origin, startTime);
-    }
-    
-    // Check if this form is still in the ladder (unblocked forms only)
-    const availableForms = ladder.slice(formIndex);
-    if (availableForms.length === 0) {
-      throw new Error('No available forms remaining');
-    }
-    
-    // Attempt the current form
     try {
-      const result = await this._performAttempt(target, formType, origin, startTime);
-      
-      if (result.success) {
-        // Cache the winner
-        await setReputation(origin, formType);
-        this.reputationCache.set(origin, formType);
-        return result;
-      } else {
-        // Form failed, continue to next
-        throw new Error(`Form ${formType} failed`);
+      const cachedWinner = await getReputation(origin);
+      if (cachedWinner && ladder.slice(0, formIndex).some(item => item.form === cachedWinner)) {
+        console.info(`Retrying ladder in order; cached ${cachedWinner} is not selected ahead of ${formType}`);
       }
     } catch (error) {
-      throw error;
+      console.warn(`Could not read URL-form reputation: ${error.message}`);
     }
+    return this._performAttempt(target, formType, origin, startTime, encoded);
   }
 
-  async _performAttempt(target, formType, origin, startTime) {
-    // Prepare the request based on form type
-    const encoded = adapters[formType].encode(prefixes[0], target);
+  async _performAttempt(target, formType, origin, startTime, encoded) {
     
     // For fragment form, we need special handling via postMessage
     if (formType === 'fragment') {
@@ -157,22 +125,13 @@ class Loader {
   }
 
   async _handleFetchForm(target, formType, encoded, origin, startTime) {
-    // Determine Wisp path based on form type
-    let wispPath;
-    if (formType === 'native') {
-      wispPath = `${gatewayContract.pathTemplate.replace('{seg1}', gatewayContract.segments[0])}/${gatewayContract.segments[1]}/${encodeURIComponent(target)}`;
-    } else {
-      wispPath = `${gatewayContract.wispPath}${encoded}`;
-    }
-    
     // Prepare the request using mutator for native forms
     let payload;
     if (formType === 'native') {
       const { schema, mutated } = await prepareRequest(target);
       payload = mutated;
     } else {
-      // For other forms, just use the encoded target
-      payload = new TextEncoder().encode(target);
+      payload = new TextEncoder().encode(encoded);
     }
     
     // Use Wisp transport to fetch

@@ -1,104 +1,97 @@
+importScripts(new URL('./registry.js', new URL('./assets/js/', self.location.href)).href);
 importScripts(new URL('./controller/controller.sw.js', self.location.href).href);
 
-const prefixes = ['v2', 'v3', 'v4'];
 const scramjetController = self.$scramjetController;
 if (!scramjetController) {
   throw new Error('Failed to load the Scramjet service worker controller.');
 }
 
-const CONTROL_PAGES = ['/admin', '/control', '/shell'];
-const APP_SHELL = ['/app', '/index.html', '/manifest.json'];
+const frameRoot = new URL('eduapi/', self.location.href).pathname;
 
-let registration = null;
+function getCodecRoute(url) {
+  if (!url.pathname.startsWith(frameRoot)) return null;
+  const remainder = url.pathname.slice(frameRoot.length);
+  const separator = remainder.indexOf('/');
+  if (separator < 0) return null;
+  const frameId = remainder.slice(0, separator);
+  if (!/^[a-z0-9]{8}$/i.test(frameId)) return null;
 
-async function registerSW() {
-  if ('serviceWorker' in navigator) {
-    try {
-      registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
-      });
-      await navigator.serviceWorker.ready;
-      if (registration && 'clients' in registration) {
-        registration.clients.claim();
-      }
-      console.log('SW registered');
-      setupNavigationInterceptor();
-    } catch (e) {
-      console.error('SW registration failed', e);
-    }
+  const framePrefix = `${frameRoot}${frameId}/`;
+  const pathname = `/${remainder.slice(separator + 1)}`;
+  const form = self.SuperUserRegistry.classifyPath(pathname, url.search, url.hash);
+  const isCodecNamespace = self.SuperUserRegistry.PREFIXES.some(prefix =>
+    pathname.startsWith(prefix)
+  );
+  return isCodecNamespace ? { framePrefix, pathname, form } : null;
+}
+
+function notFound() {
+  return new Response('Not found', { status: 404 });
+}
+
+function getNativeTarget(url) {
+  if (!url.pathname.startsWith(frameRoot)) return null;
+  const remainder = url.pathname.slice(frameRoot.length);
+  const separator = remainder.indexOf('/');
+  if (separator < 0 || !/^[a-z0-9]{8}$/i.test(remainder.slice(0, separator))) return null;
+  const encodedTarget = remainder.slice(separator + 1).split('?', 1)[0];
+  try {
+    const target = decodeURIComponent(encodedTarget);
+    return /^https?:\/\//i.test(target) ? target : null;
+  } catch {
+    return null;
   }
 }
 
-function setupNavigationInterceptor() {
-  if (!registration || !('navigationPreload' in registration)) return;
-  self.addEventListener('fetch', event => {
-    const url = new URL(event.request.url);
-    const pathPrefix = prefixes.find(p => url.pathname.startsWith(`/${p}/`));
-    if (!pathPrefix) return;
-    const path = url.pathname.substring(1);
-    if (CONTROL_PAGES.includes(path) || APP_SHELL.includes(path)) {
-      return;
+async function routeCodecRequest(request, url, route) {
+  if (
+    request.method !== 'GET' ||
+    (route.form !== 'registry' && route.form !== 'self-contained')
+  ) {
+    return notFound();
+  }
+
+  let resolved;
+  try {
+    resolved = await self.SuperUserRegistry.resolveEncodedPath(route.pathname);
+  } catch (error) {
+    console.error('Could not resolve hashed URL through IndexedDB:', error);
+    return new Response('URL registry unavailable', { status: 500 });
+  }
+  const target = resolved?.target;
+  if (!self.SuperUserRegistry.isHttpTarget(target)) return notFound();
+
+  const nativePath = `${route.framePrefix}${encodeURIComponent(target)}`;
+  const nativeUrl = new URL(nativePath, url.origin);
+  return new Response(null, {
+    status: 307,
+    headers: {
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      Location: nativeUrl.href
     }
-    event.respondWith(fetchViaWisp(url));
   });
 }
 
-addEventListener('fetch', event => {
-  if (!scramjetController.shouldRoute(event)) return;
-  event.respondWith(scramjetController.route(event));
-});
-
-async function fetchViaWisp(url) {
-  const path = url.pathname.substring(1);
-  const prefixMatch = prefixes.find(p => path.startsWith(`${p}/`));
-  if (!prefixMatch) return new Response('Unsupported prefix', { status: 400 });
-  const prefix = prefixMatch;
-  const encoded = Array.from(new TextEncoder().encode(url.href), b => b.toString(16).padStart(2, '0')).join('');
-  const target = `/${prefix}/#${encoded}`;
-  if (isFragmentForm(target)) {
-    const channel = new BroadcastChannel('wisp-control');
-    channel.postMessage({ type: 'NAVIGATE', target });
-    channel.close();
-    return await waitForResponse(target);
+async function routeNativeRequest(event, url) {
+  const target = getNativeTarget(url);
+  if (target) {
+    try {
+      await self.SuperUserRegistry.recordFetch(target);
+    } catch (error) {
+      console.error('Could not record proxied target in URL registry:', error);
+    }
   }
-  return await fetchViaWispPath(target);
+  return scramjetController.route(event);
 }
 
-function isFragmentForm(target) {
-  return /^\/[a-zA-Z0-9-]+\/#[^?#]+$/.test(target);
-}
-
-async function fetchViaWispPath(target) {
-  const adapter = detectAdapter(target);
-  const wispPath = adapters[adapter].encode(prefix, target.split('/').pop());
-  const fullUrl = gatewayContract.wispPath + wispPath;
-  const response = await fetchWispTransport(fullUrl);
-  if (!response.ok) return response;
-  const body = await response.clone().arrayBuffer();
-  const { blocked } = await detectFingerprint(body);
-  if (blocked) {
-    return new Response('Blocked by fingerprint', { status: 451 });
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  const codecRoute = getCodecRoute(url);
+  if (codecRoute) {
+    event.respondWith(routeCodecRequest(event.request, url, codecRoute));
+    return;
   }
-  return new Response(response.body, { headers: response.headers });
-}
-
-const gatewayContract = { wispPath: '/eduapi/wisp/' };
-const adapters = {};
-async function fetchWispTransport(url) { return fetch(url); }
-async function detectFingerprint(body) { return { blocked: false }; }
-function waitForResponse(target) { return new Promise(resolve => setTimeout(() => resolve(new Response('OK')), 0)); }
-
-addEventListener('install', event => {
-  event.waitUntil(registerSW());
-});
-
-addEventListener('activate', event => {
-  event.waitUntil(clientsClaim());
-});
-
-function clientsClaim() {
-  if (registration && 'clients' in registration) {
-    return registration.clients.claim();
+  if (scramjetController.shouldRoute(event)) {
+    event.respondWith(routeNativeRequest(event, url));
   }
-  return Promise.resolve();
-}
+});
