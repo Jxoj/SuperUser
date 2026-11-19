@@ -278,10 +278,28 @@
   }
 
   async function encodeNative(_prefix, target, pathTemplate, segments) {
+    const encodedTarget = encodeNativeTarget(target);
     return `${pathTemplate
       .replace('{seg1}', segments[0])
       .replace('{seg2}', segments[1])
-      .replace('{target}', encodeURIComponent(target))}`;
+      .replace('{target}', encodedTarget)}`;
+  }
+
+  function encodeNativeTarget(target) {
+    if (!isHttpTarget(target)) throw new TypeError('Target must use http or https');
+    const protocolMarker = target.toLowerCase().startsWith('https://') ? '1' : '0';
+    const remainderStart = protocolMarker === '1' ? 'https://'.length : 'http://'.length;
+    return `${protocolMarker}${encodeBase64Url(target.slice(remainderStart))}`;
+  }
+
+  function decodeNative(encodedTarget) {
+    if (typeof encodedTarget !== 'string') return null;
+    const match = /^([01])([A-Za-z0-9_-]+)$/.exec(encodedTarget);
+    if (!match) return null;
+    const remainder = decodeBase64Url(match[2]);
+    if (!remainder) return null;
+    const target = `${match[1] === '1' ? 'https://' : 'http://'}${remainder}`;
+    return isHttpTarget(target) ? target : null;
   }
 
   function classifyPath(pathname, search = '', hash = '') {
@@ -317,12 +335,14 @@
     classifyPath,
     decodeBase64Url,
     decodeHex,
+    decodeNative,
     decodePath,
     decodeRegistry,
     decodeSelfContained,
     digest,
     encodeBase64Url,
     encodeHex,
+    encodeNativeTarget,
     encodeFragment,
     encodeNative,
     encodePathHex,

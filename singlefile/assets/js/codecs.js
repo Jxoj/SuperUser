@@ -42,11 +42,7 @@ export const adapters = {
       );
       const match = expression.exec(parsed.pathname);
       if (!match) return null;
-      try {
-        return decodeURIComponent(match[1]);
-      } catch {
-        return null;
-      }
+      return registry.decodeNative(match[1]);
     }
   }
 };

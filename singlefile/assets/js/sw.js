@@ -35,12 +35,7 @@ function getNativeTarget(url) {
   const separator = remainder.indexOf('/');
   if (separator < 0 || !/^[a-z0-9]{8}$/i.test(remainder.slice(0, separator))) return null;
   const encodedTarget = remainder.slice(separator + 1).split('?', 1)[0];
-  try {
-    const target = decodeURIComponent(encodedTarget);
-    return /^https?:\/\//i.test(target) ? target : null;
-  } catch {
-    return null;
-  }
+  return self.SuperUserRegistry.decodeNative(encodedTarget);
 }
 
 async function routeCodecRequest(request, url, route) {
@@ -61,7 +56,7 @@ async function routeCodecRequest(request, url, route) {
   const target = resolved?.target;
   if (!self.SuperUserRegistry.isHttpTarget(target)) return notFound();
 
-  const nativePath = `${route.framePrefix}${encodeURIComponent(target)}`;
+  const nativePath = `${route.framePrefix}${self.SuperUserRegistry.encodeNativeTarget(target)}`;
   const nativeUrl = new URL(nativePath, url.origin);
   return new Response(null, {
     status: 307,

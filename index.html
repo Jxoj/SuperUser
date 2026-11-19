@@ -2759,7 +2759,10 @@
         if (currentUrl.origin !== location.origin || !currentUrl.pathname.startsWith(proxyPath)) return candidate;
         const segments = currentUrl.pathname.slice(proxyPath.length).split('/').reverse();
         const target = segments.map(segment => {
-          try { return decodeURIComponent(segment); } catch (_) { return ''; }
+          try {
+            return globalThis.SuperUserRegistry?.decodeNative(segment) ||
+              (() => { try { return decodeURIComponent(segment); } catch (_) { return ''; } })();
+          } catch (_) { return ''; }
         }).find(segment => /^https?:\/\//i.test(segment));
         if (!target) return candidate;
         candidate = target;
@@ -3332,7 +3335,10 @@
       if (currentUrl.origin === location.origin && currentUrl.pathname.startsWith(proxyPrefix)) {
         const segments = currentUrl.pathname.slice(proxyPrefix.length).split('/').reverse();
         const decodedTarget = segments.map(segment => {
-          try { return decodeURIComponent(segment); } catch (_) { return ''; }
+          try {
+            return globalThis.SuperUserRegistry?.decodeNative(segment) ||
+              (() => { try { return decodeURIComponent(segment); } catch (_) { return ''; } })();
+          } catch (_) { return ''; }
         }).find(segment => /^https?:\/\//i.test(segment));
         if (decodedTarget) {
           publicUrl = decodedTarget;

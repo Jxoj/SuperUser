@@ -108,11 +108,18 @@ test('registry filenames match the supported target extensions without duplicate
   }
 });
 
-test('native adapter preserves the original two-token percent-encoded baseline', async () => {
+test('native adapter hides the scheme and encodes the remaining URL', async () => {
   const target = 'https://Example.com/Path?q=UP#frag';
   const encoded = await adapters.native.encode('/assets/', target);
-  assert.equal(encoded, '/eduapi/fv65qma5/e7bbh9tm/https%3A%2F%2FExample.com%2FPath%3Fq%3DUP%23frag');
+  assert.equal(encoded, '/eduapi/fv65qma5/e7bbh9tm/1RXhhbXBsZS5jb20vUGF0aD9xPVVQI2ZyYWc');
   assert.equal(adapters.native.decode(encoded), target);
+  assert.ok(!encoded.includes('https'));
+  assert.ok(!encoded.includes('Example.com'));
+
+  const httpTarget = 'http://example.com/page';
+  const httpEncoded = await adapters.native.encode('/assets/', httpTarget);
+  assert.equal(adapters.native.decode(httpEncoded), httpTarget);
+  assert.ok(httpEncoded.endsWith('/0ZXhhbXBsZS5jb20vcGFnZQ'));
 });
 
 test('all ladder forms are detected and decoded by the request helpers', async () => {
@@ -161,7 +168,9 @@ test('service worker routes registry hits to the native Scramjet path and return
   const hit = await fetchThroughWorker(encoded);
   assert.equal(hit.status, 307);
   assert.equal(hit.headers.get('Cache-Control'), 'public, max-age=31536000, immutable');
-  assert.match(hit.headers.get('Location'), /\/eduapi\/abc12345\/https%3A%2F%2Fproxy-target\.test%2Fpage\.html$/);
+  const hitTarget = 'https://proxy-target.test/page.html';
+  const hitEncoded = registry.encodeNativeTarget(hitTarget);
+  assert.equal(hit.headers.get('Location'), `https://proxy.test/eduapi/abc12345/${hitEncoded}`);
 
   const miss = await fetchThroughWorker('/assets/ffffffffffffffff/index.html');
   assert.equal(miss.status, 404);
@@ -175,7 +184,7 @@ test('service worker routes registry hits to the native Scramjet path and return
   assert.equal((await fetchThroughWorker(alteredPath)).status, 404);
 
   const nativeTarget = 'https://native-target.test/chunk.js';
-  const nativeEncoded = encodeURIComponent(nativeTarget);
+  const nativeEncoded = (await adapters.native.encode('/assets/', nativeTarget)).split('/').at(-1);
   const nativeResponse = await fetchThroughWorker(`/${nativeEncoded}`);
   assert.equal(await nativeResponse.text(), 'native route');
   const nativeHash = (await registry.digest(nativeTarget)).slice(0, 16);
