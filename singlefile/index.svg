@@ -28,7 +28,6 @@
       function launchCloaked() {
         const win = window.open("about:blank", "_blank");
         if (!win) {
-          // Browser blocked automatic popup; wait for user click
           return false;
         }
 
@@ -66,17 +65,14 @@
         doc.close();
         try { win.document.title = "Super Learning"; } catch (_) {}
 
-        // Redirect the original jsDelivr tab away once launched
         window.location.replace("https://www.google.com");
         return true;
       }
 
-      // Attempt immediate launch on page load
       window.addEventListener("load", () => {
         launchCloaked();
       });
 
-      // Fallback: trigger on any click if popup blocker caught the auto-launch
       document.getElementById("launcher").addEventListener("click", () => {
         launchCloaked();
       });

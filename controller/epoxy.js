@@ -80,7 +80,9 @@ function from_entries(entries) {
 }
 
 // node_modules/.pnpm/@mercuryworkshop+epoxy-tls@2.1.19-1/node_modules/@mercuryworkshop/epoxy-tls/full/epoxy-bundled.js
-var import_meta = {};
+var import_meta = {
+  url: document.currentScript?.src || new URL("controller/epoxy.js", location.href).href
+};
 var wasm;
 function addHeapObject(obj) {
   if (heap_next === heap.length) heap.push(heap.length + 1);

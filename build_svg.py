@@ -1,18 +1,41 @@
-import os
+"""Build an SVG launcher from an HTML file or a target URL."""
+
+from __future__ import annotations
+
 import html
+import json
+from pathlib import Path
 
-# ==========================================
-# CONFIGURATION - Change your target URL here
-# ==========================================
+
+ROOT = Path(__file__).resolve().parent
+
+# Configure the URL and HTML file used by the two generated SVGs.
 TARGET_URL = "https://jsuperuser.netlify.app"
-OUTPUT_PATH = os.path.join("singlefile", "index.svg")
+HTML_INPUT_PATH = ROOT / "singlefile" / "index.html"
+OUTPUT_DIR = ROOT / "singlefile"
 
 
-def build_launcher_svg(target_url: str, output_path: str):
-    safe_url = html.escape(target_url, quote=True)
+def build_html_svg(document_html: str) -> str:
+    safe_html = html.escape(document_html, quote=True)
+    safe_html = (
+        safe_html.replace("\r", "&#13;")
+        .replace("\n", "&#10;")
+        .replace("\t", "&#9;")
+    )
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+  <foreignObject width="100%" height="100%" x="0" y="0">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width: 100vw; height: 100vh; margin: 0;">
+      <iframe title="Embedded HTML" srcdoc="{safe_html}" style="width: 100%; height: 100%; border: 0;"></iframe>
+    </div>
+  </foreignObject>
+</svg>'''
 
-    # SVG containing embedded HTML/JS that opens target_url inside an about:blank iframe
-    svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+
+def build_url_svg(target_url: str) -> str:
+    # Keep the URL a JavaScript string literal and escape it for the SVG XML text node.
+    safe_url = html.escape(json.dumps(target_url).replace("<", "\\u003c"), quote=False)
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
   <foreignObject width="100%" height="100%" x="0" y="0">
     <div xmlns="http://www.w3.org/1999/xhtml" id="launcher" style="
@@ -37,12 +60,11 @@ def build_launcher_svg(target_url: str, output_path: str):
     </div>
 
     <script xmlns="http://www.w3.org/1999/xhtml">
-      const targetUrl = "{safe_url}";
+      const targetUrl = {safe_url};
 
       function launchCloaked() {{
         const win = window.open("about:blank", "_blank");
         if (!win) {{
-          // Browser blocked automatic popup; wait for user click
           return false;
         }}
 
@@ -80,17 +102,14 @@ def build_launcher_svg(target_url: str, output_path: str):
         doc.close();
         try {{ win.document.title = "Super Learning"; }} catch (_) {{}}
 
-        // Redirect the original jsDelivr tab away once launched
         window.location.replace("https://www.google.com");
         return true;
       }}
 
-      // Attempt immediate launch on page load
       window.addEventListener("load", () => {{
         launchCloaked();
       }});
 
-      // Fallback: trigger on any click if popup blocker caught the auto-launch
       document.getElementById("launcher").addEventListener("click", () => {{
         launchCloaked();
       }});
@@ -98,13 +117,29 @@ def build_launcher_svg(target_url: str, output_path: str):
   </foreignObject>
 </svg>'''
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(svg_content)
 
-    print(f"Success! Built launcher SVG ({os.path.getsize(output_path)} bytes) -> '{output_path}'")
-    print(f"Target URL set to: {target_url}")
+def build_svg(target_url: str, html_input_path: Path, output_dir: Path) -> None:
+    if not target_url:
+        raise ValueError("TARGET_URL must be set")
+    if not html_input_path.is_file():
+        raise FileNotFoundError(f"Missing HTML input file: {html_input_path}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    outputs = {
+        output_dir / "index.svg": build_url_svg(target_url),
+        output_dir / "html.svg": build_html_svg(
+            html_input_path.read_text(encoding="utf-8")
+        ),
+    }
+    for output_path, svg_content in outputs.items():
+        output_path.unlink(missing_ok=True)
+        output_path.write_text(svg_content, encoding="utf-8")
+        print(f"Built SVG ({output_path.stat().st_size} bytes) -> '{output_path}'")
+
+
+def main() -> None:
+    build_svg(TARGET_URL, HTML_INPUT_PATH, OUTPUT_DIR)
 
 
 if __name__ == "__main__":
-    build_launcher_svg(TARGET_URL, OUTPUT_PATH)
+    main()

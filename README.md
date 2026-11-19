@@ -70,36 +70,38 @@ The schema is cryptographically signed using XOR rotation from `crypto.getRandom
 
 | File | Purpose |
 |------|---------|
-| `config.js` | Contract, prefixes, ladder, mode configuration |
-| `codecs.js` | One self-contained encode/decode pair per form |
-| `wisp-frames.js` | Frame encoder, streaming parser, varint codec, credit accounting |
-| `wisp-transport.js` | Socket lifecycle, stream registry, backpressure, close reasons |
-| `sw.js` | Service worker registration, clients.claim, navigation intercept |
-| `sw-document.js` | Token to native path, fetch over Wisp, Response handling |
-| `detect.js` | Fingerprint inspection on fetched bodies, blocking logic |
-| `reputation.js` | LocalStorage TTL cache, winner tracking |
-| `mutator.js` | Per-request schema generation, XOR encryption |
-| `demutator.js` | Schema validation, payload decryption |
-| `chunker.js` | Length-prefixed chunking with reassembly |
-| `loader.js` | Main driver: attempt forms, detect, advance, cap at 4 |
+| `assets/js/config.js` | Contract, prefixes, ladder, mode configuration |
+| `assets/js/codecs.js` | Encode/decode pairs for URL forms |
+| `assets/js/wisp-frames.js` | Experimental Wisp frame encoder and parser |
+| `assets/js/wisp-transport.js` | Experimental Wisp WebSocket transport |
+| `sw.js`, `assets/js/sw.js` | Root service-worker entry point and implementation |
+| `assets/js/sw-document.js` | Experimental token-to-Wisp request handling |
+| `assets/js/detect.js` | Experimental fingerprint inspection |
+| `assets/js/reputation.js` | LocalStorage TTL cache |
+| `assets/js/mutator.js` | Experimental request mutation |
+| `assets/js/demutator.js` | Experimental response validation |
+| `assets/js/chunker.js` | Byte chunking with contiguous-offset reassembly |
+| `assets/js/loader.js` | Experimental form/transport driver |
 | `index.html` | Minimal shell with iframe, shape selector |
 
-### 5. Service Worker Integration
+### 5. Main Application and JavaScript Assets
 
-The service worker (`sw.js`) handles navigation interception:
+The application registers `/sw.js` as its service worker. This small root-level
+entry point imports the implementation from `assets/js/sw.js`, keeping the
+service-worker URL and scope stable while grouping JavaScript sources under
+`assets/js/`. The build copies and embeds this asset directory.
 
-1. Registers with scope `/`
-2. Intercepts fetch events for configured prefixes (`v2`, `v3`, `v4`)
-3. Excludes control pages (`/admin`, `/control`, `/shell`) and app shell
-4. Routes to Wisp transport for non-fragment forms
-5. For fragment forms, uses postMessage from parent page
+The active URL-navigation path remains Scramjet with Epoxy/Wisp transport.
+The other modules below are a separate experimental pipeline; its Wisp
+transport currently has mocked response handling and is not used for active
+URL navigation.
 
 ### 6. Fingerprint Detection
 
-The `detect.js` module implements SHA-256 fingerprinting:
+The `assets/js/detect.js` module implements SHA-256 fingerprinting:
 
 ```javascript
-const hash = await crypto.digest('SHA-256', text);
+const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
 const fingerprint = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
 ```
 
@@ -109,11 +111,26 @@ Caches the first successful form for each origin in localStorage with a 1-hour T
 
 ## Usage
 
+### Build
+
+Run `npm run build` to generate the single-file HTML distribution, launcher, and SVGs.
+Configure `TARGET_URL` and `HTML_INPUT_PATH` at the top of `build_svg.py`: the build
+writes the URL launcher to `singlefile/index.svg` and embeds the configured HTML file
+in `singlefile/html.svg`.
+The single-file build inlines app scripts, approved learning-page CDN scripts, backend
+and extension data, and local images. It keeps service-worker and WebAssembly runtime
+files alongside the HTML because browsers require those resources to be served from
+the app origin. Building downloads the approved learning scripts and a pinned Epoxy
+WASM binary, validating the binary's SHA-256 digest.
+Wisp discovery reads every endpoint configured through `assets/backend/wisps.json`,
+tries the last working endpoint first with a 10-second timeout, and keeps retrying
+the configured pool until a server responds.
+
 ### Adding a Form
 
-1. Add to `config.js.ladder` array in order preference
-2. Implement encode/decode in `codecs.js.adapters`
-3. Handle in `sw-document.js` and `sw.js`
+1. Add to `assets/js/config.js` ladder array in order preference
+2. Implement encode/decode in `assets/js/codecs.js`
+3. Handle in `assets/js/sw-document.js`
 
 ### Deployment
 

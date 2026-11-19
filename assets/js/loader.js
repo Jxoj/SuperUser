@@ -1,12 +1,10 @@
-import { gatewayContract, prefixes, ladder, mode } from './config.js';
+import { gatewayContract, prefixes, ladder } from './config.js';
 import { adapters } from './codecs.js';
-import { FrameParser, FrameEncoder } from './wisp-frames.js';
 import { WispTransport } from './wisp-transport.js';
 import { Chunker } from './chunker.js';
 import { detect } from './detect.js';
 import { getReputation, setReputation } from './reputation.js';
 import { prepareRequest } from './mutator.js';
-import { finalizeResponse } from './demutator.js';
 
 class Loader {
   constructor() {

@@ -1,6 +1,5 @@
 import { adapters } from './codecs.js';
 import { gatewayContract } from './config.js';
-import { FrameParser, FrameEncoder } from './wisp-frames.js';
 import { WispTransport } from './wisp-transport.js';
 
 const PREFIXES = ['v2', 'v3', 'v4'];
@@ -57,46 +56,39 @@ async function waitForStream(streamId) {
 setupFragmentHandler();
 
 function setupFragmentHandler() {
-  if (window !== self) {
-    // In service worker context
-    addEventListener('message', async event => {
+  if (typeof window === 'undefined' && typeof self !== 'undefined') {
+    self.addEventListener('message', async event => {
       if (event.data && event.data.type === 'NAVIGATE') {
         const target = event.data.target;
         // Determine form type (assume fragment)
         const result = await fetchViaWisp(target, 'fragment');
-        // send back response
-        event.source.postMessage({ type: 'RESPONSE', result }, { targetOrigin: '*' });
+        event.source?.postMessage({ type: 'RESPONSE', result });
       }
     });
   }
 }
 
 // Intercept fetch events under prefixes
-self.addEventListener('fetch', async event => {
-  const url = new URL(event.request.url);
-  const path = url.pathname.substring(1);
-  const prefix = PREFIXES.find(p => path.startsWith(`${p}/`));
-  if (!prefix) return;
-  // Skip control pages and app shell
-  if (['/admin', '/control', '/shell', '/app', '/index.html', '/manifest.json'].includes(path)) {
-    return;
-  }
-  // Token extraction: fragment form uses postMessage from parent; other forms via request URL
-  const formType = detectFormType(event.request.url);
-  let target;
-  if (formType === 'fragment') {
-    // target is passed via postMessage, not available in fetch event
-    // This must be handled explicitly by the parent page
-    return;
-  }
-  target = extractTargetFromUrl(event.request.url, formType);
-  if (!target) {
-    event.respondWith(new Response('Invalid target', { status: 400 }));
-    return;
-  }
-  const response = await fetchViaWisp(target, formType);
-  event.respondWith(response);
-});
+if (typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope) {
+  self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+    const path = url.pathname.substring(1);
+    const prefix = PREFIXES.find(p => path.startsWith(`${p}/`));
+    if (!prefix) return;
+    if (['/admin', '/control', '/shell', '/app', '/index.html', '/manifest.json'].includes(path)) {
+      return;
+    }
+
+    const formType = detectFormType(event.request.url);
+    if (formType === 'fragment') return;
+
+    const target = extractTargetFromUrl(event.request.url, formType);
+    event.respondWith(target
+      ? fetchViaWisp(target, formType)
+      : Promise.resolve(new Response('Invalid target', { status: 400 }))
+    );
+  });
+}
 
 function detectFormType(url) {
   const parsed = new URL(url);

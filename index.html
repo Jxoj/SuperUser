@@ -1000,28 +1000,6 @@
       box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
     }
 
-    .wisp-retry-btn {
-      margin-top: 10px;
-      background: #22c55e;
-      color: #000000;
-      border: none;
-      border-radius: 999px;
-      padding: 9px 22px;
-      font-weight: 700;
-      font-family: inherit;
-      font-size: 13px;
-      cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-
-    .wisp-retry-btn:hover {
-      transform: scale(1.04);
-    }
-
-    .wisp-retry-btn.hidden {
-      display: none;
-    }
-
     .learning-screen {
       position: fixed;
       inset: 0;
@@ -1679,12 +1657,11 @@
     <div class="wisp-finding-content">
       <div class="wisp-pulse-ring"></div>
       <h1 class="wisp-finding-title">Finding Wisp Server</h1>
-      <div class="wisp-finding-sub" id="wispFindingCounter">Checking 1/13...</div>
-      <div class="wisp-finding-server" id="wispFindingServer">Loading server list from assets/backend/wisps.json...</div>
+      <div class="wisp-finding-sub" id="wispFindingCounter">Loading server catalog...</div>
+      <div class="wisp-finding-server" id="wispFindingServer">Reading assets/backend/wisps.json...</div>
       <div class="wisp-finding-bar-wrap">
         <div class="wisp-finding-bar" id="wispFindingBar"></div>
       </div>
-      <button class="wisp-retry-btn hidden" id="wispRetryBtn">Retry Discovery</button>
     </div>
   </div>
 
@@ -1814,11 +1791,8 @@
         </nav>
         <section class="settings-panel active" data-settings-panel="proxy">
           <div class="page-card" data-searchable="wisp websocket server">
-            <h3>Wisp WebSocket Server</h3><p>Choose the transport endpoint used by Scramjet.</p>
-            <select class="modal-select" id="wispSelectPage"><option value="auto">Auto-Selected from Backend (Recommended)</option><option value="wss://superuser-wisp.wasmer.app/">Official Wisp 1</option><option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp 2</option><option value="wss://cdn.northstreetumc.org/">Opium Mirror</option></select>
+            <h3>Wisp WebSocket Server</h3><p>Servers are discovered automatically from the backend catalog. The last working server is tried first.</p>
             <select class="modal-select" id="wispVersionSelectPage" aria-label="Wisp protocol"><option value="auto">Protocol: Auto</option><option value="v1">Protocol: Wisp v1</option><option value="v2">Protocol: Wisp v2</option></select>
-            <input class="modal-input" id="customWispInputPage" placeholder="Custom wss:// endpoint" autocomplete="off">
-            <button class="modal-btn" id="customWispBtnPage">Use custom</button>
           </div>
           <div class="page-card" data-searchable="ad blocker ads performance youtube">
             <h3>Ad blocking</h3><p>Block common ad and tracking hosts before they load.</p>
@@ -1897,21 +1871,13 @@
       <div class="modal-row">
         <div>
           <div class="modal-row-label">Wisp WebSocket Server</div>
-          <div class="modal-row-desc">Proxy transport connection endpoint</div>
+          <div class="modal-row-desc">Automatically discovered from the backend catalog; the last working server is tried first.</div>
         </div>
-        <select class="modal-select" id="wispSelect">
-          <option value="auto">Auto-Selected from Backend (Recommended)</option>
-          <option value="wss://superuser-wisp.wasmer.app/">Official Wisp 1</option>
-          <option value="wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/">Official Wisp 2</option>
-          <option value="wss://cdn.northstreetumc.org/">Opium Mirror</option>
-        </select>
         <select class="modal-select" id="wispVersionSelect" aria-label="Wisp protocol">
           <option value="auto">Protocol: Auto</option>
           <option value="v1">Protocol: Wisp v1</option>
           <option value="v2">Protocol: Wisp v2</option>
         </select>
-        <input class="modal-input" id="customWispInput" placeholder="Custom wss:// endpoint" autocomplete="off">
-        <button class="modal-btn" id="customWispBtn">Use custom</button>
       </div>
 
       <div class="modal-row">
@@ -2004,6 +1970,8 @@
   <script>
     const APP_BASE = new URL('./', location.href).pathname;
     const appPath = path => `${APP_BASE}${path.replace(/^\/+/, '')}`;
+    const appAsset = path => appPath(path);
+    const fetchAppAsset = (path, options) => fetch(appPath(path), options);
   </script>
 
   <script>
@@ -2209,7 +2177,6 @@
   const learningScreen   = document.getElementById('learningScreen');
   const SCRAMJET_PREFIX  = 'eduapi/';
   const SETTINGS_KEY     = 'superuser-settings';
-  const OFFICIAL_WISP_URL = 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/';
   const TABS_KEY         = 'superuser-tabs';
   const EXTENSIONS_KEY   = 'superuser-extensions';
   const GAMEPAD_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4m-2-2v4"/><line x1="15" y1="11" x2="15.01" y2="11"/><line x1="18" y1="13" x2="18.01" y2="13"/></svg>';
@@ -2224,13 +2191,13 @@
     { title: 'Extensions', url: 'su://extensions', icon: '🧩' }
   ];
   const defaultSettings  = {
-    wisp: OFFICIAL_WISP_URL,
     wispVersion: 'auto',
     searchProvider: 'startpage',
     adBlock: true
   };
   let settings = { ...defaultSettings };
   try { settings = { ...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (_) {}
+  delete settings.wisp;
   if ('background' in settings) {
     delete settings.background;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -2238,12 +2205,6 @@
   if (settings.wispVersion === 1 || settings.wispVersion === 2 ||
       settings.wispVersion === '1' || settings.wispVersion === '2') {
     settings.wispVersion = 'auto';
-  }
-  if (!localStorage.getItem('superuser-wisp-official-default-v1')) {
-    if (settings.wisp === 'local' || settings.wisp === 'homework-relay') {
-      settings.wisp = OFFICIAL_WISP_URL;
-    }
-    localStorage.setItem('superuser-wisp-official-default-v1', 'true');
   }
   if (!localStorage.getItem('superuser-default-search-startpage-v1')) {
     if (!localStorage.getItem(SETTINGS_KEY) || settings.searchProvider === 'duckduckgo') {
@@ -2384,7 +2345,7 @@
   }
 
   function getWispUrl() {
-    return localStorage.getItem(WISP_STORAGE_KEY) || settings.wisp || OFFICIAL_WISP_URL;
+    return localStorage.getItem(WISP_STORAGE_KEY) || 'Auto-discovery';
   }
 
   function getWispVersion(wispUrl) {
@@ -2394,9 +2355,9 @@
   }
 
   // Probe transport — returns status code, throws on error/429
-  async function probeTransport(transport) {
+  async function probeTransport(transport, timeoutMs = 10000) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const probeHeaders = mimicChromeHeaders({
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -2419,15 +2380,16 @@
   }
 
   // Connect to a single Wisp URL — fast path, no probe overhead
-  async function attemptConnectWisp(wispUrl, timeoutMs = 3500) {
+  async function attemptConnectWisp(wispUrl, timeoutMs = 10000) {
     if (!EpoxyTransport) return null;
     const timer = { id: null };
+    let transport = null;
     const timeoutPromise = new Promise((_, reject) => {
       timer.id = setTimeout(() => reject(new Error('timeout')), timeoutMs);
     });
     try {
       const v = getWispVersion(wispUrl);
-      const transport = new EpoxyTransport({
+      transport = new EpoxyTransport({
         wisp: wispUrl,
         wisp_v2: v === 2,
         wisp_ws_protocols: v === 2 ? ['wisp-v2'] : [],
@@ -2435,44 +2397,25 @@
         ws_binaryType: 'arraybuffer'
       });
       await Promise.race([transport.init(), timeoutPromise]);
-      const status = await Promise.race([probeTransport(transport), timeoutPromise]);
+      const status = await Promise.race([probeTransport(transport, timeoutMs), timeoutPromise]);
       clearTimeout(timer.id);
       // 429 = rate-limited but server is alive — treat as reachable with penalty flag
       if (status === 429) return { transport, url: wispUrl, rateLimited: true };
       if (status >= 200 && status < 400) return { transport, url: wispUrl, rateLimited: false };
+      transport.close?.();
       return null;
     } catch (_) {
       clearTimeout(timer.id);
+      transport?.close?.();
       return null;
     }
   }
 
   async function discoverAndConnectWisp() {
-    // 1. Try last-good saved server (like Opium's WID cache)
-    const savedUrl = localStorage.getItem(WISP_STORAGE_KEY) ||
-      (settings.wisp && !['local','auto'].includes(settings.wisp) ? settings.wisp : null);
-
-    if (savedUrl?.startsWith('ws')) {
-      addLog(`Testing saved Wisp: ${savedUrl}`, 'info');
-      const result = await attemptConnectWisp(savedUrl, 4000);
-      if (result && !result.rateLimited) {
-        addLog(`Verified saved Wisp: ${savedUrl}`, 'ok');
-        return result;
-      }
-      if (result?.rateLimited) {
-        addLog(`Saved Wisp rate-limited (429), retrying pool...`, 'warn');
-      } else {
-        addLog(`Saved Wisp failed, running discovery...`, 'warn');
-      }
-      localStorage.removeItem(WISP_STORAGE_KEY);
-    }
-
-    // 2. Show "Finding Wisp Server" screen
     const screen    = document.getElementById('wispFindingScreen');
     const counterEl = document.getElementById('wispFindingCounter');
     const serverEl  = document.getElementById('wispFindingServer');
     const barEl     = document.getElementById('wispFindingBar');
-    const retryBtn  = document.getElementById('wispRetryBtn');
 
     const ui = (counter, server, barPct) => {
       if (counterEl) counterEl.textContent = counter;
@@ -2480,140 +2423,120 @@
       if (barEl)     barEl.style.width     = `${barPct}%`;
     };
 
-    if (screen) {
-      screen.classList.remove('hidden');
-      retryBtn?.classList.add('hidden');
-      ui('Loading server catalog...', 'Reading assets/backend/wisps.json...', 3);
+    const savedUrl = localStorage.getItem(WISP_STORAGE_KEY);
+    if (savedUrl?.startsWith('ws')) {
+      ui('Checking last working server…', savedUrl, 5);
+      addLog(`Checking last working Wisp server (10s timeout): ${savedUrl}`, 'info');
+      const savedResult = await attemptConnectWisp(savedUrl, 10000);
+      if (savedResult && !savedResult.rateLimited) {
+        addLog(`Verified saved Wisp: ${savedUrl}`, 'ok');
+        screen?.classList.add('hidden');
+        return savedResult;
+      }
+      savedResult?.transport.close?.();
+      addLog('Last working Wisp server did not respond within 10 seconds; starting discovery.', 'warn');
+      localStorage.removeItem(WISP_STORAGE_KEY);
     }
 
-    try {
-      // 3. Read wisps.json catalog
-      let catalog = [];
+    screen?.classList.remove('hidden');
+    let retryAttempt = 0;
+    while (true) {
+      retryAttempt++;
+      ui('Loading server catalog…', 'Reading assets/backend/wisps.json…', 0);
+
       try {
-        const res = await fetch(appPath('assets/backend/wisps.json'), { cache: 'no-store' });
-        catalog = await res.json();
-      } catch (err) {
-        addLog(`Failed to fetch wisps.json: ${err.message}`, 'warn');
-      }
+        const catalogResponse = await fetchAppAsset('assets/backend/wisps.json', {
+          cache: 'no-store'
+        });
+        if (!catalogResponse.ok) {
+          throw new Error(`Catalog request failed with HTTP ${catalogResponse.status}`);
+        }
+        const catalog = await catalogResponse.json();
+        if (!Array.isArray(catalog) || catalog.length === 0) {
+          throw new Error('The Wisp catalog is empty or invalid');
+        }
 
-      // 4. Build ordered server list (last-good index first, like Opium's WID)
-      const allServers = [];
-      const savedIdx = parseInt(localStorage.getItem('su_wid') || '-1', 10);
-
-      if (Array.isArray(catalog) && catalog.length > 0) {
+        const allServers = [];
+        const groupLabels = {
+          Offical: 'Official',
+          Onyx: 'Official Backup',
+          Opium: 'Mirror 2'
+        };
         for (const entry of catalog) {
-          const cleanPath = (entry.path || '').replace(/^\/+/, '');
+          if (!entry || typeof entry.name !== 'string' || typeof entry.path !== 'string') {
+            throw new Error('The Wisp catalog contains an invalid entry');
+          }
+          const cleanPath = entry.path.replace(/^\/+/, '');
+          if (!cleanPath || cleanPath.split('/').includes('..')) {
+            throw new Error(`The Wisp catalog contains an invalid list path for ${entry.name}`);
+          }
+          const response = await fetchAppAsset(`assets/backend/${cleanPath}`, {
+            cache: 'no-store'
+          });
+          if (!response.ok) {
+            throw new Error(`Could not load ${entry.name} servers (HTTP ${response.status})`);
+          }
+          const urls = await response.json();
+          if (!Array.isArray(urls)) {
+            throw new Error(`${entry.name} server list is not an array`);
+          }
+          for (const url of urls) {
+            if (typeof url !== 'string' || !/^wss?:\/\//i.test(url)) {
+              throw new Error(`${entry.name} server list contains an invalid endpoint`);
+            }
+            allServers.push({
+              group: groupLabels[entry.name] || entry.name,
+              url
+            });
+          }
+        }
+
+        if (allServers.length === 0) {
+          throw new Error('No Wisp endpoints were found in the configured server lists');
+        }
+
+        const total = allServers.length;
+        addLog(`Probing all ${total} configured Wisp servers...`, 'info');
+        for (let index = 0; index < total; index++) {
+          const server = allServers[index];
+          const current = index + 1;
+          const percent = Math.round((current / total) * 95);
+          ui(`Checking ${current}/${total}`, `${server.group}: ${server.url}`, percent);
+          addLog(`[${current}/${total}] Checking ${server.group}: ${server.url}`, 'info');
+
+          const result = await attemptConnectWisp(server.url, 10000);
+          if (!result || result.rateLimited) {
+            if (result?.rateLimited) {
+              result.transport.close?.();
+              addLog(`${server.url} returned HTTP 429; checking the next server.`, 'warn');
+            }
+            continue;
+          }
+
+          localStorage.setItem(WISP_STORAGE_KEY, server.url);
           try {
-            const r = await fetch(appPath('assets/backend/' + cleanPath), { cache: 'no-store' });
-            const urls = await r.json();
-            if (Array.isArray(urls)) {
-              for (const u of urls) {
-                if (typeof u === 'string' && u.startsWith('ws')) {
-                  allServers.push({ group: entry.name || 'Wisp', url: u });
-                }
-              }
-            }
-          } catch (e) {
-            addLog(`Could not load ${entry.name}: ${e.message}`, 'warn');
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+          } catch (error) {
+            addLog(`Could not persist Wisp settings: ${error.message}`, 'warn');
           }
+          ui(`Connected (${current}/${total})`, `${server.group}: ${server.url}`, 100);
+          addLog(`Connected to ${server.group}: ${server.url}`, 'ok');
+          await sleep(300);
+          screen?.classList.add('hidden');
+          return result;
         }
-      }
 
-      if (allServers.length === 0) {
-        allServers.push(
-          { group: 'Official', url: 'wss://superuser-wisp.wasmer.app/' },
-          { group: 'Official', url: 'wss://symbolic-jocelyne-jxo-prod-c0e42749.apps.mistral.run/' },
-          { group: 'Opium',    url: 'wss://cdn.northstreetumc.org/' }
+        throw new Error(`All ${total} configured Wisp servers failed their 10-second connection check`);
+      } catch (error) {
+        const delay = Math.min(retryAttempt * 2000, 10000);
+        addLog(`Wisp discovery attempt ${retryAttempt} failed: ${error.message}`, 'err');
+        ui(
+          `No server connected — retrying in ${Math.ceil(delay / 1000)}s`,
+          error.message,
+          0
         );
+        await sleep(delay);
       }
-
-      // Bubble last-good index to front (Opium WID strategy)
-      if (savedIdx >= 0 && savedIdx < allServers.length) {
-        allServers.unshift(allServers.splice(savedIdx, 1)[0]);
-      }
-
-      const total = allServers.length;
-      addLog(`Probing ${total} Wisp servers...`, 'info');
-
-      let rateLimitedResult = null; // best fallback if everything is 429
-
-      for (let i = 0; i < total; i++) {
-        const item = allServers[i];
-        ui(`Checking ${i + 1}/${total}`, `${item.group}: ${item.url}`, Math.round(((i + 1) / total) * 95));
-        addLog(`[${i + 1}/${total}] ${item.url}`, 'info');
-
-        const result = await attemptConnectWisp(item.url, 3500);
-        if (!result) continue;
-
-        if (result.rateLimited) {
-          addLog(`${item.url} → 429 rate-limited, continuing...`, 'warn');
-          rateLimitedResult = rateLimitedResult || { result, item, idx: i };
-          continue; // try next server
-        }
-
-        // ✅ Clean connection
-        const realIdx = allServers.indexOf(item);
-        localStorage.setItem(WISP_STORAGE_KEY, item.url);
-        localStorage.setItem('su_wid', String(realIdx));
-        settings.wisp = item.url;
-        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
-
-        ui(`Connected! (${i + 1}/${total})`, `Selected ${item.group}: ${item.url}`, 100);
-        addLog(`Connected to ${item.url}`, 'ok');
-        await sleep(300);
-        screen?.classList.add('hidden');
-        return result;
-      }
-
-      // All servers returned 429 — keep retrying with backoff, don't give up
-      if (rateLimitedResult) {
-        const { result, item } = rateLimitedResult;
-        let attempt = 0;
-        while (true) {
-          attempt++;
-          const delay = Math.min(1000 * attempt, 8000);
-          ui(
-            `All servers rate-limited (429) — retrying in ${Math.round(delay / 1000)}s...`,
-            `Waiting to retry ${item.url}`,
-            95
-          );
-          addLog(`429 backoff attempt ${attempt} — waiting ${delay}ms`, 'warn');
-          await sleep(delay);
-
-          // Re-probe all servers on each backoff pass
-          for (let i = 0; i < allServers.length; i++) {
-            const s = allServers[i];
-            ui(`Retry ${attempt} — checking ${i + 1}/${total}`, `${s.group}: ${s.url}`, 95);
-            const r = await attemptConnectWisp(s.url, 3500);
-            if (r && !r.rateLimited) {
-              localStorage.setItem(WISP_STORAGE_KEY, s.url);
-              localStorage.setItem('su_wid', String(i));
-              settings.wisp = s.url;
-              try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
-              ui('Connected!', `Selected ${s.group}: ${s.url}`, 100);
-              addLog(`Connected after ${attempt} retry attempt(s): ${s.url}`, 'ok');
-              await sleep(300);
-              screen?.classList.add('hidden');
-              return r;
-            }
-          }
-        }
-      }
-
-      ui('All servers unreachable', 'No working Wisp server found.', 100);
-      if (retryBtn) {
-        retryBtn.classList.remove('hidden');
-        retryBtn.onclick = () => discoverAndConnectWisp();
-      }
-      return null;
-
-    } catch (e) {
-      if (serverEl) serverEl.textContent = `Discovery error: ${e.message}`;
-      if (retryBtn) {
-        retryBtn.classList.remove('hidden');
-        retryBtn.onclick = () => discoverAndConnectWisp();
-      }
-      return null;
     }
   }
 
@@ -2626,7 +2549,7 @@
         throw new Error('Service Workers are not supported in this browser.');
       }
 
-      const swUrl = new URL(`${appPath('sw.js')}?v=11`, location.href).href;
+      const swUrl = new URL(`${appPath('sw.js')}?v=14`, location.href).href;
       const reg = await navigator.serviceWorker.register(swUrl, {
         scope: APP_BASE,
         updateViaCache: 'none'
@@ -2671,7 +2594,6 @@
 
       const transport = wispResult.transport;
       activeTransport = transport;
-      const wispUrl = wispResult.url;
 
       if (scramjet) {
         scramjet.setTransport(transport);
@@ -2710,12 +2632,6 @@
 
       isProxyReady = true;
       applyEnglishPreferences();
-      const wispPageEl = document.getElementById('wispSelectPage');
-      const wispEl = document.getElementById('wispSelect');
-      if (wispPageEl) wispPageEl.value = wispUrl;
-      if (wispEl) wispEl.value = wispUrl;
-      settings.wisp = wispUrl;
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       updateSystemStatus();
 
       // Drain queued navigations requested before proxy finished initializing
@@ -2990,7 +2906,7 @@
     document.querySelector('.viewport').classList.remove('browsing');
     browserErrorScreen.hidden = true;
     setWindowTitle('SuperUser Proxy');
-    document.getElementById('appFavicon').href = appPath('assets/shortcuts/icons/google.png');
+    document.getElementById('appFavicon').href = appAsset('assets/shortcuts/icons/google.png');
     document.getElementById('cmdTextarea')?.focus();
   }
 
@@ -3070,7 +2986,7 @@
       saveTabs();
       document.title = `${currentTab.title} - SuperUser`;
       document.getElementById('appFavicon').href =
-        currentTab.favicon || appPath('assets/shortcuts/icons/google.png');
+        currentTab.favicon || appAsset('assets/shortcuts/icons/google.png');
     }
 
     loadUrlInFrame(url);
@@ -3354,7 +3270,8 @@
         }
         return;
       }
-      if ((responseStatus === 500 || responseStatus === 502 || responseStatus === 503) && (tab.wispRetryCount || 0) < 3) {
+      if ((responseStatus === 500 || responseStatus === 502 || responseStatus === 503 || responseStatus === 504) &&
+          (tab.wispRetryCount || 0) < 3) {
         rotateWispAndRetry(tab);
         return;
       }
@@ -3484,7 +3401,7 @@
       if (tab.url !== previousUrl) topUrlInput.value = getDisplayUrl(tab.url);
       setWindowTitle(tab.title ? `${tab.title} - SuperUser` : 'SuperUser Proxy');
       const appFavicon = document.getElementById('appFavicon');
-      if (appFavicon) appFavicon.href = tab.favicon || appPath('assets/shortcuts/icons/google.png');
+      if (appFavicon) appFavicon.href = tab.favicon || appAsset('assets/shortcuts/icons/google.png');
     }
     if (metadataChanged) {
       renderTabs();
@@ -3630,7 +3547,7 @@
     { cmd: 'sudo back',              desc: 'Go back' },
     { cmd: 'sudo forward',           desc: 'Go forward' },
     { cmd: 'sudo home',              desc: 'Return to home screen' },
-    { cmd: 'sudo wisp <url>',        desc: 'Switch Wisp server' }
+    { cmd: 'sudo wisp',              desc: 'Re-discover a working Wisp server automatically' }
   ];
 
   const PAGE_IDS = ['settings', 'help', 'logs'];
@@ -3879,13 +3796,9 @@
         return;
       }
 
-      if (command.startsWith('wisp ')) {
-        const wUrl = args.slice(5).trim();
-        if (!wUrl) { showToast('Enter a Wisp endpoint', true); return; }
-        const sel = document.getElementById('wispSelectPage');
-        const opt = new Option(wUrl, wUrl, true, true);
-        sel.appendChild(opt);
-        showToast('Wisp endpoint set to: ' + wUrl);
+      if (command === 'wisp') {
+        localStorage.removeItem(WISP_STORAGE_KEY);
+        showToast('Finding a working Wisp server...');
         initScramjetProxy();
         return;
       }
@@ -4031,20 +3944,6 @@ frame.addEventListener('load', () => {
     location.reload();
   });
 
-  function onWispChange() {
-    const source = this;
-    const other = source.id === 'wispSelectPage'
-      ? document.getElementById('wispSelect')
-      : document.getElementById('wispSelectPage');
-    if (other) other.value = source.value;
-    settings.wisp = source.value || settings.wisp;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    addLog(`Switching Wisp endpoint to: ${getWispUrl()}`, 'info');
-    initScramjetProxy();
-  }
-
-  document.getElementById('wispSelect').addEventListener('change', onWispChange);
-  document.getElementById('wispSelectPage').addEventListener('change', onWispChange);
   function onWispVersionChange() {
     const source = this;
     const other = source.id === 'wispVersionSelectPage'
@@ -4058,21 +3957,6 @@ frame.addEventListener('load', () => {
   }
   document.getElementById('wispVersionSelect').addEventListener('change', onWispVersionChange);
   document.getElementById('wispVersionSelectPage').addEventListener('change', onWispVersionChange);
-  function useCustomWisp(inputId) {
-    const value = document.getElementById(inputId).value.trim();
-    if (!/^wss?:\/\/.+/i.test(value)) {
-      showToast('Use a ws:// or wss:// endpoint', true);
-      return;
-    }
-    settings.wisp = value;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    document.getElementById('wispSelectPage').value = '';
-    document.getElementById('wispSelect').value = '';
-    addLog(`Using custom Wisp endpoint: ${value}`, 'info');
-    initScramjetProxy();
-  }
-  document.getElementById('customWispBtnPage').addEventListener('click', () => useCustomWisp('customWispInputPage'));
-  document.getElementById('customWispBtn').addEventListener('click', () => useCustomWisp('customWispInput'));
   document.getElementById('topSearchProvider').value = settings.searchProvider;
   if (!searchProviders.some(provider => provider.id === settings.searchProvider)) {
     settings.searchProvider = 'startpage';
@@ -4250,7 +4134,7 @@ frame.addEventListener('load', () => {
     const tab = getActiveTab();
     setWindowTitle(tab && tab.url !== 'home' ? `${tab.title} - SuperUser` : 'SuperUser Proxy');
     const appFavicon = document.getElementById('appFavicon');
-    if (appFavicon) appFavicon.href = tab?.favicon || appPath('assets/shortcuts/icons/google.png');
+    if (appFavicon) appFavicon.href = tab?.favicon || appAsset('assets/shortcuts/icons/google.png');
   }
 
   function setupLearningScreen() {
@@ -4532,7 +4416,7 @@ frame.addEventListener('load', () => {
   /* ═══ EXTENSIONS & USERSCRIPT ENGINE ═══ */
   async function loadExtensionCatalog() {
     try {
-      const response = await fetch(appPath('extensions/scripts/index.json'), { cache: 'no-store' });
+      const response = await fetchAppAsset('extensions/scripts/index.json', { cache: 'no-store' });
       const builtin = await response.json();
       let custom = [];
       try { custom = JSON.parse(localStorage.getItem('superuser-custom-extensions') || '[]'); } catch (_) {}
@@ -4558,7 +4442,7 @@ frame.addEventListener('load', () => {
       return customMatch.src;
     }
     try {
-      const res = await fetch(appPath(`extensions/scripts/${encodeURIComponent(id)}.js`), { cache: 'force-cache' });
+      const res = await fetchAppAsset(`extensions/scripts/${encodeURIComponent(id)}.js`, { cache: 'force-cache' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const src = await res.text();
       _userscriptCache[id] = src;
@@ -5067,16 +4951,8 @@ frame.addEventListener('load', () => {
   });
 
   // Start only after every DOM reference and event handler has been initialized.
-  document.getElementById('wispSelectPage').value = ['local', OFFICIAL_WISP_URL,
-    'wss://wisp.mercurywork.shop/'].includes(settings.wisp)
-    ? settings.wisp : '';
-  document.getElementById('wispSelect').value = document.getElementById('wispSelectPage').value;
   document.getElementById('wispVersionSelectPage').value = settings.wispVersion;
   document.getElementById('wispVersionSelect').value = settings.wispVersion;
-  if (!document.getElementById('wispSelectPage').value) {
-    document.getElementById('customWispInputPage').value = settings.wisp || '';
-    document.getElementById('customWispInput').value = settings.wisp || '';
-  }
   updateSystemStatus();
   setInterval(updateSystemStatus, 30000);
   setupLearningScreen();

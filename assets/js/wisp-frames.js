@@ -1,5 +1,3 @@
-import { gatewayContract } from './config.js';
-
 function varintEncode(num) {
   const out = [];
   do {
@@ -13,49 +11,49 @@ function varintEncode(num) {
 
 function varintDecode(data, offset = 0) {
   let value = 0;
-  let shift = 0;
+  let multiplier = 1;
   let end = offset;
   while (end < data.length) {
     const byte = data[end];
-    value += (byte & 0x7f) * shift;
-    shift += 7;
+    value += (byte & 0x7f) * multiplier;
     end++;
-    if (!(byte & 0x80)) break;
+    if (!Number.isSafeInteger(value)) {
+      throw new RangeError('Wisp stream ID exceeds the safe integer range');
+    }
+    if (!(byte & 0x80)) {
+      return { value, bytes: end - offset };
+    }
+    multiplier *= 128;
+    if (multiplier > Number.MAX_SAFE_INTEGER) {
+      throw new RangeError('Wisp stream ID varint is too large');
+    }
   }
-  return { value, bytes: end - offset };
+  throw new Error('Incomplete Wisp stream ID varint');
 }
 
 class FrameParser {
   constructor() {
-    this.buffer = new Uint8Array();
     this.streamRegistry = {};
     this.creditState = {};
   }
 
   feed(data) {
-    this.buffer = new Uint8Array([...this.buffer, ...data]);
-    while (this.buffer.length >= 1) {
-      const type = this.buffer[0];
-      if (![0x01, 0x02, 0x03, 0x04, 0x05].includes(type)) {
-        this._closeStream(this._readVarint(this.buffer, 1).value);
-        break;
-      }
-      const { value: streamId, bytes: len } = this._readVarint(this.buffer, 1);
-      const payloadStart = 1 + len;
-      const frameHeaderSize = payloadStart;
-      if (this.buffer.length < frameHeaderSize) break;
-      const frame = {
-        type,
-        streamId,
-        payload: this.buffer.subarray(1, payloadStart)
-      };
-      this._dispatchFrame(frame);
-      this.buffer = this.buffer.subarray(payloadStart);
+    const bytes = toUint8Array(data);
+    if (bytes.length < 2) {
+      throw new Error('Wisp frame is missing its type or stream ID');
     }
-  }
-
-  _readVarint(data, offset) {
-    return varintDecode(data, offset);
+    const type = bytes[0];
+    if (![0x01, 0x02, 0x03, 0x04, 0x05].includes(type)) {
+      throw new Error(`Unknown Wisp frame type: ${type}`);
+    }
+    const { value: streamId, bytes: idLength } = varintDecode(bytes, 1);
+    const frame = {
+      type,
+      streamId,
+      payload: bytes.subarray(1 + idLength)
+    };
+    this._dispatchFrame(frame);
+    return frame;
   }
 
   _dispatchFrame(frame) {
@@ -69,7 +67,7 @@ class FrameParser {
         }
         break;
       case 0x03: // CONTINUE
-        if (this.creditState[frame.streamId]) this.creditState[frame.streamId]++;
+        this.creditState[frame.streamId] = (this.creditState[frame.streamId] || 0) + 1;
         break;
       case 0x04: // CLOSE
         this._closeStream(frame.streamId, frame.payload);
@@ -83,7 +81,7 @@ class FrameParser {
   _handleConnect(streamId, payload) {
     if (streamId % 2 === 0) return; // server allocates even
     if (payload.length < 3) return;
-    const port = new DataView(payload.buffer, payload.byteOffset, 2).getUint16BE(0);
+    const port = new DataView(payload.buffer, payload.byteOffset, 2).getUint16(0, false);
     const addrType = payload[2];
     const addr = payload.subarray(3);
     this.streamRegistry[streamId] = {
@@ -119,6 +117,15 @@ class FrameParser {
   releaseCredit(streamId, amount = 1) {
     if (this.creditState[streamId]) this.creditState[streamId] = Math.max(0, this.creditState[streamId] - amount);
   }
+}
+
+function toUint8Array(data) {
+  if (data instanceof Uint8Array) return data;
+  if (data instanceof ArrayBuffer) return new Uint8Array(data);
+  if (ArrayBuffer.isView(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  }
+  throw new TypeError('Wisp frame data must be an ArrayBuffer or an ArrayBuffer view');
 }
 
 class FrameEncoder {
