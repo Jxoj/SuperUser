@@ -1830,8 +1830,7 @@
         <section class="settings-panel" data-settings-panel="general">
           <div class="page-card" data-searchable="about version superuser">
             <h3>About</h3>
-            <p>SuperUser Proxy version <button class="about-version" id="appVersionButton" type="button" title="Click five times to enable developer settings">1.0.0</button></p>
-            <p>Click the version number five times to unlock Developer settings.</p>
+            <p>SuperUser Proxy version <button class="about-version" id="appVersionButton" type="button" aria-label="SuperUser Proxy version v5">v5</button></p>
           </div>
           <div class="page-card" data-searchable="factory reset clear local storage data">
             <h3>Factory Reset</h3><p>Remove all SuperUser data saved in this browser and restore the default settings.</p>
@@ -2213,7 +2212,7 @@
   const learningScreen   = document.getElementById('learningScreen');
   const SCRAMJET_PREFIX  = 'assets/';
   const SETTINGS_KEY     = 'superuser-settings';
-  const SUPERUSER_VERSION = '1.0.0';
+  const SUPERUSER_VERSION = 'v5';
   const TABS_KEY         = 'superuser-tabs';
   const EXTENSIONS_KEY   = 'superuser-extensions';
   const GAMEPAD_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4m-2-2v4"/><line x1="15" y1="11" x2="15.01" y2="11"/><line x1="18" y1="13" x2="18.01" y2="13"/></svg>';
@@ -3094,6 +3093,7 @@
   function loadUrlInFrame(url, shouldNavigate = true) {
     const tab = getActiveTab();
     if (!tab) return;
+    tab.fakeLoadingPreview = false;
     const internalUrl = getInternalGameUrl(url);
     if (!internalUrl && (!isProxyReady || !scramjet)) {
       tab.url = url;
@@ -3172,6 +3172,7 @@
             if (settings.fakeLoading) {
               tab.frame.dataset.loaded = 'false';
               tab.navigationPending = false;
+              tab.fakeLoadingPreview = true;
               frameLoader.classList.remove('hidden');
               frameLoader.classList.add('fake-loading');
               frameLoaderMsg.textContent = `Fake load path: ${scramjetUrl.pathname}${scramjetUrl.search}${scramjetUrl.hash}`;
@@ -3187,6 +3188,7 @@
               const previewUrl = new URL(`${tab.sjFrame.prefix}${encodedTarget}`, location.origin);
               tab.frame.dataset.loaded = 'false';
               tab.navigationPending = false;
+              tab.fakeLoadingPreview = true;
               frameLoader.classList.remove('hidden');
               frameLoader.classList.add('fake-loading');
               frameLoaderMsg.textContent = `Fake load path: ${previewUrl.pathname}${previewUrl.search}${previewUrl.hash}`;
@@ -3331,6 +3333,7 @@
   }
 
   function updateTabMetadata(tab) {
+    if (tab.fakeLoadingPreview) return;
     const responseStatus = tab.navigationPending ? 0 : getFrameResponseStatus(tab);
     if (responseStatus >= 400 && responseStatus < 600) {
       if (responseStatus === 404) {
