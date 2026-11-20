@@ -1124,6 +1124,7 @@
 
     .settings-panel { display: none; }
     .settings-panel.active { display: block; }
+    .settings-panel[hidden] { display: none !important; }
 
     .app-page-title {
       color: var(--green);
@@ -1172,6 +1173,22 @@
       color: var(--text-muted);
       font-size: 12px;
       line-height: 1.6;
+    }
+
+    .about-version {
+      padding: 1px 5px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--bg-elevated);
+      color: var(--green);
+      font: 11px 'JetBrains Mono', monospace;
+      cursor: pointer;
+    }
+
+    .about-version:hover,
+    .about-version:focus-visible {
+      border-color: var(--green);
+      outline: none;
     }
 
     .page-command-list {
@@ -1254,10 +1271,15 @@
     }
 
     .frame-loader-msg {
+      max-width: min(90vw, 760px);
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
       color: var(--green);
+      overflow-wrap: anywhere;
+      text-align: center;
     }
+
+    .frame-loader.fake-loading .spinner { display: none; }
 
     .browser-error {
       position: absolute;
@@ -1788,6 +1810,7 @@
           <button type="button" class="settings-nav-btn active" data-settings-page="proxy">Proxy</button>
           <button type="button" class="settings-nav-btn" data-settings-page="personalization">Personalization</button>
           <button type="button" class="settings-nav-btn" data-settings-page="general">General</button>
+          <button type="button" class="settings-nav-btn" data-settings-page="developer" hidden>Developer</button>
         </nav>
         <section class="settings-panel active" data-settings-panel="proxy">
           <div class="page-card" data-searchable="wisp websocket server">
@@ -1805,12 +1828,24 @@
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="general">
+          <div class="page-card" data-searchable="about version superuser">
+            <h3>About</h3>
+            <p>SuperUser Proxy version <button class="about-version" id="appVersionButton" type="button" title="Click five times to enable developer settings">1.0.0</button></p>
+            <p>Click the version number five times to unlock Developer settings.</p>
+          </div>
           <div class="page-card" data-searchable="factory reset clear local storage data">
             <h3>Factory Reset</h3><p>Remove all SuperUser data saved in this browser and restore the default settings.</p>
             <button class="modal-btn danger" id="factoryResetBtn">Factory Reset</button>
           </div>
           <div class="page-card" data-searchable="service worker reset cache">
             <h3>Reset Service Worker</h3><p>Unregister and reload the proxy cache.</p><button class="modal-btn" id="resetSwPageBtn">Reset SW</button>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="developer" hidden>
+          <div class="page-card" data-searchable="fake loading scramjet url path preview">
+            <h3>Fake loading</h3>
+            <p>Show the Scramjet path that would load instead of navigating to the website.</p>
+            <label><input type="checkbox" id="fakeLoadingToggle"> Enable fake loading</label>
           </div>
         </section>
       </section>
@@ -2178,6 +2213,7 @@
   const learningScreen   = document.getElementById('learningScreen');
   const SCRAMJET_PREFIX  = 'assets/';
   const SETTINGS_KEY     = 'superuser-settings';
+  const SUPERUSER_VERSION = '1.0.0';
   const TABS_KEY         = 'superuser-tabs';
   const EXTENSIONS_KEY   = 'superuser-extensions';
   const GAMEPAD_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4m-2-2v4"/><line x1="15" y1="11" x2="15.01" y2="11"/><line x1="18" y1="13" x2="18.01" y2="13"/></svg>';
@@ -2194,7 +2230,9 @@
   const defaultSettings  = {
     wispVersion: 'auto',
     searchProvider: 'startpage',
-    adBlock: true
+    adBlock: true,
+    developerMode: false,
+    fakeLoading: false
   };
   let settings = { ...defaultSettings };
   try { settings = { ...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (_) {}
@@ -2292,6 +2330,7 @@
   }
 
   let scramjet = null;
+  let scramjetUrlRegistry = null;
   let activeTransport = null;
   let sjFrame  = null;
   let isProxyReady = false;
@@ -2601,6 +2640,7 @@
       } else {
         addLog('Initializing Scramjet controller & WASM...', 'info');
         const { registry: urlRegistry } = await import(appPath('assets/js/codecs.js'));
+        scramjetUrlRegistry = urlRegistry;
         scramjet = new Controller({
           serviceworker: sw,
           transport,
@@ -3075,6 +3115,9 @@
       browserFrames.appendChild(tab.frame);
       tab.frame.addEventListener('load', () => {
         tab.navigationPending = false;
+        try {
+          tab.frame.contentDocument?.addEventListener('pointerdown', closeContextMenu, true);
+        } catch (_) {}
         updateTabMetadata(tab);
       });
       tab.metadataTimer = setInterval(() => {
@@ -3098,6 +3141,7 @@
     topUrlInput.value = getDisplayUrl(tab.url);
     if (shouldNavigate || !tab.frame.dataset.loaded) {
       frameLoader.classList.remove('hidden');
+      frameLoader.classList.remove('fake-loading');
       frameLoaderMsg.textContent = `Connecting to ${getHost(url)}...`;
     } else {
       frameLoader.classList.add('hidden');
@@ -3124,10 +3168,30 @@
             if (tab.codecNavigationId !== navigationId) return;
             const routePath = encodedPath.replace(/^\/assets\//, '').replace(/^\/+/, '');
             const framePath = `${tab.sjFrame.prefix}${routePath}`;
-            tab.frame.src = new URL(framePath, location.origin).href;
+            const scramjetUrl = new URL(framePath, location.origin);
+            if (settings.fakeLoading) {
+              tab.frame.dataset.loaded = 'false';
+              tab.navigationPending = false;
+              frameLoader.classList.remove('hidden');
+              frameLoader.classList.add('fake-loading');
+              frameLoaderMsg.textContent = `Fake load path: ${scramjetUrl.pathname}${scramjetUrl.search}${scramjetUrl.hash}`;
+              return;
+            }
+            tab.frame.src = scramjetUrl.href;
           })
           .catch(error => {
             if (tab.codecNavigationId !== navigationId) return;
+            if (settings.fakeLoading) {
+              const encodedTarget = scramjetUrlRegistry?.encodeScramjetUrl(getEffectiveLoadUrl(url)) ||
+                encodeURIComponent(getEffectiveLoadUrl(url));
+              const previewUrl = new URL(`${tab.sjFrame.prefix}${encodedTarget}`, location.origin);
+              tab.frame.dataset.loaded = 'false';
+              tab.navigationPending = false;
+              frameLoader.classList.remove('hidden');
+              frameLoader.classList.add('fake-loading');
+              frameLoaderMsg.textContent = `Fake load path: ${previewUrl.pathname}${previewUrl.search}${previewUrl.hash}`;
+              return;
+            }
             addLog(`Hashed URL routing failed; using native proxy URL: ${error.message}`, 'warn');
             tab.sjFrame.go(getEffectiveLoadUrl(url));
           });
@@ -3589,6 +3653,18 @@
     });
   }
 
+  function setDeveloperModeEnabled(enabled, focusPage = false) {
+    settings.developerMode = enabled;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    const developerButton = document.querySelector('[data-settings-page="developer"]');
+    const developerPanel = document.querySelector('[data-settings-panel="developer"]');
+    if (developerButton) developerButton.hidden = !enabled;
+    if (developerPanel) developerPanel.hidden = !enabled;
+    if (enabled && focusPage) activateSettingsPage('developer');
+  }
+
+  if (settings.developerMode) setDeveloperModeEnabled(true);
+
   function showAppPage(page) {
     PAGE_IDS.forEach(id => document.getElementById(`${id}Page`)?.classList.toggle('active', id === page));
     if (page) {
@@ -3930,6 +4006,30 @@ frame.addEventListener('load', () => {
       document.getElementById('settingsSearch').value = '';
       document.getElementById('settingsSearch').dispatchEvent(new Event('input'));
       activateSettingsPage(button.dataset.settingsPage);
+    });
+
+    document.getElementById('appVersionButton').textContent = SUPERUSER_VERSION;
+    let versionClickCount = 0;
+    let versionClickTimer;
+    document.getElementById('appVersionButton').addEventListener('click', () => {
+      if (settings.developerMode) return;
+      versionClickCount += 1;
+      clearTimeout(versionClickTimer);
+      if (versionClickCount >= 5) {
+        versionClickCount = 0;
+        setDeveloperModeEnabled(true, true);
+        showToast('Developer settings unlocked');
+        return;
+      }
+      versionClickTimer = setTimeout(() => { versionClickCount = 0; }, 1500);
+    });
+
+    const fakeLoadingToggle = document.getElementById('fakeLoadingToggle');
+    fakeLoadingToggle.checked = settings.fakeLoading;
+    fakeLoadingToggle.addEventListener('change', () => {
+      settings.fakeLoading = fakeLoadingToggle.checked;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      addLog(`Fake loading ${settings.fakeLoading ? 'enabled' : 'disabled'}`, 'info');
     });
   });
 
@@ -4900,7 +5000,13 @@ frame.addEventListener('load', () => {
   function closeContextMenu() {
     if (suContextMenu) suContextMenu.style.display = 'none';
   }
+  document.addEventListener('pointerdown', event => {
+    if (suContextMenu && !suContextMenu.contains(event.target)) closeContextMenu();
+  }, true);
   document.addEventListener('click', closeContextMenu);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeContextMenu();
+  });
   document.addEventListener('contextmenu', (e) => {
     if (e.target.closest('#suContextMenu')) return;
     const tab = getActiveTab();
