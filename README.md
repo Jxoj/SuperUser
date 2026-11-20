@@ -13,8 +13,8 @@ The gateway contract defines the baseline configuration:
 ```javascript
 export const gatewayContract = {
   origin: 'https://superuser.netlify.app',
-  pathTemplate: '/eduapi/{seg1}/{seg2}/{target}',
-  segments: ['fv65qma5', 'e7bbh9tm'],   // opaque, rotates per deployment
+  pathTemplate: '/assets/{seg1}/{target}',
+  segments: ['fv65qma5'],   // Scramjet frame segment
   wispPath: '/eduapi/wisp/',
   targetEncoding: 'percent',
   probe: { path: '/capabilities', method: 'POST',
@@ -27,18 +27,22 @@ export const gatewayContract = {
 
 Six encoding forms, evaluated in this order:
 
-1. **registry** - `/{prefix}/{h16}/{filename}`: IndexedDB lookup by the first 16 hex digits of SHA-256
+1. **registry** - `/{type}/{h16}.{ext}`: IndexedDB lookup by the first 16 hex digits of SHA-256
 2. **self-contained** - `/{prefix}/{h8}/{hexPayload}.{ext}`: UTF-8 target encoded as hex; the first 8 hash digits are verified
 3. **fragment** - `/{prefix}/#<b64url>`: Target stays out of the network request
 4. **path-hex** - `/{prefix}/<hex>`: UTF-8 target encoded as hexadecimal
 5. **query-b64** - `/{prefix}?u=<b64url>`: Base64url-encoded target in the query
-6. **native** - `/eduapi/{seg1}/{seg2}/<pct-encoded full URL>`: Guaranteed baseline when nothing else lands
+6. **native** - `/assets/{frame}/<encoded URL>`: Guaranteed baseline when nothing else lands
 
-The rotating prefix set is `/assets/`, `/static/`, `/cdn/`, `/pkg/`, and
-`/_next/static/`. Hashes use the target URL with only its scheme and host
-lowercased. The registry is capped at 5,000 targets and evicts least-recently
-used entries. Registry misses and invalid self-contained hashes return 404;
-they are never guessed. Successful hashed-route responses use
+The Scramjet frame prefix is `/assets/{frame}/`. Encoded registry paths are
+appended below it, for example `/assets/{frame}/js/{h16}.js` or
+`/assets/{frame}/pkg/js/{h16}.js`; the outer category rotates among
+`assets`, `pkg`, `imgs`, and `articles`. Resource types include `js`, `css`,
+`imgs`, `html`, `articles`, and `files`; the suffix mirrors a supported file extension.
+Hashes use the target URL with only its scheme and host lowercased. The registry
+is capped at 5,000 targets and evicts least-recently used entries. Registry
+misses and invalid self-contained hashes return 404; they are never guessed.
+Successful hashed-route responses use
 `Cache-Control: public, max-age=31536000, immutable`.
 
 ### 3. Protocol Implementation
@@ -102,8 +106,11 @@ service-worker URL and scope stable while grouping JavaScript sources under
 Top-level browser navigation first creates a registry URL and records the
 target in IndexedDB. The service worker resolves that URL and redirects within
 the current Scramjet frame to the native Scramjet route, where Epoxy/Wisp
-continues handling the proxied document and its subresources. If creating the
-hashed route fails, the UI logs the error and uses Scramjet's native route.
+continues handling the proxied document and its subresources. The Scramjet URL
+codec uses a scheme marker (`1` for HTTPS, `0` for HTTP) plus Base64URL for
+native target paths, while preserving normal percent-encoding for other URL
+schemes. If creating the hashed route fails, the UI logs the error and uses
+Scramjet's encoded native route.
 
 ### 6. Fingerprint Detection
 

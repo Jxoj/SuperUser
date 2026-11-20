@@ -57,25 +57,19 @@
     const match = /\.([a-z\d]+)$/i.exec(pathname);
     if (!match) return '';
     const extension = match[1].toLowerCase();
-    return ['js', 'json', 'html', 'css', 'png', 'jpg', 'svg', 'woff2'].includes(extension)
+    return ['js', 'json', 'html', 'htm', 'css', 'png', 'jpg', 'jpeg', 'svg', 'woff2', 'webp', 'gif', 'ico'].includes(extension)
       ? extension
       : '';
   }
 
-  function registryFilename(target) {
+  function registryType(target) {
     const extension = targetExtension(target);
-    if (extension === 'js') {
-      const basename = new URL(target).pathname.split('/').pop();
-      return /(?:^|[.-])(?:chunk|vendor|runtime)(?:[.-]|$)/i.test(basename)
-        ? 'chunk.js'
-        : 'main.js';
-    }
-    if (extension === 'json') return 'data.json';
-    if (extension === 'html') return 'index.html';
-    if (extension === 'css') return 'app.css';
-    if (['png', 'jpg', 'svg'].includes(extension)) return `image.${extension}`;
-    if (extension === 'woff2') return 'font.woff2';
-    return 'resource';
+    if (extension === 'js') return 'js';
+    if (extension === 'css') return 'css';
+    if (['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif', 'ico'].includes(extension)) return 'imgs';
+    if (['html', 'htm'].includes(extension)) return 'html';
+    if (['json', 'xml'].includes(extension)) return 'articles';
+    return 'files';
   }
 
   function encodeHex(value) {
@@ -198,11 +192,12 @@
     await recordTarget(target, hash);
   }
 
-  async function encodeRegistry(prefix, target) {
-    const normalizedPrefix = normalizePrefix(prefix);
+  async function encodeRegistry(_prefix, target) {
+    const normalizedPrefix = normalizePrefix(_prefix);
     const hash = (await digest(target)).slice(0, 16);
     await recordTarget(target, hash);
-    return `${normalizedPrefix}${hash}/${registryFilename(target)}`;
+    const extension = targetExtension(target) || 'bin';
+    return `${normalizedPrefix}${registryType(target)}/${hash}.${extension}`;
   }
 
   async function decodeRegistry(pathname) {
@@ -210,17 +205,15 @@
     if (!match) return null;
     const target = await lookupTarget(match.hash);
     if (!isHttpTarget(target) || (await digest(target)).slice(0, 16) !== match.hash) return null;
-    if (registryFilename(target) !== match.filename) return null;
+    if (registryType(target) !== match.type || (targetExtension(target) || 'bin') !== match.extension) return null;
     return target;
   }
 
   function matchRegistryPath(pathname) {
-    for (const prefix of [...PREFIXES].sort((a, b) => b.length - a.length)) {
-      if (!pathname.startsWith(prefix)) continue;
-      const match = /^([0-9a-f]{16})\/([^/]+)$/.exec(pathname.slice(prefix.length));
-      return match ? { prefix, hash: match[1], filename: match[2] } : null;
-    }
-    return null;
+    const match = /^\/(?:(?:assets|pkg|imgs|articles)\/)?(js|css|imgs|backgrounds|html|articles|files)\/([0-9a-f]{16})\.([a-z\d]+)$/i.exec(pathname);
+    return match
+      ? { type: match[1].toLowerCase(), hash: match[2], extension: match[3].toLowerCase() }
+      : null;
   }
 
   async function encodeSelfContained(prefix, target) {
@@ -302,8 +295,19 @@
     return isHttpTarget(target) ? target : null;
   }
 
+  function encodeScramjetUrl(value) {
+    if (!value) return value;
+    return isHttpTarget(value) ? encodeNativeTarget(value) : encodeURIComponent(value);
+  }
+
+  function decodeScramjetUrl(value) {
+    if (!value) return value;
+    return decodeNative(value) || decodeURIComponent(value);
+  }
+
   function classifyPath(pathname, search = '', hash = '') {
     if (matchRegistryPath(pathname)) return 'registry';
+    if (/^\/assets\/[a-z\d]{8}\/[01][a-z\d_-]+$/i.test(pathname)) return 'native';
     for (const prefix of [...PREFIXES].sort((a, b) => b.length - a.length)) {
       if (!pathname.startsWith(prefix)) continue;
       const payload = pathname.slice(prefix.length);
@@ -313,7 +317,6 @@
       if (search.startsWith('?u=')) return 'query-b64';
       return null;
     }
-    if (/^\/eduapi\/[a-z\d]{8}\/.+$/i.test(pathname)) return 'native';
     return null;
   }
 
@@ -336,6 +339,7 @@
     decodeBase64Url,
     decodeHex,
     decodeNative,
+    decodeScramjetUrl,
     decodePath,
     decodeRegistry,
     decodeSelfContained,
@@ -343,6 +347,7 @@
     encodeBase64Url,
     encodeHex,
     encodeNativeTarget,
+    encodeScramjetUrl,
     encodeFragment,
     encodeNative,
     encodePathHex,
@@ -357,7 +362,7 @@
     normalizeTarget,
     recordTarget,
     recordFetch,
-    registryFilename,
+    registryType,
     resolveEncodedPath,
     targetExtension
   });

@@ -1,9 +1,9 @@
 export const gatewayContract = {
   origin: 'https://superuser.netlify.app',
-  pathTemplate: '/eduapi/{seg1}/{seg2}/{target}',
-  segments: ['fv65qma5', 'e7bbh9tm'],
+  pathTemplate: '/assets/{seg1}/{target}',
+  segments: ['fv65qma5'],
   wispPath: '/eduapi/wisp/',
-  targetEncoding: 'percent',
+  targetEncoding: 'base64url-scheme-marker',
   probe: {
     path: '/capabilities',
     method: 'POST',
@@ -12,7 +12,7 @@ export const gatewayContract = {
   }
 };
 
-export const prefixes = ['/assets/', '/static/', '/cdn/', '/pkg/', '/_next/static/'];
+export const prefixes = ['/assets/', '/pkg/', '/imgs/', '/articles/'];
 
 export const ladder = [
   { form: 'registry', rationale: 'hashed directory with generic filename, no decode needed' },

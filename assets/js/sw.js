@@ -6,7 +6,7 @@ if (!scramjetController) {
   throw new Error('Failed to load the Scramjet service worker controller.');
 }
 
-const frameRoot = new URL('eduapi/', self.location.href).pathname;
+const frameRoot = new URL('assets/', self.location.href).pathname;
 
 function getCodecRoute(url) {
   if (!url.pathname.startsWith(frameRoot)) return null;
@@ -21,7 +21,7 @@ function getCodecRoute(url) {
   const form = self.SuperUserRegistry.classifyPath(pathname, url.search, url.hash);
   const isCodecNamespace = self.SuperUserRegistry.PREFIXES.some(prefix =>
     pathname.startsWith(prefix)
-  );
+  ) || /^\/(js|css|imgs|backgrounds|html|articles|files)\//i.test(pathname);
   return isCodecNamespace ? { framePrefix, pathname, form } : null;
 }
 

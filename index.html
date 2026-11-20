@@ -2176,7 +2176,7 @@
   const frameLoader     = document.getElementById('frameLoader');
   const frameLoaderMsg   = document.getElementById('frameLoaderMsg');
   const learningScreen   = document.getElementById('learningScreen');
-  const SCRAMJET_PREFIX  = 'eduapi/';
+  const SCRAMJET_PREFIX  = 'assets/';
   const SETTINGS_KEY     = 'superuser-settings';
   const TABS_KEY         = 'superuser-tabs';
   const EXTENSIONS_KEY   = 'superuser-extensions';
@@ -2600,6 +2600,7 @@
         scramjet.setTransport(transport);
       } else {
         addLog('Initializing Scramjet controller & WASM...', 'info');
+        const { registry: urlRegistry } = await import(appPath('assets/js/codecs.js'));
         scramjet = new Controller({
           serviceworker: sw,
           transport,
@@ -2608,7 +2609,11 @@
             prefix: appPath(SCRAMJET_PREFIX),
             scramjetPath: appPath('scramjet/scramjet.js'),
             injectPath: appPath('controller/controller.inject.js'),
-            wasmPath: appPath('scramjet/scramjet.wasm')
+            wasmPath: appPath('scramjet/scramjet.wasm'),
+            codec: {
+              encode: value => urlRegistry.encodeScramjetUrl(value),
+              decode: value => urlRegistry.decodeScramjetUrl(value)
+            }
           },
           scramjetConfig: {
             ...defaultConfig,
@@ -3117,7 +3122,8 @@
           .then(async ({ adapters, registry }) => {
             const encodedPath = await adapters.registry.encode(registry.nextPrefix(), getEffectiveLoadUrl(url));
             if (tab.codecNavigationId !== navigationId) return;
-            const framePath = `${tab.sjFrame.prefix}${encodedPath.replace(/^\/+/, '')}`;
+            const routePath = encodedPath.replace(/^\/assets\//, '').replace(/^\/+/, '');
+            const framePath = `${tab.sjFrame.prefix}${routePath}`;
             tab.frame.src = new URL(framePath, location.origin).href;
           })
           .catch(error => {

@@ -68,14 +68,22 @@ test('normalization lowercases only scheme and host', () => {
   );
 });
 
-test('registry URLs round-trip through hash lookup and use the expected filename', async () => {
+test('registry URLs use resource type and target extension while resolving through the hash lookup', async () => {
   const target = 'https://Example.com/scripts/chunk-abc.js?Build=A';
   const normalized = registry.normalizeTarget(target);
   const hash = createHash('sha256').update(normalized).digest('hex').slice(0, 16);
   const encoded = await adapters.registry.encode('/assets/', target);
 
-  assert.equal(encoded, `/assets/${hash}/chunk.js`);
+  assert.equal(encoded, `/assets/js/${hash}.js`);
+  assert.equal(
+    `/assets/abc12345/${encoded.replace(/^\/assets\//, '')}`,
+    `/assets/abc12345/js/${hash}.js`
+  );
   assert.equal(await adapters.registry.decode(new URL(encoded, 'https://proxy.test').pathname), target);
+
+  const grouped = await adapters.registry.encode('/pkg/', target);
+  assert.equal(grouped, `/pkg/js/${hash}.js`);
+  assert.equal(await adapters.registry.decode(new URL(grouped, 'https://proxy.test').pathname), target);
 });
 
 test('self-contained URLs hex-encode UTF-8 targets and reject a tampered digest', async () => {
@@ -91,27 +99,26 @@ test('self-contained URLs hex-encode UTF-8 targets and reject a tampered digest'
   assert.equal(await adapters['self-contained'].decode(`/cdn/${changedHash}/${payload}.png`), null);
 });
 
-test('registry filenames match the supported target extensions without duplicate suffixes', () => {
+test('registry URLs select a path category from the target resource type', () => {
   const examples = [
-    ['https://host.test/app.js', 'main.js'],
-    ['https://host.test/chunk-v2.js', 'chunk.js'],
-    ['https://host.test/page.html', 'index.html'],
-    ['https://host.test/data.json', 'data.json'],
-    ['https://host.test/app.css', 'app.css'],
-    ['https://host.test/photo.jpg', 'image.jpg'],
-    ['https://host.test/font.woff2', 'font.woff2'],
-    ['https://host.test/file.jpeg', 'resource'],
-    ['https://host.test/no-extension', 'resource']
+    ['https://host.test/app.js', 'js'],
+    ['https://host.test/page.html', 'html'],
+    ['https://host.test/data.json', 'articles'],
+    ['https://host.test/app.css', 'css'],
+    ['https://host.test/photo.jpg', 'imgs'],
+    ['https://host.test/font.woff2', 'files'],
+    ['https://host.test/file.jpeg', 'imgs'],
+    ['https://host.test/no-extension', 'files']
   ];
   for (const [target, filename] of examples) {
-    assert.equal(registry.registryFilename(target), filename);
+    assert.equal(registry.registryType(target), filename);
   }
 });
 
 test('native adapter hides the scheme and encodes the remaining URL', async () => {
   const target = 'https://Example.com/Path?q=UP#frag';
   const encoded = await adapters.native.encode('/assets/', target);
-  assert.equal(encoded, '/eduapi/fv65qma5/e7bbh9tm/1RXhhbXBsZS5jb20vUGF0aD9xPVVQI2ZyYWc');
+  assert.equal(encoded, '/assets/fv65qma5/1RXhhbXBsZS5jb20vUGF0aD9xPVVQI2ZyYWc');
   assert.equal(adapters.native.decode(encoded), target);
   assert.ok(!encoded.includes('https'));
   assert.ok(!encoded.includes('Example.com'));
@@ -120,6 +127,17 @@ test('native adapter hides the scheme and encodes the remaining URL', async () =
   const httpEncoded = await adapters.native.encode('/assets/', httpTarget);
   assert.equal(adapters.native.decode(httpEncoded), httpTarget);
   assert.ok(httpEncoded.endsWith('/0ZXhhbXBsZS5jb20vcGFnZQ'));
+});
+
+test('Scramjet codec encodes HTTP URLs opaquely and preserves other URL schemes', () => {
+  const target = 'https://example.com/a.js?x=1';
+  const encoded = registry.encodeScramjetUrl(target);
+  assert.ok(!encoded.includes('https'));
+  assert.ok(!encoded.includes('example.com'));
+  assert.equal(registry.decodeScramjetUrl(encoded), target);
+
+  const dataUrl = 'data:text/plain,hello world';
+  assert.equal(registry.decodeScramjetUrl(registry.encodeScramjetUrl(dataUrl)), dataUrl);
 });
 
 test('all ladder forms are detected and decoded by the request helpers', async () => {
@@ -159,20 +177,23 @@ test('service worker routes registry hits to the native Scramjet path and return
   async function fetchThroughWorker(path) {
     let responsePromise;
     listeners.fetch({
-      request: new Request(`https://proxy.test/eduapi/abc12345${path}`),
+      request: new Request(`https://proxy.test/assets/abc12345/${path.replace(/^\/+/, '')}`),
       respondWith(response) { responsePromise = response; }
     });
     return responsePromise;
   }
 
-  const hit = await fetchThroughWorker(encoded);
+  const hit = await fetchThroughWorker(encoded.replace(/^\/assets\//, ''));
   assert.equal(hit.status, 307);
   assert.equal(hit.headers.get('Cache-Control'), 'public, max-age=31536000, immutable');
   const hitTarget = 'https://proxy-target.test/page.html';
   const hitEncoded = registry.encodeNativeTarget(hitTarget);
-  assert.equal(hit.headers.get('Location'), `https://proxy.test/eduapi/abc12345/${hitEncoded}`);
+  assert.equal(hit.headers.get('Location'), `https://proxy.test/assets/abc12345/${hitEncoded}`);
 
-  const miss = await fetchThroughWorker('/assets/ffffffffffffffff/index.html');
+  const grouped = await adapters.registry.encode('/pkg/', target);
+  assert.equal((await fetchThroughWorker(grouped)).status, 307);
+
+  const miss = await fetchThroughWorker('/js/ffffffffffffffff.html');
   assert.equal(miss.status, 404);
 
   const selfContained = await adapters['self-contained'].encode('/cdn/', 'https://target.test/page.html');
